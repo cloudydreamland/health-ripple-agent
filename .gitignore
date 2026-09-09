@@ -23,8 +23,7 @@ deploy/env/.env.prod
 **/application-dev.yml
 **/application-prod.yml
 
-# ===== 期末项目仓库隔离（与本比赛仓库完全无关，不跟踪）=====
-smart_cloud_brain/
+# ===== 期末项目仓库已移至 E:\smart_cloud_brain（与本仓库完全独立）=====
 
 # ===== 运行产物 / 日志 =====
 *.log
