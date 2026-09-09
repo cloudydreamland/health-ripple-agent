@@ -23,8 +23,9 @@ deploy/env/.env.prod
 **/application-dev.yml
 **/application-prod.yml
 
-# ===== 旧仓库封存目录（期末项目git历史，勿提交；恢复旧仓库改回.git即可）=====
-smart_cloud_brain/.git-legacy/
+# ===== 嵌套仓库说明 =====
+# smart_cloud_brain 内含独立git仓库（期末项目，指向旧远程）。
+# 本仓库将其源码作为普通文件跟踪，两个仓库互不干扰、各自独立提交推送。
 
 # ===== 运行产物 / 日志 =====
 *.log
