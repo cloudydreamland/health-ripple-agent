@@ -1,0 +1,47 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/patient/register,/api/patient/login,/api/doctor/login,/api/admin/login
+        - id: patient-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/patient/**
+        - id: doctor-service
+          uri: lb://doctor-service
+          predicates:
+            - Path=/api/doctor/**
+        - id: registration-service
+          uri: lb://registration-service
+          predicates:
+            - Path=/api/registration/**
+        - id: triage-service
+          uri: lb://triage-service
+          predicates:
+            - Path=/api/triage/**
+        - id: medical-record-service
+          uri: lb://medical-record-service
+          predicates:
+            - Path=/api/medical-record/**
+        - id: prescription-service
+          uri: lb://prescription-service
+          predicates:
+            - Path=/api/prescription/**
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notification/**
+        - id: notification-websocket
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/ws/notifications
+        - id: admin-service
+          uri: lb://admin-service
+          predicates:
+            - Path=/api/admin/**,/api/search/**

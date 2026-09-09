@@ -1,0 +1,87 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/api/patient/register,/api/patient/login,/api/doctor/login,/api/admin/login
+        - id: patient-service
+          uri: ${PATIENT_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/api/patient/**
+        - id: doctor-service
+          uri: ${DOCTOR_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/api/doctor/**
+        - id: registration-service
+          uri: ${REGISTRATION_SERVICE_URI:http://localhost:8085}
+          predicates:
+            - Path=/api/registration/**
+        - id: triage-service
+          uri: ${TRIAGE_SERVICE_URI:http://localhost:8086}
+          predicates:
+            - Path=/api/triage/**
+        - id: medical-record-service
+          uri: ${MEDICAL_RECORD_SERVICE_URI:http://localhost:8087}
+          predicates:
+            - Path=/api/medical-record/**
+        - id: prescription-service
+          uri: ${PRESCRIPTION_SERVICE_URI:http://localhost:8088}
+          predicates:
+            - Path=/api/prescription/**
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URI:http://localhost:8089}
+          predicates:
+            - Path=/api/notification/**
+        - id: notification-websocket
+          uri: ${NOTIFICATION_WS_URI:ws://localhost:8089}
+          predicates:
+            - Path=/ws/notifications
+        - id: admin-service
+          uri: ${ADMIN_SERVICE_URI:http://localhost:8090}
+          predicates:
+            - Path=/api/admin/**,/api/search/**
+        - id: followup-service
+          uri: ${FOLLOWUP_SERVICE_URI:http://localhost:8091}
+          predicates:
+            - Path=/api/followup/**
+        - id: ripple-service
+          uri: ${RIPPLE_SERVICE_URI:http://localhost:8092}
+          predicates:
+            - Path=/api/health-event/**,/api/mdt/**,/api/drug/lifestyle-conflict,/api/complication/signal,/api/evidence/**,/api/chrono/**
+      globalcors:
+        cors-configurations:
+          "[/**]":
+            allowedOriginPatterns:
+              - ${PATIENT_WEB_ORIGIN:http://localhost:5173}
+              - ${DOCTOR_WEB_ORIGIN:http://localhost:5174}
+              - ${ADMIN_WEB_ORIGIN:http://localhost:5175}
+              - ${PUBLIC_WEB_ORIGIN:http://localhost}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Requested-With
+              - Sec-WebSocket-Protocol
+            allowCredentials: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+jwt:
+  secret: ${JWT_SECRET:smart-cloud-brain-local-secret-please-change}
+  expire-hours: ${JWT_EXPIRE_HOURS:24}

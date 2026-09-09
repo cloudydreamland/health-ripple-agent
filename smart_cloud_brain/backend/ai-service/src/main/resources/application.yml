@@ -1,0 +1,44 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: ai-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:54321}/${DB_NAME:smart_cloud_brain}}
+    username: ${DB_USERNAME:scb}
+    password: ${DB_PASSWORD:scb_password}
+    driver-class-name: ${DB_DRIVER_CLASS:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+knife4j:
+  enable: true
+
+ai:
+  provider: ${AI_PROVIDER:mock}
+  timeout-ms: ${AI_TIMEOUT_MS:8000}
+  openai:
+    base-url: ${OPENAI_BASE_URL:}
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:}
+  dify:
+    base-url: ${DIFY_BASE_URL:}
+    api-key: ${DIFY_API_KEY:}
+  dify-triage:
+    api-key: ${DIFY_TRIAGE_API_KEY:}
+  dify-medical-record:
+    api-key: ${DIFY_MEDICAL_RECORD_API_KEY:}
+  dify-prescription-check:
+    api-key: ${DIFY_PRESCRIPTION_CHECK_API_KEY:}

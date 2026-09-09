@@ -1,0 +1,12 @@
+.git
+.idea
+.vscode
+target
+**/target
+**/.mvn
+node_modules
+dist
+.env
+*.log
+!backend/*/target/
+!backend/*/target/*.jar

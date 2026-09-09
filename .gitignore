@@ -1,0 +1,39 @@
+# ===== 构建产物 =====
+target/
+**/target/
+*.class
+*.jar
+*.war
+
+# ===== 前端 =====
+node_modules/
+dist/
+*.err
+
+# ===== Python =====
+__pycache__/
+*.pyc
+
+# ===== 环境与密钥（模板example可提交）=====
+.env
+deploy/env/.env
+deploy/env/.env.dev
+deploy/env/.env.demo
+deploy/env/.env.prod
+**/application-dev.yml
+**/application-prod.yml
+
+# ===== 旧仓库封存目录（期末项目git历史，勿提交；恢复旧仓库改回.git即可）=====
+smart_cloud_brain/.git-legacy/
+
+# ===== 运行产物 / 日志 =====
+*.log
+.scb_audit/
+.scb_evidence/
+e2e_report.json
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+.hermes/
+*.iml

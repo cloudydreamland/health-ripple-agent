@@ -1,0 +1,412 @@
+services:
+  kingbase-volume-init:
+    image: ${KINGBASE_IMAGE:-kingbase_v009r001c010b0004_single_x86:v1}
+    container_name: scb-kingbase-volume-init
+    user: "0:0"
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - mkdir -p /home/kingbase/userdata/data /home/kingbase/userdata/etc && chown -R 1000:1000 /home/kingbase/userdata && chmod 700 /home/kingbase/userdata/data
+    volumes:
+      - kingbase-data:/home/kingbase/userdata
+
+  kingbase:
+    image: ${KINGBASE_IMAGE:-kingbase_v009r001c010b0004_single_x86:v1}
+    container_name: scb-kingbase
+    restart: unless-stopped
+    depends_on:
+      kingbase-volume-init:
+        condition: service_completed_successfully
+    environment:
+      DB_NAME: ${DB_NAME:-smart_cloud_brain}
+      DB_USER: ${DB_USERNAME:-scb}
+      DB_PASSWORD: ${DB_PASSWORD:-scb_password}
+      DATA_DIR: ${DB_DATA_DIR:-/home/kingbase/userdata/data}
+      DB_MODE: ${KINGBASE_DB_MODE:-pg}
+      SYSTEM_PWD: ${KINGBASE_SYSTEM_PASSWORD:-kingbase_password}
+      POSTGRES_DB: ${DB_NAME:-smart_cloud_brain}
+      POSTGRES_USER: ${DB_USERNAME:-scb}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scb_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${DB_PORT:-54321}:${DB_INTERNAL_PORT:-54321}"
+    volumes:
+      - kingbase-data:/home/kingbase/userdata
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "KINGBASE_PASSWORD=$$DB_PASSWORD /home/kingbase/install/kingbase/bin/ksql -h 127.0.0.1 -p ${DB_INTERNAL_PORT:-54321} -U $$DB_USER -d kingbase -c 'SELECT 1' >/dev/null 2>&1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  db-init:
+    image: ${KINGBASE_IMAGE:-kingbase_v009r001c010b0004_single_x86:v1}
+    container_name: scb-db-init
+    depends_on:
+      kingbase:
+        condition: service_healthy
+    environment:
+      DB_HOST: ${DB_SERVICE_HOST:-kingbase}
+      DB_PORT: ${DB_SERVICE_PORT:-54321}
+      DB_NAME: ${DB_NAME:-smart_cloud_brain}
+      DB_USER: ${DB_USERNAME:-scb}
+      DB_PASSWORD: ${DB_PASSWORD:-scb_password}
+      TZ: Asia/Shanghai
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - |
+        set -e
+        BIN=/home/kingbase/install/kingbase/bin
+        export KINGBASE_PASSWORD="$${DB_PASSWORD}"
+        until "$${BIN}/ksql" -h "$${DB_HOST}" -p "$${DB_PORT}" -U "$${DB_USER}" -d kingbase -c "SELECT 1" >/dev/null 2>&1; do
+          echo "waiting for kingbase..."
+          sleep 2
+        done
+        if ! "$${BIN}/ksql" -h "$${DB_HOST}" -p "$${DB_PORT}" -U "$${DB_USER}" -d kingbase -Atc "SELECT 1 FROM pg_database WHERE datname = '$${DB_NAME}'" | grep -q 1; then
+          "$${BIN}/createdb" -h "$${DB_HOST}" -p "$${DB_PORT}" -U "$${DB_USER}" "$${DB_NAME}"
+        fi
+        "$${BIN}/ksql" -v ON_ERROR_STOP=1 -h "$${DB_HOST}" -p "$${DB_PORT}" -U "$${DB_USER}" -d "$${DB_NAME}" -f /sql/kingbase_schema.sql
+        echo "schema initialized"
+    volumes:
+      - ../sql/kingbase_schema.sql:/sql/kingbase_schema.sql:ro
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: scb-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-scb}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-scb_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: scb-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  gateway-service:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: gateway-service
+    container_name: scb-gateway-service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-smart-cloud-brain-local-secret-please-change}
+      AUTH_SERVICE_URI: http://auth-service:8082
+      PATIENT_SERVICE_URI: http://patient-service:8083
+      DOCTOR_SERVICE_URI: http://doctor-service:8084
+      REGISTRATION_SERVICE_URI: http://registration-service:8085
+      TRIAGE_SERVICE_URI: http://triage-service:8086
+      MEDICAL_RECORD_SERVICE_URI: http://medical-record-service:8087
+      PRESCRIPTION_SERVICE_URI: http://prescription-service:8088
+      NOTIFICATION_SERVICE_URI: http://notification-service:8089
+      NOTIFICATION_WS_URI: ws://notification-service:8089
+      ADMIN_SERVICE_URI: http://admin-service:8090
+      FOLLOWUP_SERVICE_URI: http://followup-service:8091
+      RIPPLE_SERVICE_URI: http://ripple-service:8092
+      TZ: Asia/Shanghai
+    ports:
+      - "${GATEWAY_PORT:-18080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  auth-service: &domain-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: auth-service
+    container_name: scb-auth-service
+    restart: unless-stopped
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment: &domain-env
+      SERVER_PORT: 8082
+      DB_HOST: ${DB_SERVICE_HOST:-kingbase}
+      DB_PORT: ${DB_SERVICE_PORT:-54321}
+      DB_NAME: ${DB_NAME:-smart_cloud_brain}
+      DB_USERNAME: ${DB_USERNAME:-scb}
+      DB_PASSWORD: ${DB_PASSWORD:-scb_password}
+      JWT_SECRET: ${JWT_SECRET:-smart-cloud-brain-local-secret-please-change}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-scb}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-scb_password}
+      # Kingbase max_connections=100，13个服务池需收敛（13×5=65 < 100），防连接风暴
+      SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: 5
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:$${SERVER_PORT}/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  patient-service:
+    <<: *domain-service
+    container_name: scb-patient-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: patient-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8083
+
+  doctor-service:
+    <<: *domain-service
+    container_name: scb-doctor-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: doctor-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8084
+
+  registration-service:
+    <<: *domain-service
+    container_name: scb-registration-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: registration-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8085
+
+  triage-service:
+    <<: *domain-service
+    container_name: scb-triage-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: triage-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8086
+      AI_SERVICE_BASE_URL: http://ai-service:8081
+
+  medical-record-service:
+    <<: *domain-service
+    container_name: scb-medical-record-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: medical-record-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8087
+      AI_SERVICE_BASE_URL: http://ai-service:8081
+
+  prescription-service:
+    <<: *domain-service
+    container_name: scb-prescription-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: prescription-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8088
+      AI_SERVICE_BASE_URL: http://ai-service:8081
+
+  notification-service:
+    <<: *domain-service
+    container_name: scb-notification-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: notification-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8089
+
+  admin-service:
+    <<: *domain-service
+    container_name: scb-admin-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: admin-service
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      doctor-service:
+        condition: service_healthy
+      triage-service:
+        condition: service_healthy
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8090
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DOCTOR_SERVICE_BASE_URL: http://doctor-service:8084
+      TRIAGE_SERVICE_BASE_URL: http://triage-service:8086
+
+  followup-service:
+    <<: *domain-service
+    container_name: scb-followup-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: followup-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8091
+
+  ripple-service:
+    <<: *domain-service
+    container_name: scb-ripple-service
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: ripple-service
+    environment:
+      <<: *domain-env
+      SERVER_PORT: 8092
+
+  ai-service:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.service
+      args:
+        SERVICE: ai-service
+    container_name: scb-ai-service
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      DB_HOST: ${DB_SERVICE_HOST:-kingbase}
+      DB_PORT: ${DB_SERVICE_PORT:-54321}
+      DB_NAME: ${DB_NAME:-smart_cloud_brain}
+      DB_USERNAME: ${DB_USERNAME:-scb}
+      DB_PASSWORD: ${DB_PASSWORD:-scb_password}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-8000}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      DIFY_BASE_URL: ${DIFY_BASE_URL:-}
+      DIFY_API_KEY: ${DIFY_API_KEY:-}
+      DIFY_TRIAGE_API_KEY: ${DIFY_TRIAGE_API_KEY:-}
+      DIFY_MEDICAL_RECORD_API_KEY: ${DIFY_MEDICAL_RECORD_API_KEY:-}
+      DIFY_PRESCRIPTION_CHECK_API_KEY: ${DIFY_PRESCRIPTION_CHECK_API_KEY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,host.docker.internal,ai-service,docker-nginx-1,docker-api-1,nginx,api}
+      no_proxy: ${NO_PROXY:-localhost,127.0.0.1,host.docker.internal,ai-service,docker-nginx-1,docker-api-1,nginx,api}
+      TZ: Asia/Shanghai
+    ports:
+      - "${AI_SERVICE_PORT:-8081}:8081"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - default
+
+  patient-web:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.web
+      args:
+        APP_NAME: patient-web
+        PNPM_VERSION: ${PNPM_VERSION:-9.15.0}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    container_name: scb-patient-web
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+
+  doctor-web:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.web
+      args:
+        APP_NAME: doctor-web
+        PNPM_VERSION: ${PNPM_VERSION:-9.15.0}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    container_name: scb-doctor-web
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "5174:80"
+
+  admin-web:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.web
+      args:
+        APP_NAME: admin-web
+        PNPM_VERSION: ${PNPM_VERSION:-9.15.0}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    container_name: scb-admin-web
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "5175:80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: scb-nginx
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "${NGINX_PORT:-18000}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+
+volumes:
+  kingbase-data:
+  rabbitmq-data:
+  redis-data:

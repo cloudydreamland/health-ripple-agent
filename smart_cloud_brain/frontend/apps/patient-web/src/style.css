@@ -1,0 +1,113 @@
+@import "../../../packages/shared-ui/src/styles/index.css";
+
+.patient-page.theme-patient .panel,
+.patient-page.theme-patient button,
+.patient-page.theme-patient input,
+.patient-page.theme-patient textarea,
+.patient-page.theme-patient select {
+  border-radius: 4px;
+}
+
+.portal-notices {
+  display: grid;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 14px auto 0;
+  padding: 0 24px;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.7fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.auth-copy h1 {
+  margin: 0;
+  color: #12385b;
+  font-size: 46px;
+  line-height: 1.08;
+}
+
+.patient-dashboard-grid,
+.portal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
+  gap: 18px;
+}
+
+.patient-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.patient-summary-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.patient-summary-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.patient-summary-card strong {
+  display: block;
+  margin-top: 4px;
+  color: #12385b;
+  font-size: 20px;
+}
+
+.triage-result {
+  display: grid;
+  gap: 10px;
+}
+
+.slot-card,
+.record-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.slot-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-list dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-list dd {
+  margin: 2px 0 0;
+}
+
+.patient-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+@media (max-width: 900px) {
+  .auth-grid,
+  .patient-dashboard-grid,
+  .portal-grid,
+  .patient-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
