@@ -24,11 +24,14 @@ dumate-skills/                 # 5个DuMate Skill（Agent Skills开放标准）
 ├── followup-plan/             #   诊后随访计划
 └── health-ripple/             #   健康事件涟漪守护（核心创新，含安全冒烟测试）
 
-smart_cloud_brain/             # 后端工具层（Spring Boot 3 微服务，Docker Compose 20容器）
-├── backend/ripple-service/    #   涟漪推演/MDT/时间学引擎/反事实护栏/证据链FHIR导出
-├── backend/followup-service/  #   诊后随访服务
-├── scripts/e2e_test.py        #   端到端测试（19步全旅程）
-└── deploy/                    #   Docker Compose 一键部署
+backend/                       # 后端微服务（Spring Boot 3 · Docker Compose 20容器）
+├── ripple-service/            #   涟漪推演/MDT/时间学引擎/反事实护栏/证据链FHIR导出
+└── followup-service/          #   诊后随访服务
+frontend/                      # 医生/患者工作台（Web）
+deploy/                        # Docker Compose 一键部署
+scripts/e2e_test.py            # 端到端测试（19步全旅程）
+sql/                           # MySQL/Kingbase/ripple/followup 建库脚本
+postman/                       # API集合（可直接导入调试）
 
 作品说明文档.md                # 完整方案（含30+竞品硬核对比）
 应用方案-PDF内容.md            # 提交用20页PDF源稿
@@ -40,14 +43,13 @@ smart_cloud_brain/             # 后端工具层（Spring Boot 3 微服务，Doc
 
 ```bash
 # 1. 启动后端全栈（20容器：13微服务+KingbaseES+RabbitMQ）
-cd smart_cloud_brain
 docker compose -f deploy/docker-compose.yml up -d
 
 # 2. 运行端到端测试（19步：注册→分诊→挂号→病历→处方→随访→涟漪→MDT→证据审计）
 py -3 scripts/e2e_test.py
 
 # 3. Skill安全冒烟测试（5用例：降级安全/超长拒绝/审计脱敏/证据脱敏/MDT边界）
-cd ../dumate-skills/health-ripple
+cd dumate-skills/health-ripple
 py -3 scripts/test_security_smoke.py
 ```
 

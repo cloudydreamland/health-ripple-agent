@@ -23,9 +23,8 @@ deploy/env/.env.prod
 **/application-dev.yml
 **/application-prod.yml
 
-# ===== 嵌套仓库说明 =====
-# smart_cloud_brain 内含独立git仓库（期末项目，指向旧远程）。
-# 本仓库将其源码作为普通文件跟踪，两个仓库互不干扰、各自独立提交推送。
+# ===== 期末项目仓库隔离（与本比赛仓库完全无关，不跟踪）=====
+smart_cloud_brain/
 
 # ===== 运行产物 / 日志 =====
 *.log
