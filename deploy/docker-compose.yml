@@ -345,6 +345,22 @@ services:
     networks:
       - default
 
+  ripple-console:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.web
+      args:
+        APP_NAME: ripple-console
+        PNPM_VERSION: ${PNPM_VERSION:-9.15.0}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    container_name: scb-ripple-console
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "5176:80"
+
   patient-web:
     build:
       context: ..

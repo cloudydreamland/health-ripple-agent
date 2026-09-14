@@ -96,6 +96,20 @@ class RippleServiceCoreTest {
     // 主动式判定：高风险节点应≥2 → 建议MDT
     Map<String, Object> proactive = castMap(result.get("proactiveAssessment"));
     assertEquals(Boolean.TRUE, proactive.get("recommendMdt"));
+
+    // 涟漪强度指数（RII）：事件级强度可量化、节点级评分可解释
+    Map<String, Object> intensity = castMap(result.get("rippleIntensity"));
+    double rii = ((Number) intensity.get("index")).doubleValue();
+    assertTrue(rii >= 45, "糖尿病+二甲双胍高危事件RII应≥45（红色），实际=" + rii);
+    assertEquals("RED", intensity.get("level"));
+    assertTrue(((Number) intensity.get("radius")).intValue() >= 4,
+        "高危事件有效扩散半径应≥4环，实际=" + intensity.get("radius"));
+    List<Map<String, Object>> topRisks = castMapList(intensity.get("topRisks"));
+    assertTrue(topRisks.size() >= 1 && topRisks.size() <= 3, "Top风险应为1-3个");
+    List<Map<String, Object>> conflictNodes = castMapList(castMap(result.get("dimensions"))
+        .get("drugLifestyleConflicts"));
+    assertTrue(conflictNodes.stream().allMatch(n -> n.containsKey("intensity")
+        && n.containsKey("ring") && n.containsKey("scoreBreakdown")), "每个涟漪节点应携带强度标注");
   }
 
   @Test

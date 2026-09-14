@@ -37,6 +37,12 @@ public class MockAiProvider implements AiProvider {
       "咳嗽", "咳痰", "发热", "咽痛", "哮喘", "cough", "fever", "sore throat");
   private static final List<String> EMERGENCY_SIGNS = List.of(
       "胸痛", "呼吸困难", "晕厥", "意识不清", "大汗", "chest pain", "shortness of breath");
+  /** 卒中等神经急症红色指征：出现即急诊分流，不允许降级兜底（RippleBench v1评测发现缺口，v2修复）。 */
+  private static final List<String> NEURO_RED_FLAGS = List.of(
+      "意识不清", "言语不清", "偏瘫", "面瘫", "肢体麻木", "抽搐", "昏迷");
+  /** 哮喘持续状态：哮喘/喘息 + 呼吸困难 → 呼吸内科急诊（而非心内），RippleBench v1评测发现误路由，v2修复。 */
+  private static final List<String> ASTHMA_MARKERS = List.of("哮喘", "喘息", "wheez");
+  private static final List<String> BREATHLESS = List.of("呼吸困难", "讲话困难", "气促", "dyspnea");
 
   @Override
   public String providerName() {
@@ -49,6 +55,30 @@ public class MockAiProvider implements AiProvider {
     String symptoms = request.symptoms() == null ? "" : request.symptoms();
     String text = (complaint + " " + symptoms).toLowerCase();
 
+    // 优先级0a：神经急症红色指征（卒中/昏迷）→ 立即急诊分流，紧急度 EMERGENCY，禁止降级
+    if (containsAny(text, NEURO_RED_FLAGS)) {
+      return new TriageResponse(
+          "General Practice",
+          "GENERAL",
+          "急诊方向",
+          "EMERGENCY",
+          0.85,
+          List.of(2L),
+          "规则引擎：识别卒中/意识急症红色指征，紧急度EMERGENCY，建议立即急诊医学科就诊（卒中黄金3小时），勿等待普通门诊",
+          false);
+    }
+    // 优先级0b：哮喘持续状态（哮喘/喘息 + 呼吸困难）→ 呼吸内科急诊，避免被心血管规则误路由
+    if (containsAny(text, ASTHMA_MARKERS) && containsAny(text, BREATHLESS)) {
+      return new TriageResponse(
+          "Respiratory Medicine",
+          "RESPIRATORY",
+          "呼吸急症方向",
+          "EMERGENCY",
+          0.85,
+          List.of(3L),
+          "规则引擎：哮喘伴呼吸困难提示哮喘持续状态风险，紧急度EMERGENCY，立即呼吸内科/急诊处置",
+          false);
+    }
     // 优先级1：心血管危险症状 → 心内科（危险症状合并存在时紧急度 EMERGENCY）
     if (containsAny(text, CARDIO_DANGER)) {
       boolean emergency = containsAny(text, EMERGENCY_SIGNS);

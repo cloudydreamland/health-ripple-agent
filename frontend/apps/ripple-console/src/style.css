@@ -1,0 +1,184 @@
+/* ============================================================
+   涟漪守护指挥中心 — 深色指挥舱主题
+   ============================================================ */
+:root {
+  --bg: #0a1120;
+  --bg-panel: rgba(17, 28, 48, 0.92);
+  --bg-panel-solid: #111c30;
+  --bg-inset: #0d1628;
+  --line: rgba(94, 140, 200, 0.18);
+  --line-strong: rgba(94, 180, 255, 0.4);
+  --text: #dce8f7;
+  --text-dim: #8aa3c4;
+  --text-faint: #5d7699;
+  --cyan: #3fd8f2;
+  --cyan-dim: rgba(63, 216, 242, 0.14);
+  --blue: #4f8fe6;
+  --red: #ff5d6c;
+  --red-bg: rgba(255, 93, 108, 0.12);
+  --orange: #ffab4a;
+  --orange-bg: rgba(255, 171, 74, 0.12);
+  --yellow: #ffd94a;
+  --yellow-bg: rgba(255, 217, 74, 0.1);
+  --green: #3ee6a4;
+  --green-bg: rgba(62, 230, 164, 0.12);
+  --violet: #9d7bff;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(63, 216, 242, 0.06), transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, rgba(157, 123, 255, 0.05), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 18px 22px;
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(23, 38, 64, 0.9), var(--bg-panel));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(63,216,242,0.25), rgba(79,143,230,0.12));
+  border: 1px solid var(--line-strong);
+  display: grid; place-items: center;
+}
+.brand h1 { margin: 0; font-size: 17px; letter-spacing: 1px; }
+.brand p { margin: 2px 0 0; font-size: 12px; color: var(--text-dim); }
+.topbar-spacer { flex: 1; }
+.conn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.conn .dot { width: 8px; height: 8px; border-radius: 50%; }
+.conn.live { color: var(--green); border-color: rgba(62, 230, 164, 0.4); }
+.conn.live .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.conn.demo { color: var(--orange); border-color: rgba(255, 171, 74, 0.4); }
+.conn.demo .dot { background: var(--orange); }
+
+/* ---------- 控件 ---------- */
+select, input[type="text"], button {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  outline: none;
+}
+select:focus, input[type="text"]:focus { border-color: var(--line-strong); }
+button {
+  cursor: pointer;
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, rgba(63, 216, 242, 0.16), rgba(63, 216, 242, 0.06));
+  color: var(--cyan);
+  font-weight: 600;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+button:hover { filter: brightness(1.2); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text-dim);
+  font-weight: 500;
+}
+button.big { padding: 10px 26px; font-size: 14px; border-radius: 10px; }
+
+/* ---------- 布局 ---------- */
+.grid-main {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 14px;
+}
+.grid-sub {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 14px;
+}
+.grid-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 1100px) {
+  .grid-main, .grid-sub, .grid-bottom { grid-template-columns: 1fr; }
+}
+
+/* ---------- 面板 ---------- */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-panel);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-header .icon { font-size: 15px; }
+.panel-title h2 { margin: 0; font-size: 14px; letter-spacing: 0.5px; }
+.panel-title p { margin: 2px 0 0; font-size: 11.5px; color: var(--text-faint); }
+.panel-header .spacer { flex: 1; }
+.panel-body { padding: 14px 16px; flex: 1; }
+
+/* ---------- 通用 ---------- */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+.tag.RED { color: var(--red); border-color: rgba(255,93,108,0.5); background: var(--red-bg); }
+.tag.ORANGE { color: var(--orange); border-color: rgba(255,171,74,0.5); background: var(--orange-bg); }
+.tag.YELLOW { color: var(--yellow); border-color: rgba(255,217,74,0.4); background: var(--yellow-bg); }
+.tag.GREEN { color: var(--green); border-color: rgba(62,230,164,0.4); background: var(--green-bg); }
+.tag.CYAN { color: var(--cyan); border-color: rgba(63,216,242,0.4); background: var(--cyan-dim); }
+.tag.GUIDELINE { color: var(--green); border-color: rgba(62,230,164,0.4); background: var(--green-bg); }
+.tag.RCT { color: var(--cyan); border-color: rgba(63,216,242,0.4); background: var(--cyan-dim); }
+.tag.OBSERVATIONAL { color: var(--orange); border-color: rgba(255,171,74,0.4); background: var(--orange-bg); }
+
+.mono { font-family: var(--font-mono); font-size: 12px; }
+.hint { color: var(--text-faint); font-size: 12px; line-height: 1.6; }
+.divider { border: none; border-top: 1px dashed var(--line); margin: 12px 0; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(94, 140, 200, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }

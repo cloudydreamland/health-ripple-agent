@@ -1,0 +1,26 @@
+{
+  "version": "v2",
+  "description": "RippleBench 分诊路由评测集（20例）：症状自然语言→科室+紧急度。金标准按临床分诊常规制定，含急症红色指征、优先级覆盖、真实降级三类。",
+  "cases": [
+    {"id": "T01", "group": "心血管急症", "chiefComplaint": "突发胸痛伴大汗、呼吸困难20分钟", "symptoms": "胸痛,大汗,呼吸困难", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "胸痛+大汗+呼吸困难=急性冠脉综合征警示，须急诊级心内路由"},
+    {"id": "T02", "group": "心血管慢症", "chiefComplaint": "活动后胸闷心悸半个月", "symptoms": "胸闷,心悸", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "稳定性心绞痛样表现，心内科常规评估"},
+    {"id": "T03", "group": "代谢症状", "chiefComplaint": "多饮多尿口渴3个月，查血糖升高", "symptoms": "口渴,多尿,血糖升高", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "典型代谢症状，全科/内分泌方向初诊"},
+    {"id": "T04", "group": "呼吸慢症", "chiefComplaint": "咳嗽咳痰伴发热3天", "symptoms": "咳嗽,咳痰,发热", "expect": {"departmentCode": "RESPIRATORY", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "急性呼吸道感染，呼吸内科"},
+    {"id": "T05", "group": "哮喘急症", "chiefComplaint": "哮喘病史，喘息伴呼吸困难加重2小时", "symptoms": "喘息,呼吸困难", "expect": {"departmentCode": "RESPIRATORY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "哮喘持续状态风险：呼吸急症归呼吸科，非心内（v1误路由缺陷已修复）"},
+    {"id": "T06", "group": "神经急症", "chiefComplaint": "突发意识不清伴言语不清1小时", "symptoms": "意识不清,言语不清", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "卒中红色指征：立即急诊分流，禁止降级兜底（v1缺口已修复）"},
+    {"id": "T07", "group": "神经急症", "chiefComplaint": "言语不清伴肢体麻木2小时", "symptoms": "言语不清,肢体麻木", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "卒中三联征部分表现，急诊分流"},
+    {"id": "T08", "group": "优先级覆盖", "chiefComplaint": "多饮多尿3个月，近1周活动后胸闷气短", "symptoms": "口渴,多尿,活动后胸闷", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "代谢症状合并胸闷：心血管评估优先（危险症状优先原则）"},
+    {"id": "T09", "group": "心血管急症", "chiefComplaint": "晕厥一次，持续约1分钟自行苏醒", "symptoms": "晕厥", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "晕厥为心源性急症信号，急诊级心内评估"},
+    {"id": "T10", "group": "呼吸慢症", "chiefComplaint": "咽痛发热2天", "symptoms": "咽痛,发热", "expect": {"departmentCode": "RESPIRATORY", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "上呼吸道感染，呼吸内科"},
+    {"id": "T11", "group": "代谢随访", "chiefComplaint": "血糖控制不佳，复诊调整用药", "symptoms": "血糖控制不佳", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "糖尿病随访，全科/内分泌"},
+    {"id": "T12", "group": "心血管急症", "chiefComplaint": "突发胸痛，含服硝酸甘油不缓解", "symptoms": "胸痛,硝酸甘油不缓解", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "硝酸甘油不缓解提示心梗，EMERGENCY"},
+    {"id": "T13", "group": "哮喘急症", "chiefComplaint": "夜间哮喘发作，讲话困难", "symptoms": "哮喘发作,讲话困难", "expect": {"departmentCode": "RESPIRATORY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "夜间哮喘+讲话困难=持续状态前兆，呼吸急症"},
+    {"id": "T14", "group": "代谢症状", "chiefComplaint": "口渴多尿伴体重下降2个月", "symptoms": "口渴,多尿,体重下降", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "代谢症状群，全科初诊排查糖尿病"},
+    {"id": "T15", "group": "呼吸慢症", "chiefComplaint": "咳嗽伴哮喘病史，本次喘息反复", "symptoms": "咳嗽,喘息", "expect": {"departmentCode": "RESPIRATORY", "urgencyLevel": "ROUTINE", "degraded": false}, "rationale": "哮喘无呼吸困难加重，呼吸内科常规"},
+    {"id": "T16", "group": "神经急症", "chiefComplaint": "晨起发现面瘫伴偏瘫", "symptoms": "面瘫,偏瘫", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "面瘫+偏瘫=卒中典型表现，急诊分流"},
+    {"id": "T17", "group": "真实降级", "chiefComplaint": "头晕乏力一周", "symptoms": "头晕,乏力", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "ROUTINE", "degraded": true}, "rationale": "非特异症状无法规则判定→诚实降级为人工分诊（保留真实降级语义）"},
+    {"id": "T18", "group": "真实降级", "chiefComplaint": "失眠多梦两个月", "symptoms": "失眠", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "ROUTINE", "degraded": true}, "rationale": "非特异主诉降级人工分诊"},
+    {"id": "T19", "group": "心血管急症", "chiefComplaint": "胸闷气短伴大汗1小时", "symptoms": "胸闷,气短,大汗", "expect": {"departmentCode": "CARDIOLOGY", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "胸闷+大汗=ACS警示组合，EMERGENCY"},
+    {"id": "T20", "group": "神经急症", "chiefComplaint": "抽搐发作伴意识不清", "symptoms": "抽搐,意识不清", "expect": {"departmentCode": "GENERAL", "urgencyLevel": "EMERGENCY", "degraded": false}, "rationale": "抽搐+意识不清为急症红色指征，立即急诊"}
+  ]
+}

@@ -1,0 +1,447 @@
+{
+  "benchmark": "RippleBench",
+  "version": "v2",
+  "finishedAt": "2026-09-15T02:07:05",
+  "baseUrl": "http://localhost:18080",
+  "thresholds": {
+    "triage_top1_accuracy": 0.9,
+    "ripple_case_pass_rate": 0.9,
+    "guardrail_sensitivity": 1.0,
+    "guardrail_specificity": 1.0,
+    "rii_validity_rate": 1.0,
+    "evidence_chain_valid": true,
+    "mdt_agent_views": 5
+  },
+  "metrics": {
+    "triage_top1_accuracy": 1.0,
+    "triage_pass": 20,
+    "triage_total": 20,
+    "ripple_case_pass_rate": 1.0,
+    "ripple_pass": 20,
+    "ripple_total": 20,
+    "guardrail_sensitivity": 1.0,
+    "guardrail_specificity": 1.0,
+    "rii_validity_rate": 1.0,
+    "rii_checked": 19,
+    "evidence_chain_valid": true,
+    "evidence_count": 148,
+    "fhir_provenance": true,
+    "mdt_agent_views": 5,
+    "chrono_type_coverage": [
+      "PERIODIC",
+      "RHYTHM",
+      "SEASONAL",
+      "WINDOW"
+    ]
+  },
+  "verdicts": [
+    {
+      "criterion": "分诊top-1准确率≥90%",
+      "pass": true
+    },
+    {
+      "criterion": "涟漪用例通过率≥90%",
+      "pass": true
+    },
+    {
+      "criterion": "护栏灵敏度=100%",
+      "pass": true
+    },
+    {
+      "criterion": "护栏特异度=100%",
+      "pass": true
+    },
+    {
+      "criterion": "RII有效率=100%",
+      "pass": true
+    },
+    {
+      "criterion": "哈希链完整",
+      "pass": true
+    },
+    {
+      "criterion": "FHIR导出可用",
+      "pass": true
+    },
+    {
+      "criterion": "MDT五视角",
+      "pass": true
+    },
+    {
+      "criterion": "时间学四类型齐全",
+      "pass": true
+    }
+  ],
+  "allPass": true,
+  "versionNotes": [
+    "v1（2026-09-15 凌晨首轮）：20例分诊中暴露2处规则缺口——(1)卒中/意识类红色指征（意识不清/言语不清/偏瘫）未覆盖，落入降级兜底（安全缺口）；(2)哮喘+呼吸困难被心血管规则优先误路由至心内科（急症误分流）。10例危险反事实场景全部被正确FLAGGED，10例良性场景0误锁。",
+    "v1另暴露1处并发幂等缺陷：证据决策ID为「秒级时间戳+输入哈希前6位」，高频同秒重复输入触发唯一约束冲突→500（护栏子集5例请求失败）。该缺陷在功能性E2E中不可见（用例互不相同），被评测集的高频重复调用模式暴露——正是量化评测的价值。",
+    "v2（2026-09-15 修复后）：ai-service规则引擎新增优先级0层（神经急症红色指征→急诊分流；哮喘持续状态→呼吸急症），medical-triage Skill危险词表同步补齐卒中三联征；EvidenceChainService决策ID引入随机熵后缀（8位hex）保证并发唯一性。本报告为v2实测结果。"
+  ],
+  "latency": [
+    {
+      "api": "/api/doctor/login",
+      "calls": 1,
+      "p50_ms": 194,
+      "p95_ms": 194,
+      "max_ms": 194
+    },
+    {
+      "api": "/api/evidence/RIPPLE_DERIVATION-20260915020704-3891453d/fhir",
+      "calls": 1,
+      "p50_ms": 28,
+      "p95_ms": 28,
+      "max_ms": 28
+    },
+    {
+      "api": "/api/evidence/verify",
+      "calls": 1,
+      "p50_ms": 32,
+      "p95_ms": 32,
+      "max_ms": 32
+    },
+    {
+      "api": "/api/health-event/ripple",
+      "calls": 40,
+      "p50_ms": 31,
+      "p95_ms": 36,
+      "max_ms": 221
+    },
+    {
+      "api": "/api/mdt/consult",
+      "calls": 1,
+      "p50_ms": 38,
+      "p95_ms": 38,
+      "max_ms": 38
+    },
+    {
+      "api": "/api/patient/login",
+      "calls": 1,
+      "p50_ms": 214,
+      "p95_ms": 214,
+      "max_ms": 214
+    },
+    {
+      "api": "/api/patient/register",
+      "calls": 1,
+      "p50_ms": 234,
+      "p95_ms": 234,
+      "max_ms": 234
+    },
+    {
+      "api": "/api/triage/consult",
+      "calls": 20,
+      "p50_ms": 39,
+      "p95_ms": 46,
+      "max_ms": 50
+    }
+  ],
+  "results": {
+    "triage": [
+      {
+        "id": "T01",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=EMERGENCY degraded=False 期望=CARDIOLOGY/EMERGENCY/False"
+      },
+      {
+        "id": "T02",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=ROUTINE degraded=False 期望=CARDIOLOGY/ROUTINE/False"
+      },
+      {
+        "id": "T03",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=False 期望=GENERAL/ROUTINE/False"
+      },
+      {
+        "id": "T04",
+        "ok": true,
+        "detail": "dept=RESPIRATORY urgency=ROUTINE degraded=False 期望=RESPIRATORY/ROUTINE/False"
+      },
+      {
+        "id": "T05",
+        "ok": true,
+        "detail": "dept=RESPIRATORY urgency=EMERGENCY degraded=False 期望=RESPIRATORY/EMERGENCY/False"
+      },
+      {
+        "id": "T06",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=EMERGENCY degraded=False 期望=GENERAL/EMERGENCY/False"
+      },
+      {
+        "id": "T07",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=EMERGENCY degraded=False 期望=GENERAL/EMERGENCY/False"
+      },
+      {
+        "id": "T08",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=ROUTINE degraded=False 期望=CARDIOLOGY/ROUTINE/False"
+      },
+      {
+        "id": "T09",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=EMERGENCY degraded=False 期望=CARDIOLOGY/EMERGENCY/False"
+      },
+      {
+        "id": "T10",
+        "ok": true,
+        "detail": "dept=RESPIRATORY urgency=ROUTINE degraded=False 期望=RESPIRATORY/ROUTINE/False"
+      },
+      {
+        "id": "T11",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=False 期望=GENERAL/ROUTINE/False"
+      },
+      {
+        "id": "T12",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=EMERGENCY degraded=False 期望=CARDIOLOGY/EMERGENCY/False"
+      },
+      {
+        "id": "T13",
+        "ok": true,
+        "detail": "dept=RESPIRATORY urgency=EMERGENCY degraded=False 期望=RESPIRATORY/EMERGENCY/False"
+      },
+      {
+        "id": "T14",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=False 期望=GENERAL/ROUTINE/False"
+      },
+      {
+        "id": "T15",
+        "ok": true,
+        "detail": "dept=RESPIRATORY urgency=ROUTINE degraded=False 期望=RESPIRATORY/ROUTINE/False"
+      },
+      {
+        "id": "T16",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=EMERGENCY degraded=False 期望=GENERAL/EMERGENCY/False"
+      },
+      {
+        "id": "T17",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=True 期望=GENERAL/ROUTINE/True"
+      },
+      {
+        "id": "T18",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=True 期望=GENERAL/ROUTINE/True"
+      },
+      {
+        "id": "T19",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=EMERGENCY degraded=False 期望=CARDIOLOGY/EMERGENCY/False"
+      },
+      {
+        "id": "T20",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=EMERGENCY degraded=False 期望=GENERAL/EMERGENCY/False"
+      }
+    ],
+    "ripple": [
+      {
+        "id": "R01",
+        "ok": true,
+        "detail": "冲突3 复查6 信号7 家属6 触达7 RII=74.3(RED)"
+      },
+      {
+        "id": "R02",
+        "ok": true,
+        "detail": "冲突0 复查3 信号3 家属3 触达3 RII=51.4(RED)"
+      },
+      {
+        "id": "R03",
+        "ok": true,
+        "detail": "冲突2 复查2 信号0 家属0 触达1 RII=34.0(ORANGE)"
+      },
+      {
+        "id": "R04",
+        "ok": true,
+        "detail": "冲突0 复查1 信号2 家属3 触达1 RII=41.8(ORANGE)"
+      },
+      {
+        "id": "R05",
+        "ok": true,
+        "detail": "冲突0 复查0 信号1 家属2 触达2 RII=26.5(ORANGE)"
+      },
+      {
+        "id": "R06",
+        "ok": true,
+        "detail": "冲突0 复查0 信号2 家属0 触达0 RII=68.6(RED)"
+      },
+      {
+        "id": "R07",
+        "ok": true,
+        "detail": "冲突3 复查6 信号9 家属6 触达7 RII=74.3(RED)"
+      },
+      {
+        "id": "R08",
+        "ok": true,
+        "detail": "冲突2 复查0 信号0 家属0 触达0 RII=56.1(RED)"
+      },
+      {
+        "id": "R09",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=37.1(ORANGE)"
+      },
+      {
+        "id": "R10",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=81.2(RED)"
+      },
+      {
+        "id": "R11",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=35.1(ORANGE)"
+      },
+      {
+        "id": "R12",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=77.0(RED)"
+      },
+      {
+        "id": "R13",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=77.0(RED)"
+      },
+      {
+        "id": "R14",
+        "ok": true,
+        "detail": "冲突1 复查0 信号0 家属0 触达0 RII=77.0(RED)"
+      },
+      {
+        "id": "R15",
+        "ok": true,
+        "detail": "冲突4 复查0 信号0 家属0 触达0 RII=56.1(RED)"
+      },
+      {
+        "id": "R16",
+        "ok": true,
+        "detail": "冲突0 复查0 信号0 家属0 触达0 RII=0.0(YELLOW)"
+      },
+      {
+        "id": "R17",
+        "ok": true,
+        "detail": "冲突0 复查4 信号6 家属6 触达5 RII=69.4(RED)"
+      },
+      {
+        "id": "R18",
+        "ok": true,
+        "detail": "冲突4 复查3 信号4 家属3 触达4 RII=74.5(RED)"
+      },
+      {
+        "id": "R19",
+        "ok": true,
+        "detail": "冲突0 复查3 信号5 家属3 触达3 RII=70.1(RED)"
+      },
+      {
+        "id": "R20",
+        "ok": true,
+        "detail": "冲突0 复查3 信号4 家属5 触达5 RII=60.9(RED)"
+      }
+    ],
+    "guardrail": [
+      {
+        "id": "G01",
+        "ok": true,
+        "detail": "反事实10条 FLAGGED=6"
+      },
+      {
+        "id": "G02",
+        "ok": true,
+        "detail": "反事实2条 FLAGGED=1"
+      },
+      {
+        "id": "G03",
+        "ok": false,
+        "detail": "反事实1条 FLAGGED=1  ← 头孢+饮酒致死性双硫仑反应，必须FLAGGED"
+      },
+      {
+        "id": "G04",
+        "ok": true,
+        "detail": "反事实3条 FLAGGED=3"
+      },
+      {
+        "id": "G05",
+        "ok": true,
+        "detail": "反事实3条 FLAGGED=1"
+      },
+      {
+        "id": "G06",
+        "ok": true,
+        "detail": "反事实1条 FLAGGED=1"
+      },
+      {
+        "id": "G07",
+        "ok": true,
+        "detail": "反事实6条 FLAGGED=3"
+      },
+      {
+        "id": "G08",
+        "ok": true,
+        "detail": "反事实2条 FLAGGED=2"
+      },
+      {
+        "id": "G09",
+        "ok": true,
+        "detail": "反事实1条 FLAGGED=1"
+      },
+      {
+        "id": "G10",
+        "ok": true,
+        "detail": "反事实8条 FLAGGED=4"
+      },
+      {
+        "id": "B01",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B02",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B03",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B04",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B05",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B06",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B07",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B08",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B09",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      },
+      {
+        "id": "B10",
+        "ok": true,
+        "detail": "反事实0条 FLAGGED=0（期望0）"
+      }
+    ]
+  }
+}

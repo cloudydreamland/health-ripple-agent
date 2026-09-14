@@ -1,0 +1,26 @@
+{
+  "version": "v2",
+  "description": "RippleBench 涟漪推演评测集（20例）：健康事件→五维图谱+RII。金标准依据内置循证知识库（13冲突/12信号/9复查窗/11时间学规则）制定，覆盖单病/多病共存/药物主导/空知识优雅降级四类。",
+  "cases": [
+    {"id": "R01", "group": "旗舰病例", "diagnosis": "2型糖尿病", "drugs": ["二甲双胍"], "pastHistory": "高血压", "expect": {"conflictContains": "饮酒", "recheckMin": 2, "signalMin": 4, "familyMin": 3, "chronoTypes": ["RHYTHM", "PERIODIC", "SEASONAL"], "riiMin": 45, "level": "RED"}, "rationale": "糖尿病+二甲双胍+高血压：全部五维非空且时间学三类型齐备，RII应达红色"},
+    {"id": "R02", "group": "单病慢病", "diagnosis": "高血压", "drugs": [], "pastHistory": "", "expect": {"signalMin": 3, "recheckMin": 3, "chronoTypes": ["RHYTHM", "PERIODIC", "SEASONAL"], "riiMin": 25}, "rationale": "高血压：晨峰节律+复查周期+换季季节，并发症信号3条高危"},
+    {"id": "R03", "group": "药物主导", "diagnosis": "房颤（口服华法林抗凝）", "drugs": ["华法林"], "pastHistory": "", "expect": {"conflictContains": "柚子", "recheckContains": "INR", "chronoTypes": ["PERIODIC"], "riiMin": 25}, "rationale": "华法林：柚子冲突+INR监测窗口，药物主导型涟漪"},
+    {"id": "R04", "group": "窗口期", "diagnosis": "冠心病", "drugs": [], "pastHistory": "", "expect": {"signalMin": 2, "chronoTypes": ["WINDOW"], "riiMin": 25}, "rationale": "冠心病：心梗黄金120分钟WINDOW触达必现"},
+    {"id": "R05", "group": "节律守护", "diagnosis": "哮喘", "drugs": [], "pastHistory": "", "expect": {"signalMin": 1, "chronoTypes": ["RHYTHM", "SEASONAL"]}, "rationale": "哮喘：夜间3-5点发作节律+春季花粉季"},
+    {"id": "R06", "group": "器官保护", "diagnosis": "慢性肾病", "drugs": [], "pastHistory": "", "expect": {"signalMin": 2}, "rationale": "慢性肾病：肾功能急性恶化+容量超负荷两条高危信号"},
+    {"id": "R07", "group": "多病共存", "diagnosis": "2型糖尿病", "drugs": ["二甲双胍"], "pastHistory": "高血压,慢性肾病", "expect": {"signalMin": 8, "conflictContains": "饮酒", "chronoTypes": ["RHYTHM", "PERIODIC", "SEASONAL"]}, "rationale": "三病共存：并发症信号应并集（糖尿病4+高血压3+肾病2）"},
+    {"id": "R08", "group": "药物主导", "diagnosis": "", "drugs": ["布洛芬"], "pastHistory": "", "expect": {"conflictContains": "饮酒", "conflictCountMin": 2}, "rationale": "布洛芬：饮酒HIGH+空腹MEDIUM两条冲突"},
+    {"id": "R09", "group": "药物主导", "diagnosis": "", "drugs": ["阿莫西林"], "pastHistory": "", "expect": {"conflictContains": "饮酒"}, "rationale": "阿莫西林：双硫仑样反应（停药7天内）"},
+    {"id": "R10", "group": "药物主导", "diagnosis": "", "drugs": ["头孢类"], "pastHistory": "", "expect": {"conflictContains": "饮酒"}, "rationale": "头孢类：双硫仑样反应（严重可致死，HIGH）"},
+    {"id": "R11", "group": "药物主导", "diagnosis": "", "drugs": ["四环素"], "pastHistory": "", "expect": {"conflictContains": "日晒"}, "rationale": "四环素：光敏反应，避晒建议"},
+    {"id": "R12", "group": "药物主导", "diagnosis": "", "drugs": ["甲氨蝶呤"], "pastHistory": "", "expect": {"conflictContains": "饮酒"}, "rationale": "甲氨蝶呤：肝损伤加重，禁酒"},
+    {"id": "R13", "group": "药物主导", "diagnosis": "", "drugs": ["他汀类"], "pastHistory": "", "expect": {"conflictContains": "柚子"}, "rationale": "他汀类：柚子抑制代谢→横纹肌溶解风险"},
+    {"id": "R14", "group": "药物主导", "diagnosis": "", "drugs": ["磺脲类降糖药"], "pastHistory": "", "expect": {"conflictContains": "饮酒"}, "rationale": "磺脲类：饮酒诱发低血糖"},
+    {"id": "R15", "group": "药物联用", "diagnosis": "", "drugs": ["华法林", "布洛芬"], "pastHistory": "", "expect": {"conflictCountMin": 3}, "rationale": "华法林2条+布洛芬2条=4条冲突（联用风险叠加）"},
+    {"id": "R16", "group": "优雅降级", "diagnosis": "纤维肌痛症", "drugs": [], "pastHistory": "", "expect": {"emptyOk": true, "riiEqualZero": true}, "rationale": "知识库未覆盖疾病：图谱为空、RII=0，不臆造建议（诚实边界）"},
+    {"id": "R17", "group": "多病共存", "diagnosis": "冠心病", "drugs": [], "pastHistory": "2型糖尿病", "expect": {"chronoTypes": ["WINDOW", "RHYTHM", "PERIODIC", "SEASONAL"], "riiMin": 25}, "rationale": "冠心病+糖尿病：WINDOW黄金窗口与节律/周期/季节全类型触达"},
+    {"id": "R18", "group": "旗舰病例", "diagnosis": "2型糖尿病", "drugs": ["二甲双胍", "他汀类"], "pastHistory": "", "expect": {"conflictCountMin": 2, "conflictContains": "饮酒", "riiMin": 45}, "rationale": "糖尿病+二甲双胍+他汀：饮酒与柚子冲突并存"},
+    {"id": "R19", "group": "单病慢病", "diagnosis": "高血压", "drugs": [], "pastHistory": "慢性肾病", "expect": {"signalMin": 5, "chronoTypes": ["RHYTHM", "PERIODIC", "SEASONAL"]}, "rationale": "高血压+肾病：晨峰节律与肾功能信号并存"},
+    {"id": "R20", "group": "多病共存", "diagnosis": "哮喘", "drugs": [], "pastHistory": "高血压", "expect": {"chronoTypes": ["RHYTHM", "SEASONAL"], "signalMin": 4}, "rationale": "哮喘+高血压：夜间节律双通道（3-5点呼吸/4-6点血压晨峰）"}
+  ]
+}

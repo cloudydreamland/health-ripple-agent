@@ -1,0 +1,1183 @@
+{
+  "capturedAt": "2026-09-15T01:20:00+08:00",
+  "note": "真实后端响应快照（ripple-service 在线模式），供指挥中心离线演示模式使用",
+  "ripple": {
+    "healthEvent": {
+      "diagnosis": "2型糖尿病",
+      "pastHistory": "高血压",
+      "drugs": [
+        "二甲双胍"
+      ]
+    },
+    "dimensions": {
+      "drugLifestyleConflicts": [
+        {
+          "drug": "二甲双胍",
+          "conflict": "饮酒",
+          "risk": "乳酸酸中毒（严重可致死）",
+          "severity": "HIGH",
+          "advice": "服药期间禁止饮酒",
+          "counterfactualNote": "若未识别饮酒冲突，患者可能发生乳酸酸中毒（严重可致死）",
+          "ring": 1,
+          "ringName": "用药安全圈",
+          "intensity": 77.0,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 1.0,
+            "urgency": 0.9
+          }
+        },
+        {
+          "drug": "二甲双胍",
+          "conflict": "维生素B12缺乏",
+          "risk": "长期服用致B12缺乏性贫血",
+          "severity": "MEDIUM",
+          "advice": "建议定期监测B12水平",
+          "counterfactualNote": "若未识别维生素B12缺乏冲突，患者可能发生长期服用致B12缺乏性贫血",
+          "ring": 1,
+          "ringName": "用药安全圈",
+          "intensity": 37.1,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.95,
+            "decay": 1.0,
+            "urgency": 0.6
+          }
+        },
+        {
+          "drug": "二甲双胍",
+          "conflict": "造影剂联用",
+          "risk": "肾损伤",
+          "severity": "HIGH",
+          "advice": "造影检查前需提前停药48小时",
+          "counterfactualNote": "若未识别造影剂联用冲突，患者可能发生肾损伤",
+          "ring": 1,
+          "ringName": "用药安全圈",
+          "intensity": 81.2,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 1.0,
+            "urgency": 0.9
+          }
+        }
+      ],
+      "recheckWindows": [
+        {
+          "diagnosis": "2型糖尿病",
+          "item": "肝肾功能+空腹血糖",
+          "timing": "服药2周后",
+          "chronoType": "PERIODIC",
+          "advice": "二甲双胍起始治疗后必查",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "item": "糖化血红蛋白(HbA1c)",
+          "timing": "3个月后",
+          "chronoType": "PERIODIC",
+          "advice": "评估血糖长期控制",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "item": "眼底/足部/尿微量白蛋白",
+          "timing": "每年",
+          "chronoType": "PERIODIC",
+          "advice": "并发症筛查",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "item": "血压复查",
+          "timing": "服药2周后",
+          "chronoType": "PERIODIC",
+          "advice": "评估降压效果",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "item": "肝肾功能+电解质",
+          "timing": "1-3个月后",
+          "chronoType": "PERIODIC",
+          "advice": "ACEI/利尿剂监测",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "item": "心电图/心脏超声",
+          "timing": "每年",
+          "chronoType": "PERIODIC",
+          "advice": "靶器官损害评估",
+          "ring": 3,
+          "ringName": "复查窗口圈",
+          "intensity": 20.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.64,
+            "urgency": 0.55
+          }
+        }
+      ],
+      "complicationSignals": [
+        {
+          "diagnosis": "2型糖尿病",
+          "signal": "视力模糊/飞蚊症突发",
+          "complication": "糖尿病视网膜病变",
+          "action": "立即眼科就诊",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 68.6,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "signal": "足部感觉异常/伤口不愈",
+          "complication": "糖尿病足",
+          "action": "立即外科就诊",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 68.6,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "signal": "心悸/出汗/手抖/饥饿感",
+          "complication": "低血糖",
+          "action": "即时补糖并就医",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 68.6,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "signal": "多尿/多饮/乏力加重/意识模糊",
+          "complication": "糖尿病酮症酸中毒",
+          "action": "立即急诊",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 68.6,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "signal": "剧烈头痛/呕吐/视物模糊",
+          "complication": "高血压危象",
+          "action": "立即急诊",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 68.6,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.9,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "signal": "胸痛/胸闷/大汗",
+          "complication": "心肌梗死/主动脉夹层",
+          "action": "立即急诊（黄金120分钟）",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 72.4,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "signal": "肢体麻木/言语不清/面瘫",
+          "complication": "脑卒中",
+          "action": "立即急诊（黄金3小时）",
+          "urgency": "HIGH",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 72.4,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 0.8,
+            "urgency": 1.0
+          }
+        }
+      ],
+      "familyAttentions": [
+        {
+          "attention": "家属需识别低血糖症状（心悸/出汗/手抖）并即时补糖",
+          "advice": "随身备糖块，症状出现15分钟内口服15g糖",
+          "severity": "HIGH",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 18.7,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        },
+        {
+          "attention": "饮食配合：低GI饮食结构调整",
+          "advice": "全家主食替换低GI食材",
+          "severity": "MEDIUM",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 12.1,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        },
+        {
+          "attention": "足部护理：每日检查足部皮肤完整性",
+          "advice": "每日睡前双人互查足底/趾缝",
+          "severity": "MEDIUM",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 12.1,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        },
+        {
+          "attention": "家属需识别卒中症状（肢体麻木/言语不清/面瘫），立即拨打急救",
+          "advice": "FAST口诀记忆，发病即刻120并记录时间",
+          "severity": "HIGH",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 18.7,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        },
+        {
+          "attention": "家属需识别心梗症状（持续胸痛>15分钟），立即急诊",
+          "advice": "胸痛不缓解就地平卧，拨打120",
+          "severity": "HIGH",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 18.7,
+          "scoreBreakdown": {
+            "severity": 0.95,
+            "actionability": 0.95,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        },
+        {
+          "attention": "低盐低脂饮食配合",
+          "advice": "家庭人均食盐<5g/日",
+          "severity": "MEDIUM",
+          "ring": 5,
+          "ringName": "家庭影响圈",
+          "intensity": 12.8,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.95,
+            "decay": 0.41,
+            "urgency": 0.5
+          }
+        }
+      ],
+      "chronoTriggers": [
+        {
+          "diagnosis": "2型糖尿病",
+          "chronoType": "RHYTHM",
+          "event": "夜间0-3点低血糖高发",
+          "triggerTime": "凌晨0-3点",
+          "action": "主动询问患者状态",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 22.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.75
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "chronoType": "PERIODIC",
+          "event": "服药2周后复查肝肾功能",
+          "triggerTime": "服药后第14天",
+          "action": "主动提醒复查",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 16.6,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "chronoType": "PERIODIC",
+          "event": "3个月后查糖化血红蛋白",
+          "triggerTime": "诊断后第90天",
+          "action": "主动提醒复查",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 16.6,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "2型糖尿病",
+          "chronoType": "SEASONAL",
+          "event": "换季血糖波动",
+          "triggerTime": "秋冬换季",
+          "action": "主动提醒血糖监测",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 10.6,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.35
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "chronoType": "RHYTHM",
+          "event": "凌晨血压晨峰",
+          "triggerTime": "凌晨4-6点",
+          "action": "主动询问晨起血压",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 22.7,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.75
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "chronoType": "PERIODIC",
+          "event": "服药2周后血压复查",
+          "triggerTime": "服药后第14天",
+          "action": "主动提醒复查",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 16.6,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.55
+          }
+        },
+        {
+          "diagnosis": "高血压",
+          "chronoType": "SEASONAL",
+          "event": "秋冬血压升高",
+          "triggerTime": "入秋/入冬",
+          "action": "主动提醒增加监测频次",
+          "ring": 4,
+          "ringName": "触达时机圈",
+          "intensity": 10.6,
+          "scoreBreakdown": {
+            "severity": 0.65,
+            "actionability": 0.9,
+            "decay": 0.52,
+            "urgency": 0.35
+          }
+        }
+      ]
+    },
+    "summary": {
+      "highRiskCount": 9,
+      "totalNodes": 29,
+      "rippleIntensity": {
+        "index": 74.3,
+        "level": "RED",
+        "levelLabel": "红色·高强度涟漪",
+        "radius": 5,
+        "topRisks": [
+          {
+            "dimension": "drugLifestyleConflicts",
+            "label": "二甲双胍+造影剂联用",
+            "ring": 1,
+            "ringName": "用药安全圈",
+            "intensity": 81.2
+          },
+          {
+            "dimension": "drugLifestyleConflicts",
+            "label": "二甲双胍+饮酒",
+            "ring": 1,
+            "ringName": "用药安全圈",
+            "intensity": 77.0
+          },
+          {
+            "dimension": "complicationSignals",
+            "label": "高血压→心肌梗死/主动脉夹层",
+            "ring": 2,
+            "ringName": "疾病进展圈",
+            "intensity": 72.4
+          }
+        ],
+        "model": "RII=100×S×U×A×e^(-0.22×(ring-1))，事件指数=Top5节点均值"
+      }
+    },
+    "rippleEventId": 94,
+    "rippleIntensity": {
+      "index": 74.3,
+      "level": "RED",
+      "levelLabel": "红色·高强度涟漪",
+      "radius": 5,
+      "topRisks": [
+        {
+          "dimension": "drugLifestyleConflicts",
+          "label": "二甲双胍+造影剂联用",
+          "ring": 1,
+          "ringName": "用药安全圈",
+          "intensity": 81.2
+        },
+        {
+          "dimension": "drugLifestyleConflicts",
+          "label": "二甲双胍+饮酒",
+          "ring": 1,
+          "ringName": "用药安全圈",
+          "intensity": 77.0
+        },
+        {
+          "dimension": "complicationSignals",
+          "label": "高血压→心肌梗死/主动脉夹层",
+          "ring": 2,
+          "ringName": "疾病进展圈",
+          "intensity": 72.4
+        }
+      ],
+      "model": "RII=100×S×U×A×e^(-0.22×(ring-1))，事件指数=Top5节点均值"
+    },
+    "counterfactualTree": {
+      "chosenPath": "推演健康事件涟漪影响并生成守护计划+时间学触达",
+      "alternativePaths": [
+        {
+          "path": "未识别二甲双胍+饮酒冲突",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动识别该冲突",
+          "counterfactualOutcome": "若未识别饮酒冲突，患者可能发生乳酸酸中毒（严重可致死）",
+          "riskIfChosen": "HIGH",
+          "evidence": "药物=二甲双胍；冲突=饮酒",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未识别二甲双胍+造影剂联用冲突",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动识别该冲突",
+          "counterfactualOutcome": "若未识别造影剂联用冲突，患者可能发生肾损伤",
+          "riskIfChosen": "HIGH",
+          "evidence": "药物=二甲双胍；冲突=造影剂联用",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病视网膜病变早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现视力模糊/飞蚊症突发时未能及时就医，延误糖尿病视网膜病变诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病视网膜病变",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病足早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现足部感觉异常/伤口不愈时未能及时就医，延误糖尿病足诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病足",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的低血糖早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现心悸/出汗/手抖/饥饿感时未能及时就医，延误低血糖诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=低血糖",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病酮症酸中毒早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现多尿/多饮/乏力加重/意识模糊时未能及时就医，延误糖尿病酮症酸中毒诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病酮症酸中毒",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的高血压危象早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现剧烈头痛/呕吐/视物模糊时未能及时就医，延误高血压危象诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=高血压危象",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的心肌梗死/主动脉夹层早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现胸痛/胸闷/大汗时未能及时就医，延误心肌梗死/主动脉夹层诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=心肌梗死/主动脉夹层",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的脑卒中早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现肢体麻木/言语不清/面瘫时未能及时就医，延误脑卒中诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=脑卒中",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未设置夜间0-3点低血糖高发的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过夜间0-3点低血糖高发的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=RHYTHM；事件=夜间0-3点低血糖高发",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置服药2周后复查肝肾功能的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过服药2周后复查肝肾功能的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=服药2周后复查肝肾功能",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置3个月后查糖化血红蛋白的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过3个月后查糖化血红蛋白的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=3个月后查糖化血红蛋白",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置换季血糖波动的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过换季血糖波动的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=SEASONAL；事件=换季血糖波动",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置凌晨血压晨峰的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过凌晨血压晨峰的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=RHYTHM；事件=凌晨血压晨峰",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置服药2周后血压复查的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过服药2周后血压复查的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=服药2周后血压复查",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置秋冬血压升高的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过秋冬血压升高的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=SEASONAL；事件=秋冬血压升高",
+          "guardrailVerdict": "SAFE"
+        }
+      ],
+      "counterfactualCount": 16,
+      "guardrailSummary": {
+        "flaggedPaths": 9,
+        "auditedPaths": 16,
+        "reference": "MedCounterFact(2026): LLM会盲从危险反事实证据，护栏先行审计",
+        "policy": "FLAGGED路径禁止作为可执行建议，仅保留解释性用途"
+      }
+    },
+    "chronoTriggers": [
+      {
+        "triggerId": 203,
+        "patientId": 1,
+        "chronoType": "RHYTHM",
+        "event": "夜间0-3点低血糖高发",
+        "triggerTime": "凌晨0-3点",
+        "nextTriggerAt": "2026-09-16T00:00",
+        "status": "ACTIVE",
+        "action": "主动询问患者状态",
+        "timingCard": {
+          "missCost": "夜间低血糖未识别→无感知低血糖综合征，心血管事件风险倍增",
+          "evidenceLevel": "GUIDELINE",
+          "evidenceBasis": "ADA糖尿病诊疗标准：夜间0-3点为低血糖高发时段"
+        }
+      },
+      {
+        "triggerId": 204,
+        "patientId": 1,
+        "chronoType": "PERIODIC",
+        "event": "服药2周后复查肝肾功能",
+        "triggerTime": "服药后第14天",
+        "nextTriggerAt": "2026-09-29T01:16:30.249619570",
+        "status": "ACTIVE",
+        "action": "主动提醒复查",
+        "timingCard": {
+          "missCost": "漏查→乳酸酸中毒高危因素未能及时发现",
+          "evidenceLevel": "GUIDELINE",
+          "evidenceBasis": "中国2型糖尿病防治指南：二甲双胍起始治疗后需评估肝肾功能"
+        }
+      },
+      {
+        "triggerId": 205,
+        "patientId": 1,
+        "chronoType": "PERIODIC",
+        "event": "3个月后查糖化血红蛋白",
+        "triggerTime": "诊断后第90天",
+        "nextTriggerAt": "2026-12-14T01:16:30.249619570",
+        "status": "ACTIVE",
+        "action": "主动提醒复查",
+        "timingCard": {
+          "missCost": "延迟评估→血糖失控窗口期延长，并发症累积风险增加",
+          "evidenceLevel": "GUIDELINE",
+          "evidenceBasis": "ADA标准：治疗调整后每3个月评估HbA1c"
+        }
+      },
+      {
+        "triggerId": 206,
+        "patientId": 1,
+        "chronoType": "SEASONAL",
+        "event": "换季血糖波动",
+        "triggerTime": "秋冬换季",
+        "nextTriggerAt": "2027-09-01T00:00",
+        "status": "ACTIVE",
+        "action": "主动提醒血糖监测",
+        "timingCard": {
+          "missCost": "未增加监测→冬季并发症风险上升",
+          "evidenceLevel": "OBSERVATIONAL",
+          "evidenceBasis": "人群纵向观察研究：秋冬季节血糖控制显著变差"
+        }
+      },
+      {
+        "triggerId": 207,
+        "patientId": 1,
+        "chronoType": "RHYTHM",
+        "event": "凌晨血压晨峰",
+        "triggerTime": "凌晨4-6点",
+        "nextTriggerAt": "2026-09-15T04:00",
+        "status": "ACTIVE",
+        "action": "主动询问晨起血压",
+        "timingCard": {
+          "missCost": "晨峰未控制→清晨心梗/卒中发生率为日间其他时段2-3倍",
+          "evidenceLevel": "GUIDELINE",
+          "evidenceBasis": "AHA昼夜节律与心血管健康科学声明(2025)：清晨血压晨峰现象"
+        }
+      },
+      {
+        "triggerId": 208,
+        "patientId": 1,
+        "chronoType": "PERIODIC",
+        "event": "服药2周后血压复查",
+        "triggerTime": "服药后第14天",
+        "nextTriggerAt": "2026-09-29T01:16:30.249619570",
+        "status": "ACTIVE",
+        "action": "主动提醒复查",
+        "timingCard": {
+          "missCost": "漏查→药物无效或不耐受未及时调整，靶器官损害持续",
+          "evidenceLevel": "GUIDELINE",
+          "evidenceBasis": "中国高血压防治指南：起始降压治疗后2-4周需评估疗效"
+        }
+      },
+      {
+        "triggerId": 209,
+        "patientId": 1,
+        "chronoType": "SEASONAL",
+        "event": "秋冬血压升高",
+        "triggerTime": "入秋/入冬",
+        "nextTriggerAt": "2027-09-01T00:00",
+        "status": "ACTIVE",
+        "action": "主动提醒增加监测频次",
+        "timingCard": {
+          "missCost": "未及时调整用药→冬季心脑血管事件高发期风险叠加",
+          "evidenceLevel": "OBSERVATIONAL",
+          "evidenceBasis": "AHA科学声明：冬季收缩压平均升高5-10mmHg"
+        }
+      }
+    ],
+    "proactiveAssessment": {
+      "reason": "识别9个高风险节点，主动建议MDT会诊",
+      "recommendMdt": true,
+      "proactiveAction": "PROACTIVE_MDT_SUGGEST",
+      "isProactive": true
+    },
+    "evidenceChain": {
+      "decisionId": "RIPPLE_DERIVATION-20260915011630-ef0a3fe7",
+      "decisionType": "RIPPLE_DERIVATION",
+      "patientId": 1,
+      "timestamp": "2026-09-15T01:16:30.256020972",
+      "inputs": {
+        "drugs": [
+          "二甲双胍"
+        ],
+        "pastHistory": "高血压",
+        "diagnosis": "2型糖尿病",
+        "trigger": "health_event"
+      },
+      "consideredFactors": [
+        "推演5维度涟漪影响",
+        "高风险节点数: 9",
+        "涟漪强度指数RII: 74.3(红色·高强度涟漪), 有效扩散半径5环",
+        "主动建议MDT: true",
+        "反事实护栏: 审计16条路径, 9条FLAGGED禁止下发"
+      ],
+      "decision": {
+        "rippleSummary": {
+          "highRiskCount": 9,
+          "totalNodes": 29,
+          "rippleIntensity": {
+            "index": 74.3,
+            "level": "RED",
+            "levelLabel": "红色·高强度涟漪",
+            "radius": 5,
+            "topRisks": [
+              {
+                "dimension": "drugLifestyleConflicts",
+                "label": "二甲双胍+造影剂联用",
+                "ring": 1,
+                "ringName": "用药安全圈",
+                "intensity": 81.2
+              },
+              {
+                "dimension": "drugLifestyleConflicts",
+                "label": "二甲双胍+饮酒",
+                "ring": 1,
+                "ringName": "用药安全圈",
+                "intensity": 77.0
+              },
+              {
+                "dimension": "complicationSignals",
+                "label": "高血压→心肌梗死/主动脉夹层",
+                "ring": 2,
+                "ringName": "疾病进展圈",
+                "intensity": 72.4
+              }
+            ],
+            "model": "RII=100×S×U×A×e^(-0.22×(ring-1))，事件指数=Top5节点均值"
+          }
+        },
+        "dimensions": [
+          "drugLifestyleConflicts",
+          "recheckWindows",
+          "complicationSignals",
+          "familyAttentions",
+          "chronoTriggers"
+        ]
+      },
+      "confidence": 0.88,
+      "actionTaken": "RIPPLE_DERIVED+CHRONO_TRIGGER_SETUP",
+      "agentId": "health-ripple-agent",
+      "chosenPath": "推演健康事件涟漪影响并生成守护计划+时间学触达",
+      "alternativePaths": [
+        {
+          "path": "未识别二甲双胍+饮酒冲突",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动识别该冲突",
+          "counterfactualOutcome": "若未识别饮酒冲突，患者可能发生乳酸酸中毒（严重可致死）",
+          "riskIfChosen": "HIGH",
+          "evidence": "药物=二甲双胍；冲突=饮酒",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未识别二甲双胍+造影剂联用冲突",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动识别该冲突",
+          "counterfactualOutcome": "若未识别造影剂联用冲突，患者可能发生肾损伤",
+          "riskIfChosen": "HIGH",
+          "evidence": "药物=二甲双胍；冲突=造影剂联用",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病视网膜病变早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现视力模糊/飞蚊症突发时未能及时就医，延误糖尿病视网膜病变诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病视网膜病变",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病足早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现足部感觉异常/伤口不愈时未能及时就医，延误糖尿病足诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病足",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的低血糖早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现心悸/出汗/手抖/饥饿感时未能及时就医，延误低血糖诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=低血糖",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知2型糖尿病的糖尿病酮症酸中毒早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现多尿/多饮/乏力加重/意识模糊时未能及时就医，延误糖尿病酮症酸中毒诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=2型糖尿病；并发症=糖尿病酮症酸中毒",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的高血压危象早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现剧烈头痛/呕吐/视物模糊时未能及时就医，延误高血压危象诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=高血压危象",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的心肌梗死/主动脉夹层早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现胸痛/胸闷/大汗时未能及时就医，延误心肌梗死/主动脉夹层诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=心肌梗死/主动脉夹层",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未告知高血压的脑卒中早期信号",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动告知并发症信号",
+          "counterfactualOutcome": "患者出现肢体麻木/言语不清/面瘫时未能及时就医，延误脑卒中诊治",
+          "riskIfChosen": "HIGH",
+          "evidence": "诊断=高血压；并发症=脑卒中",
+          "guardrailVerdict": "FLAGGED",
+          "guardrailNote": "该反事实路径含危重后果，仅用于解释为何不可选，禁止作为建议下发"
+        },
+        {
+          "path": "未设置夜间0-3点低血糖高发的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过夜间0-3点低血糖高发的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=RHYTHM；事件=夜间0-3点低血糖高发",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置服药2周后复查肝肾功能的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过服药2周后复查肝肾功能的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=服药2周后复查肝肾功能",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置3个月后查糖化血红蛋白的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过3个月后查糖化血红蛋白的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=3个月后查糖化血红蛋白",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置换季血糖波动的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过换季血糖波动的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=SEASONAL；事件=换季血糖波动",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置凌晨血压晨峰的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过凌晨血压晨峰的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=RHYTHM；事件=凌晨血压晨峰",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置服药2周后血压复查的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过服药2周后血压复查的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=PERIODIC；事件=服药2周后血压复查",
+          "guardrailVerdict": "SAFE"
+        },
+        {
+          "path": "未设置秋冬血压升高的时间学触达",
+          "wasRejected": true,
+          "rejectionReason": "涟漪推演已主动设置时间学触达",
+          "counterfactualOutcome": "错过秋冬血压升高的主动干预窗口，患者未能及时响应",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "时间学类型=SEASONAL；事件=秋冬血压升高",
+          "guardrailVerdict": "SAFE"
+        }
+      ],
+      "prevHash": "5c1b71d5466d1a4116e05b33469aee86422f05a9cdc7ab84ebf4ab35c3bb812c",
+      "hash": "c86323066aa0103da67b897bd69ff21673408abc183827004906eeb5fa4176c7"
+    }
+  },
+  "mdt": {
+    "mdtId": "MDT-20260915011630",
+    "timestamp": "2026-09-15T01:16:30.266659670",
+    "caseSummary": {
+      "drugs": [
+        "二甲双胍"
+      ],
+      "pastHistory": [
+        "2型糖尿病",
+        "高血压",
+        "慢性肾病"
+      ],
+      "diagnosis": "冠心病待排",
+      "chiefComplaint": "胸闷气短3天"
+    },
+    "consultation": {
+      "triageView": {
+        "agent": "medical-triage-agent",
+        "perspective": "分诊与紧急度",
+        "urgencySuggestion": "HIGH-紧急度建议急诊排除心梗/卒中/主动脉夹层",
+        "analysis": "主诉含危险症状，紧急度HIGH，需排除急症"
+      },
+      "prescriptionView": {
+        "agent": "prescription-safety-agent",
+        "perspective": "药物安全与肝肾功",
+        "drugRiskNotes": [
+          "NSAIDs（布洛芬等）与慢性肾病冲突，避免使用",
+          "二甲双胍在CKD患者中需根据eGFR调整剂量",
+          "ACEI/ARB初始需监测肾功能与血钾",
+          "二甲双胍 + 饮酒 → 乳酸酸中毒（严重可致死）",
+          "二甲双胍 + 造影剂联用 → 肾损伤"
+        ],
+        "analysis": "基于既往史[2型糖尿病, 高血压, 慢性肾病]与处方[二甲双胍]的药物安全评估"
+      },
+      "recordView": {
+        "agent": "medical-record-agent",
+        "perspective": "既往史结构化",
+        "historyNotes": [
+          "2型糖尿病",
+          "高血压",
+          "慢性肾病"
+        ],
+        "analysis": "既往史要点：2型糖尿病；高血压；慢性肾病"
+      },
+      "followupView": {
+        "agent": "followup-plan-agent",
+        "perspective": "随访与监测要点",
+        "monitoringPoints": [
+          "监测血糖",
+          "足部检查",
+          "眼底筛查",
+          "监测血压",
+          "心电图",
+          "监测出入量",
+          "体重",
+          "电解质"
+        ],
+        "analysis": "基于既往史的随访监测要点：监测血糖；足部检查；眼底筛查；监测血压；心电图；监测出入量；体重；电解质"
+      },
+      "rippleView": {
+        "agent": "health-ripple-agent",
+        "perspective": "新处方涟漪影响",
+        "rippleNotes": [
+          "二甲双胍+饮酒→乳酸酸中毒（严重可致死）",
+          "二甲双胍+造影剂联用→肾损伤"
+        ],
+        "analysis": "新处方涟漪影响：二甲双胍+饮酒→乳酸酸中毒（严重可致死）；二甲双胍+造影剂联用→肾损伤"
+      }
+    },
+    "consensusNotes": [
+      "紧急共识：紧急度HIGH，优先排除心梗/卒中/主动脉夹层等急症",
+      "风险预警：重点关注处方Agent识别的5项药物风险",
+      "涟漪预警：涟漪守护Agent识别2项高风险涟漪，需患者教育",
+      "多学科建议：结合各Agent视角形成综合诊疗方案",
+      "随访要点：按随访Agent监测点执行长期管理"
+    ],
+    "counterfactualTree": {
+      "chosenPath": "聚合五Agent多视角形成MDT会诊纪要",
+      "alternativePaths": [
+        {
+          "path": "单一Agent决策（无MDT）",
+          "wasRejected": true,
+          "rejectionReason": "多病共存需多视角分析，单一Agent视角局限",
+          "counterfactualOutcome": "可能遗漏其他专科视角的风险点，导致诊疗不全面",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "主诉=胸闷气短3天；既往史=2型糖尿病,高血压,慢性肾病",
+          "guardrailVerdict": "SAFE"
+        }
+      ],
+      "counterfactualCount": 1,
+      "guardrailSummary": {
+        "flaggedPaths": 0,
+        "auditedPaths": 1,
+        "reference": "MedCounterFact(2026): LLM会盲从危险反事实证据，护栏先行审计",
+        "policy": "FLAGGED路径禁止作为可执行建议，仅保留解释性用途"
+      }
+    },
+    "agentCount": 5,
+    "evidenceChain": {
+      "decisionId": "MDT_CONSULTATION-20260915011630-a313234c",
+      "decisionType": "MDT_CONSULTATION",
+      "patientId": 1,
+      "timestamp": "2026-09-15T01:16:30.269876416",
+      "inputs": {
+        "trigger": "mdt_consultation_request",
+        "pastHistory": "2型糖尿病,高血压,慢性肾病",
+        "chiefComplaint": "胸闷气短3天"
+      },
+      "consideredFactors": [
+        "五Agent多视角发言",
+        "聚合形成MDT会诊纪要"
+      ],
+      "decision": {
+        "agentCount": 5,
+        "mdtId": "MDT-20260915011630"
+      },
+      "confidence": 0.9,
+      "actionTaken": "MDT_CONSULTED",
+      "agentId": "health-ripple-agent",
+      "chosenPath": "聚合五Agent多视角形成MDT会诊纪要",
+      "alternativePaths": [
+        {
+          "path": "单一Agent决策（无MDT）",
+          "wasRejected": true,
+          "rejectionReason": "多病共存需多视角分析，单一Agent视角局限",
+          "counterfactualOutcome": "可能遗漏其他专科视角的风险点，导致诊疗不全面",
+          "riskIfChosen": "MEDIUM",
+          "evidence": "主诉=胸闷气短3天；既往史=2型糖尿病,高血压,慢性肾病",
+          "guardrailVerdict": "SAFE"
+        }
+      ],
+      "prevHash": "c86323066aa0103da67b897bd69ff21673408abc183827004906eeb5fa4176c7",
+      "hash": "38a06687403619579d0d9181bf04a056f7e021809baef53c9f41a2504c726bb5"
+    }
+  }
+}

@@ -156,7 +156,7 @@ def _build_counterfactual_tree(chosen_path, recommended_dept, urgency_level, con
     chief = chief_complaint or ""
 
     # 危险症状关键词
-    danger_keywords = ["胸痛", "呼吸困难", "意识不清", "晕厥", "大出血", "抽搐", "窒息"]
+    danger_keywords = ["胸痛", "呼吸困难", "意识不清", "晕厥", "大出血", "抽搐", "窒息", "言语不清", "偏瘫", "面瘫"]
     has_danger = any(kw in chief for kw in danger_keywords)
 
     # 1. 若分诊到急诊的反事实（非急诊却分到急诊）
@@ -247,7 +247,7 @@ def _assess_proactive_action(triage_result, chief_complaint):
     confidence = triage_result.get("confidence") or 0.0 if isinstance(triage_result, dict) else 0.0
 
     # 危险症状关键词主动识别
-    danger_keywords = ["胸痛", "呼吸困难", "意识不清", "晕厥", "大出血", "抽搐", "窒息"]
+    danger_keywords = ["胸痛", "呼吸困难", "意识不清", "晕厥", "大出血", "抽搐", "窒息", "言语不清", "偏瘫", "面瘫"]
     chief = chief_complaint or ""
     has_danger = any(kw in chief for kw in danger_keywords)
 

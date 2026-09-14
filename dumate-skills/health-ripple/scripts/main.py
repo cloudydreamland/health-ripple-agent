@@ -30,6 +30,7 @@ import time
 import urllib.request
 import urllib.error
 import urllib.parse
+import math
 from datetime import datetime
 
 
@@ -425,24 +426,24 @@ def _build_ripple_graph(diagnosis, drugs, past_history):
                         "urgency": s["urgency"],
                     })
 
-    # 维度4：家属注意事项
+    # 维度4：家属注意事项（结构化涟漪节点：attention=守护动作，advice=执行建议，severity=风险等级）
     family_attentions = []
     if "糖尿病" in (diagnosis or ""):
         family_attentions.extend([
-            "家属需识别低血糖症状（心悸/出汗/手抖）并即时补糖",
-            "饮食配合：低GI饮食结构调整",
-            "足部护理：每日检查足部皮肤完整性",
+            _family_node("家属需识别低血糖症状（心悸/出汗/手抖）并即时补糖", "随身备糖块，症状出现15分钟内口服15g糖", "HIGH"),
+            _family_node("饮食配合：低GI饮食结构调整", "全家主食替换低GI食材", "MEDIUM"),
+            _family_node("足部护理：每日检查足部皮肤完整性", "每日睡前双人互查足底/趾缝", "MEDIUM"),
         ])
     if "高血压" in (diagnosis or "") or "冠心病" in (diagnosis or ""):
         family_attentions.extend([
-            "家属需识别卒中症状（肢体麻木/言语不清/面瘫），立即拨打急救",
-            "家属需识别心梗症状（持续胸痛>15分钟），立即急诊",
-            "低盐低脂饮食配合",
+            _family_node("家属需识别卒中症状（肢体麻木/言语不清/面瘫），立即拨打急救", "FAST口诀记忆，发病即刻120并记录时间", "HIGH"),
+            _family_node("家属需识别心梗症状（持续胸痛>15分钟），立即急诊", "胸痛不缓解就地平卧，拨打120", "HIGH"),
+            _family_node("低盐低脂饮食配合", "家庭人均食盐<5g/日", "MEDIUM"),
         ])
     if "哮喘" in (diagnosis or ""):
         family_attentions.extend([
-            "家属需识别哮喘持续状态（呼吸困难加重/讲话困难），立即急诊",
-            "避免家庭过敏原（尘螨/花粉/宠物毛发）",
+            _family_node("家属需识别哮喘持续状态（呼吸困难加重/讲话困难），立即急诊", "备好速效支气管扩张剂，15分钟无缓解即急诊", "HIGH"),
+            _family_node("避免家庭过敏原（尘螨/花粉/宠物毛发）", "卧室防螨床品，花粉季关窗", "MEDIUM"),
         ])
 
     # 维度5：时间学触达（窗口期/节律/周期/季节）
@@ -478,6 +479,122 @@ def _build_ripple_graph(diagnosis, drugs, past_history):
             "highRiskCount": sum(1 for c in drug_conflicts if c.get("severity") == "HIGH") + sum(1 for s in complication_signals if s.get("urgency") == "HIGH"),
         },
     }
+    graph = _annotate_ripple_intensity(graph)
+    return graph
+
+
+def _family_node(attention, advice, severity):
+    """家属注意事项涟漪节点（结构化，与后端契约一致）。"""
+    return {"attention": attention, "advice": advice, "severity": severity}
+
+
+# ============================================================
+# 涟漪强度指数模型（RII，核心创新：把"涟漪"从比喻升级为可计算模型）
+# 与后端 ripple-service RippleIntensityModel 严格同构：
+# 节点强度 = 100 × 严重度S × 紧迫度U × 可干预度A × e^(-0.22×(ring-1))
+# 事件级：RII=Top5节点均值(0-100)，有效扩散半径=强度≥15的最大环数，Top风险=强度降序前3
+# 降级模式与在线模式输出契约一致，评分过程（S/U/A/衰减）随节点输出、可审计
+# ============================================================
+RII_DECAY_LAMBDA = 0.22
+RII_RADIUS_THRESHOLD = 15.0
+RII_RING_OF = (
+    ("drugLifestyleConflicts", 1),   # 用药安全圈
+    ("complicationSignals", 2),      # 疾病进展圈
+    ("recheckWindows", 3),           # 复查窗口圈
+    ("chronoTriggers", 4),           # 触达时机圈
+    ("familyAttentions", 5),         # 家庭影响圈
+)
+RII_RING_NAME = {1: "用药安全圈", 2: "疾病进展圈", 3: "复查窗口圈", 4: "触达时机圈", 5: "家庭影响圈"}
+
+
+def _rii_severity(node):
+    level = node.get("severity") or node.get("urgency") or "MEDIUM"
+    return {"HIGH": 0.95, "MEDIUM": 0.65, "LOW": 0.35}.get(level, 0.5)
+
+
+def _rii_urgency(dimension, node):
+    if dimension == "complicationSignals":
+        return {"HIGH": 1.0, "MEDIUM": 0.7, "LOW": 0.4}.get(node.get("urgency"), 0.6)
+    if dimension in ("recheckWindows", "chronoTriggers"):
+        return {"WINDOW": 0.95, "RHYTHM": 0.75, "PERIODIC": 0.55, "SEASONAL": 0.35}.get(node.get("chronoType"), 0.5)
+    if dimension == "drugLifestyleConflicts":
+        return {"HIGH": 0.9, "MEDIUM": 0.6}.get(node.get("severity"), 0.4)
+    return 0.5
+
+
+def _rii_actionability(node):
+    guidance = str(node.get("advice") or node.get("action") or "")
+    base = 0.45
+    if guidance.strip():
+        base += 0.45
+        if any(ch.isdigit() for ch in guidance):
+            base += 0.05
+    return min(0.95, base)
+
+
+def _rii_label(dimension, node):
+    if dimension == "drugLifestyleConflicts":
+        return f"{node.get('drug')}+{node.get('conflict')}"
+    if dimension == "complicationSignals":
+        return f"{node.get('diagnosis')}→{node.get('complication')}"
+    if dimension == "recheckWindows":
+        return str(node.get("item", ""))
+    if dimension == "chronoTriggers":
+        return str(node.get("event", ""))
+    return str(node.get("attention", ""))
+
+
+def _annotate_ripple_intensity(graph):
+    """为图谱每个涟漪节点标注环数/强度/评分依据，并在 summary 写入事件级 RII。"""
+    scores = []
+    for dimension, ring in RII_RING_OF:
+        for node in graph["dimensions"].get(dimension, []):
+            severity = _rii_severity(node)
+            urgency = _rii_urgency(dimension, node)
+            actionability = _rii_actionability(node)
+            decay = math.exp(-RII_DECAY_LAMBDA * (ring - 1))
+            node["ring"] = ring
+            node["ringName"] = RII_RING_NAME[ring]
+            node["intensity"] = round(100.0 * severity * urgency * actionability * decay, 1)
+            node["scoreBreakdown"] = {
+                "severity": round(severity, 2),
+                "urgency": round(urgency, 2),
+                "actionability": round(actionability, 2),
+                "decay": round(decay, 2),
+            }
+            scores.append({
+                "dimension": dimension,
+                "ring": ring,
+                "label": _rii_label(dimension, node),
+                "intensity": node["intensity"],
+            })
+
+    ordered = sorted(scores, key=lambda s: -s["intensity"])
+    top5 = ordered[:5]
+    index = round(sum(s["intensity"] for s in top5) / len(top5), 1) if top5 else 0.0
+    radius = max((s["ring"] for s in scores if s["intensity"] >= RII_RADIUS_THRESHOLD), default=0)
+    level = "RED" if index >= 45 else ("ORANGE" if index >= 25 else "YELLOW")
+    level_label = {"RED": "红色·高强度涟漪", "ORANGE": "橙色·中强度涟漪", "YELLOW": "黄色·低强度涟漪"}[level]
+
+    view = {
+        "index": index,
+        "level": level,
+        "levelLabel": level_label,
+        "radius": radius,
+        "topRisks": [
+            {
+                "dimension": s["dimension"],
+                "label": s["label"],
+                "ring": s["ring"],
+                "ringName": RII_RING_NAME[s["ring"]],
+                "intensity": s["intensity"],
+            }
+            for s in ordered[:3]
+        ],
+        "model": "RII=100×S×U×A×e^(-0.22×(ring-1))，事件指数=Top5节点均值",
+    }
+    graph["summary"]["rippleIntensity"] = view
+    graph["rippleIntensity"] = view
     return graph
 
 

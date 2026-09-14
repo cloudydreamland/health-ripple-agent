@@ -62,6 +62,7 @@ spring:
               - ${PATIENT_WEB_ORIGIN:http://localhost:5173}
               - ${DOCTOR_WEB_ORIGIN:http://localhost:5174}
               - ${ADMIN_WEB_ORIGIN:http://localhost:5175}
+              - ${RIPPLE_CONSOLE_ORIGIN:http://localhost:5176}
               - ${PUBLIC_WEB_ORIGIN:http://localhost}
             allowedMethods:
               - GET

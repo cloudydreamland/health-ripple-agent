@@ -13,6 +13,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,8 +65,9 @@ public class EvidenceChainService {
   ) {
     try {
       LocalDateTime now = LocalDateTime.now();
-      String decisionId = decisionType + "-" + now.format(ID_FORMAT) + "-"
-          + sha256Hex(toJson(inputs)).substring(0, 6);
+      // 决策ID唯一性：秒级时间戳 + 输入哈希 + 随机熵（RippleBench评测发现同秒同输入并发冲突，v2修复）
+      String uniqueness = sha256Hex(toJson(inputs) + "|" + UUID.randomUUID()).substring(0, 8);
+      String decisionId = decisionType + "-" + now.format(ID_FORMAT) + "-" + uniqueness;
 
       EvidenceChain last = repository.findTopByOrderByIdDesc().orElse(null);
       String prevHash = last == null ? GENESIS : last.getHash();

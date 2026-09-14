@@ -35,6 +35,7 @@ public class RippleDeriveService {
   private final KnowledgeBaseService knowledgeBase;
   private final CounterfactualService counterfactualService;
   private final CounterfactualGuardrail counterfactualGuardrail;
+  private final RippleIntensityModel intensityModel;
   private final ChronoEngine chronoEngine;
   private final EvidenceChainService evidenceChainService;
   private final RippleEventRepository rippleEventRepository;
@@ -45,6 +46,7 @@ public class RippleDeriveService {
       KnowledgeBaseService knowledgeBase,
       CounterfactualService counterfactualService,
       CounterfactualGuardrail counterfactualGuardrail,
+      RippleIntensityModel intensityModel,
       ChronoEngine chronoEngine,
       EvidenceChainService evidenceChainService,
       RippleEventRepository rippleEventRepository,
@@ -53,6 +55,7 @@ public class RippleDeriveService {
     this.knowledgeBase = knowledgeBase;
     this.counterfactualService = counterfactualService;
     this.counterfactualGuardrail = counterfactualGuardrail;
+    this.intensityModel = intensityModel;
     this.chronoEngine = chronoEngine;
     this.evidenceChainService = evidenceChainService;
     this.rippleEventRepository = rippleEventRepository;
@@ -70,8 +73,11 @@ public class RippleDeriveService {
     List<String> pastList = splitHistory(request.pastHistory());
     LocalDateTime now = LocalDateTime.now();
 
-    // Step1: 五维涟漪图谱
+    // Step1: 五维涟漪图谱 + 涟漪强度指数标注（RII：每个节点可计算的严重度×紧迫度×可干预度×环衰减）
     Map<String, Object> graph = buildRippleGraph(diagnosis, drugNames, pastList);
+    intensityModel.annotate(graph);
+    Map<String, Object> summary = CounterfactualService.castMap(graph.get("summary"));
+    Map<String, Object> intensity = CounterfactualService.castMap(summary.get("rippleIntensity"));
 
     // Step2: 反事实决策树 + 护栏安全审计（FLAGGED路径禁止作为建议下发）
     Map<String, Object> counterfactualTree = counterfactualGuardrail.audit(
@@ -84,7 +90,6 @@ public class RippleDeriveService {
     event.setDrugsJson(toJson(drugNames));
     event.setPastHistory(String.join(",", pastList));
     event.setRippleGraphJson(toJson(graph));
-    Map<String, Object> summary = CounterfactualService.castMap(graph.get("summary"));
     event.setTotalNodes(asInt(summary.get("totalNodes")));
     event.setHighRiskCount(asInt(summary.get("highRiskCount")));
     RippleEvent saved = rippleEventRepository.save(event);
@@ -118,6 +123,8 @@ public class RippleDeriveService {
         List.of(
             "推演5维度涟漪影响",
             "高风险节点数: " + highRiskCount,
+            "涟漪强度指数RII: " + intensity.get("index") + "(" + intensity.get("levelLabel")
+                + "), 有效扩散半径" + intensity.get("radius") + "环",
             "主动建议MDT: " + proactiveMdt,
             "反事实护栏: 审计" + guardrailSummary.get("auditedPaths") + "条路径, "
                 + guardrailSummary.get("flaggedPaths") + "条FLAGGED禁止下发"),
@@ -133,9 +140,10 @@ public class RippleDeriveService {
     eventPublisher.publishRippleDerived(saved.getId(), request.patientId(), diagnosis, highRiskCount,
         asInt(summary.get("totalNodes")));
 
-    // Step8: 组装响应（dimensions 顶层字段保证 Skill 端契约兼容）
+    // Step8: 组装响应（dimensions 顶层字段保证 Skill 端契约兼容；rippleIntensity 顶层直达事件级强度）
     Map<String, Object> result = new LinkedHashMap<>(graph);
     result.put("rippleEventId", saved.getId());
+    result.put("rippleIntensity", intensity);
     result.put("counterfactualTree", counterfactualTree);
     result.put("chronoTriggers", chronoTriggerViews);
     result.put("proactiveAssessment", Map.of(
@@ -216,7 +224,7 @@ public class RippleDeriveService {
     }
 
     // 维度4：家属注意事项
-    List<String> familyAttentions = buildFamilyAttentions(diagnoses);
+    List<Map<String, Object>> familyAttentions = buildFamilyAttentions(diagnoses);
 
     // 维度5：时间学触达（窗口期/节律/周期/季节）
     List<Map<String, Object>> chronoTriggers = new ArrayList<>();
@@ -252,26 +260,35 @@ public class RippleDeriveService {
     return graph;
   }
 
-  private List<String> buildFamilyAttentions(List<String> diagnoses) {
-    List<String> result = new ArrayList<>();
+  /** 维度4：家属注意事项（结构化涟漪节点：attention=守护动作，advice=执行建议，severity=风险等级）。 */
+  private List<Map<String, Object>> buildFamilyAttentions(List<String> diagnoses) {
+    List<Map<String, Object>> result = new ArrayList<>();
     boolean anyDiabetes = diagnoses.stream().anyMatch(d -> d.contains("糖尿病"));
     boolean anyCardio = diagnoses.stream().anyMatch(d -> d.contains("高血压") || d.contains("冠心病"));
     boolean anyAsthma = diagnoses.stream().anyMatch(d -> d.contains("哮喘"));
     if (anyDiabetes) {
-      result.add("家属需识别低血糖症状（心悸/出汗/手抖）并即时补糖");
-      result.add("饮食配合：低GI饮食结构调整");
-      result.add("足部护理：每日检查足部皮肤完整性");
+      result.add(familyNode("家属需识别低血糖症状（心悸/出汗/手抖）并即时补糖", "随身备糖块，症状出现15分钟内口服15g糖", "HIGH"));
+      result.add(familyNode("饮食配合：低GI饮食结构调整", "全家主食替换低GI食材", "MEDIUM"));
+      result.add(familyNode("足部护理：每日检查足部皮肤完整性", "每日睡前双人互查足底/趾缝", "MEDIUM"));
     }
     if (anyCardio) {
-      result.add("家属需识别卒中症状（肢体麻木/言语不清/面瘫），立即拨打急救");
-      result.add("家属需识别心梗症状（持续胸痛>15分钟），立即急诊");
-      result.add("低盐低脂饮食配合");
+      result.add(familyNode("家属需识别卒中症状（肢体麻木/言语不清/面瘫），立即拨打急救", "FAST口诀记忆，发病即刻120并记录时间", "HIGH"));
+      result.add(familyNode("家属需识别心梗症状（持续胸痛>15分钟），立即急诊", "胸痛不缓解就地平卧，拨打120", "HIGH"));
+      result.add(familyNode("低盐低脂饮食配合", "家庭人均食盐<5g/日", "MEDIUM"));
     }
     if (anyAsthma) {
-      result.add("家属需识别哮喘持续状态（呼吸困难加重/讲话困难），立即急诊");
-      result.add("避免家庭过敏原（尘螨/花粉/宠物毛发）");
+      result.add(familyNode("家属需识别哮喘持续状态（呼吸困难加重/讲话困难），立即急诊", "备好速效支气管扩张剂，15分钟无缓解即急诊", "HIGH"));
+      result.add(familyNode("避免家庭过敏原（尘螨/花粉/宠物毛发）", "卧室防螨床品，花粉季关窗", "MEDIUM"));
     }
     return result;
+  }
+
+  private Map<String, Object> familyNode(String attention, String advice, String severity) {
+    Map<String, Object> node = new LinkedHashMap<>();
+    node.put("attention", attention);
+    node.put("advice", advice);
+    node.put("severity", severity);
+    return node;
   }
 
   /* ================= 工具 ================= */

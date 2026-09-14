@@ -13,7 +13,9 @@
     "build:doctor": "corepack pnpm --filter @smart-cloud-brain/doctor-web build",
     "build:admin": "corepack pnpm --filter @smart-cloud-brain/admin-web build",
     "lint": "corepack pnpm -r --if-present lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:console": "corepack pnpm --filter @smart-cloud-brain/ripple-console dev",
+    "build:console": "corepack pnpm --filter @smart-cloud-brain/ripple-console build"
   },
   "dependencies": {
     "axios": "^1.7.9",

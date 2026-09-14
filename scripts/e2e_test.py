@@ -261,6 +261,7 @@ def main():
 
     # ---------- 10. 健康事件涟漪推演（核心创新） ----------
     decision_id = None
+    ripple = {}
     try:
         data, ms = api.call("POST", "/api/health-event/ripple", {
             "diagnosis": "2型糖尿病",
@@ -268,6 +269,7 @@ def main():
             "patientId": patient_id,
             "pastHistory": "高血压",
         })
+        ripple = data if isinstance(data, dict) else {}
         dims = data.get("dimensions") or {}
         dim_count = len(dims)
         cft = data.get("counterfactualTree") or {}
@@ -288,6 +290,31 @@ def main():
                f"时间学触达={len(triggers)}项, evidence={str(decision_id)[:40]}", ms)
     except AssertionError as e:
         record("10.涟漪推演", False, str(e), 0)
+
+    # ---------- 10b. 涟漪强度指数 RII（量化模型：把"涟漪"从比喻升级为可计算模型） ----------
+    if ripple:
+        try:
+            rii = ripple.get("rippleIntensity") or {}
+            index = rii.get("index")
+            assert isinstance(index, (int, float)) and 0 < index <= 100, f"RII指数异常: {rii}"
+            assert rii.get("level") in ("RED", "ORANGE", "YELLOW"), f"RII等级缺失: {rii}"
+            radius = rii.get("radius")
+            assert isinstance(radius, int) and radius >= 1, f"有效扩散半径异常: {rii}"
+            top = rii.get("topRisks") or []
+            assert 1 <= len(top) <= 3, f"Top风险数异常: {len(top)}"
+            # 节点级：每个涟漪节点携带环数/强度/评分依据（评分过程可审计）
+            dims_rii = ripple.get("dimensions") or {}
+            node_count = 0
+            for _name, _nodes in dims_rii.items():
+                for _n in _nodes:
+                    assert "intensity" in _n and "ring" in _n and "scoreBreakdown" in _n, \
+                        f"{_name} 节点缺强度标注: {json.dumps(_n, ensure_ascii=False)[:120]}"
+                    node_count += 1
+            record("10b.涟漪强度指数RII", True,
+                   f"RII={index}({rii.get('levelLabel')}), 有效扩散半径={radius}环, "
+                   f"Top风险={[t.get('label') for t in top][:2]}, {node_count}节点全携带强度标注", 0)
+        except AssertionError as e:
+            record("10b.涟漪强度指数RII", False, str(e), 0)
 
     # ---------- 11. 多智能体 MDT 会诊 ----------
     try:
