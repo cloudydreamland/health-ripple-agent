@@ -1,7 +1,7 @@
 {
   "benchmark": "RippleBench",
-  "version": "v2",
-  "finishedAt": "2026-09-15T02:07:05",
+  "version": "v3",
+  "finishedAt": "2026-09-16T00:58:54",
   "baseUrl": "http://localhost:18080",
   "thresholds": {
     "triage_top1_accuracy": 0.9,
@@ -9,6 +9,8 @@
     "guardrail_sensitivity": 1.0,
     "guardrail_specificity": 1.0,
     "rii_validity_rate": 1.0,
+    "weather_consistency": 1.0,
+    "closure_math": 1.0,
     "evidence_chain_valid": true,
     "mdt_agent_views": 5
   },
@@ -23,8 +25,11 @@
     "guardrail_specificity": 1.0,
     "rii_validity_rate": 1.0,
     "rii_checked": 19,
+    "closure_pass_rate": 1.0,
+    "closure_pass": 10,
+    "closure_total": 10,
     "evidence_chain_valid": true,
-    "evidence_count": 148,
+    "evidence_count": 303,
     "fhir_provenance": true,
     "mdt_agent_views": 5,
     "chrono_type_coverage": [
@@ -56,6 +61,10 @@
       "pass": true
     },
     {
+      "criterion": "消解闭环场景≥90%",
+      "pass": true
+    },
+    {
       "criterion": "哈希链完整",
       "pass": true
     },
@@ -80,60 +89,102 @@
   ],
   "latency": [
     {
-      "api": "/api/doctor/login",
-      "calls": 1,
-      "p50_ms": 194,
-      "p95_ms": 194,
-      "max_ms": 194
+      "api": "/api/chrono/trigger/570/feedback",
+      "calls": 2,
+      "p50_ms": 12,
+      "p95_ms": 29,
+      "max_ms": 29
     },
     {
-      "api": "/api/evidence/RIPPLE_DERIVATION-20260915020704-3891453d/fhir",
+      "api": "/api/chrono/trigger/592/feedback",
       "calls": 1,
-      "p50_ms": 28,
-      "p95_ms": 28,
-      "max_ms": 28
+      "p50_ms": 23,
+      "p95_ms": 23,
+      "max_ms": 23
+    },
+    {
+      "api": "/api/chrono/triggers/patient/104",
+      "calls": 2,
+      "p50_ms": 9,
+      "p95_ms": 26,
+      "max_ms": 26
+    },
+    {
+      "api": "/api/doctor/login",
+      "calls": 1,
+      "p50_ms": 227,
+      "p95_ms": 227,
+      "max_ms": 227
+    },
+    {
+      "api": "/api/evidence/RIPPLE_DERIVATION-20260916005853-863fef48/fhir",
+      "calls": 1,
+      "p50_ms": 9,
+      "p95_ms": 9,
+      "max_ms": 9
     },
     {
       "api": "/api/evidence/verify",
       "calls": 1,
-      "p50_ms": 32,
-      "p95_ms": 32,
-      "max_ms": 32
+      "p50_ms": 18,
+      "p95_ms": 18,
+      "max_ms": 18
     },
     {
       "api": "/api/health-event/ripple",
-      "calls": 40,
+      "calls": 43,
       "p50_ms": 31,
-      "p95_ms": 36,
-      "max_ms": 221
+      "p95_ms": 35,
+      "max_ms": 37
+    },
+    {
+      "api": "/api/health-event/ripple/feedback-ledger",
+      "calls": 1,
+      "p50_ms": 26,
+      "p95_ms": 26,
+      "max_ms": 26
+    },
+    {
+      "api": "/api/health-event/ripple/resolution",
+      "calls": 2,
+      "p50_ms": 12,
+      "p95_ms": 28,
+      "max_ms": 28
+    },
+    {
+      "api": "/api/health-weather/daily",
+      "calls": 6,
+      "p50_ms": 27,
+      "p95_ms": 35,
+      "max_ms": 35
     },
     {
       "api": "/api/mdt/consult",
       "calls": 1,
-      "p50_ms": 38,
-      "p95_ms": 38,
-      "max_ms": 38
+      "p50_ms": 41,
+      "p95_ms": 41,
+      "max_ms": 41
     },
     {
       "api": "/api/patient/login",
       "calls": 1,
-      "p50_ms": 214,
-      "p95_ms": 214,
-      "max_ms": 214
+      "p50_ms": 215,
+      "p95_ms": 215,
+      "max_ms": 215
     },
     {
       "api": "/api/patient/register",
       "calls": 1,
-      "p50_ms": 234,
-      "p95_ms": 234,
-      "max_ms": 234
+      "p50_ms": 245,
+      "p95_ms": 245,
+      "max_ms": 245
     },
     {
       "api": "/api/triage/consult",
       "calls": 20,
-      "p50_ms": 39,
-      "p95_ms": 46,
-      "max_ms": 50
+      "p50_ms": 37,
+      "p95_ms": 47,
+      "max_ms": 48
     }
   ],
   "results": {
@@ -441,6 +492,58 @@
         "id": "B10",
         "ok": true,
         "detail": "反事实0条 FLAGGED=0（期望0）"
+      }
+    ],
+    "closure": [
+      {
+        "id": "W01",
+        "ok": true,
+        "detail": "空患者 weather=SUNNY index=0.0（期望SUNNY/0）"
+      },
+      {
+        "id": "W02",
+        "ok": true,
+        "detail": "冠心病 → weather=RAIN index=33.7 今日13项 TimingCard=✓"
+      },
+      {
+        "id": "W03",
+        "ok": true,
+        "detail": "2型糖尿病 → weather=RAIN index=31.5 今日13项 TimingCard=✓"
+      },
+      {
+        "id": "W04",
+        "ok": true,
+        "detail": "高血压 → weather=RAIN index=32.2 今日14项 TimingCard=✓"
+      },
+      {
+        "id": "W05",
+        "ok": true,
+        "detail": "RESOLVED回执 → 消解率=2.7% 强度和=1062.7"
+      },
+      {
+        "id": "W06",
+        "ok": true,
+        "detail": "UNRESOLVED → 加强触达至2026-09-16T02:58"
+      },
+      {
+        "id": "W07",
+        "ok": true,
+        "detail": "回执明细账本61条，字段完整=True"
+      },
+      {
+        "id": "W08",
+        "ok": true,
+        "detail": "ESCALATED → escalatedCount=1, status=有升级就医项，需医生跟进"
+      },
+      {
+        "id": "W09",
+        "ok": true,
+        "detail": "升级后气象合法 weather=RAIN headline=有1项已升级就医，请家属重点关注医生反馈"
+      },
+      {
+        "id": "W10",
+        "ok": true,
+        "detail": "隔离性：另一空患者仍为SUNNY（数据不串扰）"
       }
     ]
   }

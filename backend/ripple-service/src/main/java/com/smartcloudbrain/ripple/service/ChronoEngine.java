@@ -76,6 +76,44 @@ public class ChronoEngine {
     return triggerRepository.save(trigger);
   }
 
+  /**
+   * 干预回执（涟漪消解闭环核心）：患者/家属对一次触达的响应登记。
+   * - RESOLVED 已缓解：WINDOW 类终结为 RESOLVED；周期/节律类保持滚动但本轮回执闭环；
+   * - UNRESOLVED 未缓解：保持 ACTIVE 并将下次触达提前到2小时后（加强守护）；
+   * - ESCALATED 已升级就医：WINDOW/一次性 → ESCALATED 终结；周期类保持滚动。
+   */
+  public ChronoTrigger feedback(Long triggerId, String outcome, String note) {
+    ChronoTrigger trigger = triggerRepository.findById(triggerId)
+        .orElseThrow(() -> new IllegalArgumentException("触达计划不存在: " + triggerId));
+    LocalDateTime now = LocalDateTime.now();
+    trigger.setFeedbackStatus(outcome);
+    trigger.setFeedbackNote(note == null ? "" : note);
+    trigger.setFeedbackAt(now);
+    switch (outcome) {
+      case "RESOLVED" -> {
+        if ("WINDOW".equals(trigger.getChronoType()) || "FIRED".equals(trigger.getStatus())) {
+          trigger.setStatus("RESOLVED");
+          trigger.setNextTriggerAt(null);
+        }
+      }
+      case "UNRESOLVED" -> {
+        // 未缓解：2小时后加强触达（守护加压）
+        if (!"WINDOW".equals(trigger.getChronoType())) {
+          trigger.setNextTriggerAt(now.plusHours(2));
+        }
+      }
+      case "ESCALATED" -> {
+        if ("WINDOW".equals(trigger.getChronoType())) {
+          trigger.setStatus("ESCALATED");
+          trigger.setNextTriggerAt(null);
+        }
+      }
+      default -> throw new IllegalArgumentException(
+          "非法回执结果: " + outcome + "（允许 RESOLVED/UNRESOLVED/ESCALATED）");
+    }
+    return triggerRepository.save(trigger);
+  }
+
   public List<ChronoTrigger> findByPatient(Long patientId) {
     return triggerRepository.findByPatientIdOrderByNextTriggerAtAsc(patientId);
   }

@@ -106,6 +106,10 @@ def _validate_inputs(args):
         return "drug 必填"
     if args.action == "complication" and not args.diagnosis:
         return "diagnosis 必填"
+    if args.action == "weather" and not args.patient_id:
+        return "patient_id 必填"
+    if args.action == "feedback" and not args.trigger_id:
+        return "trigger_id 必填"
     return None
 
 
@@ -193,7 +197,9 @@ def _parse_result(body):
     except json.JSONDecodeError:
         return {"error": "json_parse_failed", "raw": body[:500]}
     if isinstance(result, dict) and "code" in result:
-        if result.get("code") == 200:
+        # 后端 Result 约定：code=0（ErrorCode.SUCCESS）为成功；兼容旧版 200
+        # （RippleBench/Closure联调发现：原判定只认200，导致Skill在线模式始终误判失败而降级）
+        if result.get("code") in (0, 200):
             return result.get("data")
         return {"error": "business_error", "code": result.get("code"), "message": result.get("message")}
     return result
@@ -1006,6 +1012,65 @@ def action_evidence(args):
     return _load_evidence(args.decision_id)
 
 
+# ============================================================
+# action: weather（健康气象日报）- 患者友好型风险叙事
+# ============================================================
+def action_weather(args):
+    """查询患者今日健康气象（晴/多云/大雨/暴雨 + 今日守护事项 + 家属提示）。"""
+    if not args.patient_id:
+        return {"error": "missing_param", "message": "patient_id is required"}
+
+    path = "/api/health-weather/daily?patientId=" + urllib.parse.quote(str(args.patient_id))
+    backend_result = _http_get(path)
+
+    if isinstance(backend_result, dict) and "error" not in backend_result and backend_result:
+        backend_result["safetyBoundary"] = SAFETY_BOUNDARY
+        return backend_result
+
+    # 降级：基于本地触达/知识库无法还原患者上下文，诚实标注不可用
+    return {
+        "patientId": args.patient_id,
+        "degraded": True,
+        "degradedReason": "后端不可用：健康气象需患者触达数据，本地知识库无法降级推算（不做臆造播报）",
+        "weather": None,
+        "safetyBoundary": SAFETY_BOUNDARY,
+    }
+
+
+# ============================================================
+# action: feedback（干预回执）- 涟漪消解闭环
+# ============================================================
+def action_feedback(args):
+    """登记干预回执（RESOLVED已缓解/UNRESOLVED未缓解/ESCALATED已升级就医）并返回患者消解率。"""
+    if not args.trigger_id:
+        return {"error": "missing_param", "message": "trigger_id is required"}
+    outcome = (args.outcome or "").upper()
+    if outcome not in ("RESOLVED", "UNRESOLVED", "ESCALATED"):
+        return {"error": "invalid_param",
+                "message": "outcome 必须为 RESOLVED/UNRESOLVED/ESCALATED"}
+
+    path = ("/api/chrono/trigger/" + urllib.parse.quote(str(args.trigger_id))
+            + "/feedback?outcome=" + outcome
+            + "&note=" + urllib.parse.quote((args.feedback_note or "")[:200]))
+    backend_result = _http_post(path, {})
+
+    if isinstance(backend_result, dict) and "error" not in backend_result and backend_result:
+        result = {"feedback": backend_result, "safetyBoundary": SAFETY_BOUNDARY}
+        if args.patient_id:
+            resolution = _http_get("/api/health-event/ripple/resolution?patientId="
+                                   + urllib.parse.quote(str(args.patient_id)))
+            if isinstance(resolution, dict) and "error" not in resolution:
+                result["resolution"] = resolution
+        return result
+
+    return {
+        "triggerId": args.trigger_id,
+        "degraded": True,
+        "degradedReason": "后端不可用：回执需要落库形成消解闭环，本地不缓存回执（避免双写不一致）",
+        "safetyBoundary": SAFETY_BOUNDARY,
+    }
+
+
 def _parse_int(value):
     if value is None or value == "":
         return None
@@ -1018,8 +1083,8 @@ def _parse_int(value):
 def build_parser():
     parser = argparse.ArgumentParser(description="智慧云脑·健康事件涟漪守护智能体 Skill（含涟漪推演+反事实决策树+MDT会诊）")
     parser.add_argument("--action", required=True,
-                        choices=["ripple", "mdt", "conflict", "complication", "evidence"],
-                        help="执行的动作：ripple=涟漪推演, mdt=MDT会诊, conflict=药物-生活冲突, complication=并发症信号, evidence=查反事实决策树")
+                        choices=["ripple", "mdt", "conflict", "complication", "evidence", "weather", "feedback"],
+                        help="执行的动作：ripple=涟漪推演, mdt=MDT会诊, conflict=药物冲突, complication=并发症信号, evidence=反事实决策树, weather=健康气象日报, feedback=干预回执")
     parser.add_argument("--gateway-url", default=None, help="后端网关地址，覆盖环境变量")
     parser.add_argument("--api-token", default=None, help="后端网关 Bearer 令牌（缺省读环境变量 SCB_API_TOKEN）")
 
@@ -1030,6 +1095,9 @@ def build_parser():
     parser.add_argument("--past-history", default=None, help="既往史（逗号分隔）")
     parser.add_argument("--drug", default=None, help="单个药品名（conflict动作用）")
     parser.add_argument("--decision-id", default=None, help="决策证据链ID（evidence动作用）")
+    parser.add_argument("--trigger-id", default=None, help="触达计划ID（feedback动作用）")
+    parser.add_argument("--outcome", default=None, help="回执结果：RESOLVED/UNRESOLVED/ESCALATED（feedback动作用）")
+    parser.add_argument("--feedback-note", default=None, help="回执备注，如'已补糖缓解'（feedback动作用）")
 
     return parser
 
@@ -1071,6 +1139,10 @@ def main():
         result = action_complication(args)
     elif args.action == "evidence":
         result = action_evidence(args)
+    elif args.action == "weather":
+        result = action_weather(args)
+    elif args.action == "feedback":
+        result = action_feedback(args)
     else:
         result = {"error": "unknown_action", "action": args.action}
 

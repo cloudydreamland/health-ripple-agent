@@ -10,6 +10,7 @@ import DoctorSlotsPage from "../pages/DoctorSlotsPage.vue";
 import AppointmentsPage from "../pages/AppointmentsPage.vue";
 import MedicalRecordsPage from "../pages/MedicalRecordsPage.vue";
 import PrescriptionsPage from "../pages/PrescriptionsPage.vue";
+import MyRipplePage from "../pages/MyRipplePage.vue";
 import ProfilePage from "../pages/ProfilePage.vue";
 
 const router = createRouter({
@@ -26,6 +27,7 @@ const router = createRouter({
         { path: "appointments", name: "patient-appointments", component: AppointmentsPage },
         { path: "records", name: "patient-records", component: MedicalRecordsPage },
         { path: "prescriptions", name: "patient-prescriptions", component: PrescriptionsPage },
+        { path: "ripple", name: "patient-ripple", component: MyRipplePage },
         { path: "profile", name: "patient-profile", component: ProfilePage },
       ],
     },

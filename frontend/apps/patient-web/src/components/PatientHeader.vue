@@ -20,6 +20,7 @@ defineEmits<{ logout: [] }>();
         <RouterLink to="/triage">症状分诊</RouterLink>
         <RouterLink to="/doctors">预约医生</RouterLink>
         <RouterLink to="/appointments">我的挂号</RouterLink>
+        <RouterLink to="/ripple">健康涟漪</RouterLink>
         <RouterLink to="/records">病历处方</RouterLink>
         <RouterLink to="/profile">个人资料</RouterLink>
       </nav>

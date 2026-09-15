@@ -1,6 +1,6 @@
 # RippleBench v2 评测报告
 
-> 完成时间：2026-09-15T02:07:05 ｜ 后端：http://localhost:18080 ｜ 总评：**全部达标**
+> 完成时间：2026-09-16T00:58:54 ｜ 后端：http://localhost:18080 ｜ 总评：**全部达标**
 
 ## 一、核心指标
 
@@ -11,7 +11,8 @@
 | 反事实护栏灵敏度（危险→锁定） | **100%** | 100% | ✅ |
 | 反事实护栏特异度（良性→不误锁） | **100%** | 100% | ✅ |
 | RII强度指数有效率 | **100%**（19次非空推演） | 100% | ✅ |
-| 哈希链完整性 | valid=True（148条决策） | 必须 | ✅ |
+| 消解闭环场景通过率 | **100%**（10/10） | ≥90% | ✅ |
+| 哈希链完整性 | valid=True（303条决策） | 必须 | ✅ |
 | FHIR Provenance导出 | True | 必须 | ✅ |
 | MDT五Agent会诊 | views=5 | 5 | ✅ |
 | 时间学四类型覆盖 | ['PERIODIC', 'RHYTHM', 'SEASONAL', 'WINDOW'] | WINDOW/RHYTHM/PERIODIC/SEASONAL | ✅ |
@@ -33,14 +34,20 @@
 
 | API | 调用次数 | P50(ms) | P95(ms) | Max(ms) |
 |---|---|---|---|---|
-| `/api/doctor/login` | 1 | 194 | 194 | 194 |
-| `/api/evidence/RIPPLE_DERIVATION-20260915020704-3891453d/fhir` | 1 | 28 | 28 | 28 |
-| `/api/evidence/verify` | 1 | 32 | 32 | 32 |
-| `/api/health-event/ripple` | 40 | 31 | 36 | 221 |
-| `/api/mdt/consult` | 1 | 38 | 38 | 38 |
-| `/api/patient/login` | 1 | 214 | 214 | 214 |
-| `/api/patient/register` | 1 | 234 | 234 | 234 |
-| `/api/triage/consult` | 20 | 39 | 46 | 50 |
+| `/api/chrono/trigger/570/feedback` | 2 | 12 | 29 | 29 |
+| `/api/chrono/trigger/592/feedback` | 1 | 23 | 23 | 23 |
+| `/api/chrono/triggers/patient/104` | 2 | 9 | 26 | 26 |
+| `/api/doctor/login` | 1 | 227 | 227 | 227 |
+| `/api/evidence/RIPPLE_DERIVATION-20260916005853-863fef48/fhir` | 1 | 9 | 9 | 9 |
+| `/api/evidence/verify` | 1 | 18 | 18 | 18 |
+| `/api/health-event/ripple` | 43 | 31 | 35 | 37 |
+| `/api/health-event/ripple/feedback-ledger` | 1 | 26 | 26 | 26 |
+| `/api/health-event/ripple/resolution` | 2 | 12 | 28 | 28 |
+| `/api/health-weather/daily` | 6 | 27 | 35 | 35 |
+| `/api/mdt/consult` | 1 | 41 | 41 | 41 |
+| `/api/patient/login` | 1 | 215 | 215 | 215 |
+| `/api/patient/register` | 1 | 245 | 245 | 245 |
+| `/api/triage/consult` | 20 | 37 | 47 | 48 |
 
 ## 五、逐用例明细
 
@@ -112,3 +119,16 @@
 - [✅] **B08** 反事实0条 FLAGGED=0（期望0）
 - [✅] **B09** 反事实0条 FLAGGED=0（期望0）
 - [✅] **B10** 反事实0条 FLAGGED=0（期望0）
+
+### 消解闭环
+
+- [✅] **W01** 空患者 weather=SUNNY index=0.0（期望SUNNY/0）
+- [✅] **W02** 冠心病 → weather=RAIN index=33.7 今日13项 TimingCard=✓
+- [✅] **W03** 2型糖尿病 → weather=RAIN index=31.5 今日13项 TimingCard=✓
+- [✅] **W04** 高血压 → weather=RAIN index=32.2 今日14项 TimingCard=✓
+- [✅] **W05** RESOLVED回执 → 消解率=2.7% 强度和=1062.7
+- [✅] **W06** UNRESOLVED → 加强触达至2026-09-16T02:58
+- [✅] **W07** 回执明细账本61条，字段完整=True
+- [✅] **W08** ESCALATED → escalatedCount=1, status=有升级就医项，需医生跟进
+- [✅] **W09** 升级后气象合法 weather=RAIN headline=有1项已升级就医，请家属重点关注医生反馈
+- [✅] **W10** 隔离性：另一空患者仍为SUNNY（数据不串扰）

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-RippleBench v2 — 健康事件涟漪守护智能体量化评测基准
+RippleBench v3 — 健康事件涟漪守护智能体量化评测基准
 
-三个子集（60例）：
+四个子集（60例 + 10闭环场景）：
   T 分诊路由（20例）：症状自然语言 → 科室+紧急度（top-1准确率，含急症红色指征与真实降级）
   R 涟漪推演（20例）：健康事件 → 五维图谱知识命中 + RII强度指数有效性 + 时间学类型覆盖
   G 反事实护栏（20例）：10危险场景（灵敏度：必须FLAGGED）+ 10良性场景（特异度：不得误锁）
+  W 消解闭环（10场景）：健康气象一致性（有触达≠晴/无触达=晴/指数有界）+ 闭环数学
+    （RESOLVED回执计数、消解率∈(0,100]、强度加权、明细账本字段完整）
 
 系统级检查：哈希链完整性 / FHIR Provenance导出 / MDT五Agent / RII节点级标注
 
@@ -41,6 +43,8 @@ THRESHOLDS = {
     "guardrail_sensitivity": 1.00,       # 护栏灵敏度：危险场景必须100%锁定
     "guardrail_specificity": 1.00,       # 护栏特异度：良性场景必须0误锁
     "rii_validity_rate": 1.00,           # 非空推演RII均须有效（0<index≤100且等级合法）
+    "weather_consistency": 1.00,         # 健康气象一致性：触达状态必须正确映射天气等级
+    "closure_math": 1.00,                # 消解闭环数学：回执计数与消解率计算必须精确
     "evidence_chain_valid": True,        # 哈希链完整性
     "mdt_agent_views": 5,
 }
@@ -289,6 +293,116 @@ def main():
         except AssertionError as e:
             record(guardrail_results, case["id"], False, str(e))
 
+    # ---------- W 消解闭环场景 ----------
+    print("== W 消解闭环评测（10场景：气象一致性6 + 闭环数学4） ==")
+    client.auth(doctor_token)
+    w_results_all = []
+    closure_patient = patient.get("patientId")
+
+    # W01 无任何数据的新患者 → 晴、指数0
+    try:
+        data = client.call("GET", "/api/health-weather/daily?patientId=999999")
+        ok = data.get("weather") == "SUNNY" and float(data.get("index", -1)) == 0.0
+        record(w_results_all, "W01", ok, f"空患者 weather={data.get('weather')} index={data.get('index')}（期望SUNNY/0）")
+    except AssertionError as e:
+        record(w_results_all, "W01", False, str(e))
+
+    # W02-W04 有触达患者：推演后气象必须非晴、指数有界、事项携带Timing Card
+    for case_id, dx, drugs in (("W02", "冠心病", []), ("W03", "2型糖尿病", ["二甲双胍"]), ("W04", "高血压", [])):
+        try:
+            client.call("POST", "/api/health-event/ripple", {
+                "diagnosis": dx, "drugs": [{"drugName": d} for d in drugs],
+                "patientId": closure_patient, "pastHistory": "",
+            })
+            data = client.call("GET", f"/api/health-weather/daily?patientId={closure_patient}")
+            ok = (data.get("weather") in ("CLOUDY", "RAIN", "STORM")
+                  and 0 <= float(data.get("index", -1)) <= 100
+                  and int(data.get("dueTodayCount", 0)) >= 1)
+            items = data.get("items") or []
+            ok = ok and items and all(item.get("timingCard", {}).get("evidenceBasis") for item in items)
+            record(w_results_all, case_id, ok,
+                   f"{dx} → weather={data.get('weather')} index={data.get('index')} "
+                   f"今日{data.get('dueTodayCount')}项 TimingCard={'✓' if items else '✗'}")
+        except AssertionError as e:
+            record(w_results_all, case_id, False, str(e))
+
+    # W05-W07 闭环数学：RESOLVED计数与消解率精确性
+    try:
+        triggers = client.call("GET", f"/api/chrono/triggers/patient/{closure_patient}")
+        trigger_list = triggers if isinstance(triggers, list) else []
+        window = next((t for t in trigger_list if t.get("chronoType") == "WINDOW"
+                       and t.get("status") in ("ACTIVE", "FIRED")), None)
+        if window:
+            client.call("POST", f"/api/chrono/trigger/{window.get('triggerId')}/feedback?outcome=RESOLVED&note=W05")
+            res = client.call("GET", f"/api/health-event/ripple/resolution?patientId={closure_patient}")
+            ok = (int(res.get("resolvedCount", 0)) >= 1
+                  and 0 < float(res.get("resolutionRate", -1)) <= 100
+                  and float(res.get("totalIntensity", 0)) > 0)
+            record(w_results_all, "W05", ok,
+                   f"RESOLVED回执 → 消解率={res.get('resolutionRate')}% 强度和={res.get('totalIntensity')}")
+        else:
+            record(w_results_all, "W05", False, "无WINDOW触达可回执")
+    except AssertionError as e:
+        record(w_results_all, "W05", False, str(e))
+
+    try:
+        rhythm = next((t for t in trigger_list if t.get("chronoType") == "RHYTHM"
+                       and t.get("status") == "ACTIVE"), None)
+        ok = False
+        detail = "无RHYTHM触达"
+        if rhythm:
+            client.call("POST", f"/api/chrono/trigger/{rhythm.get('triggerId')}/feedback?outcome=UNRESOLVED&note=W06")
+            after = client.call("GET", f"/api/chrono/triggers/patient/{closure_patient}")
+            after_list = after if isinstance(after, list) else []
+            fed = next((t for t in after_list if t.get("triggerId") == rhythm.get("triggerId")), None)
+            if fed:
+                next_at = str(fed.get("nextTriggerAt") or "")
+                ok = fed.get("feedbackStatus") == "UNRESOLVED" and next_at >= str((datetime.now().replace(microsecond=0)).isoformat())[:16]
+                detail = f"UNRESOLVED → 加强触达至{next_at[:16]}"
+        record(w_results_all, "W06", ok, detail)
+    except AssertionError as e:
+        record(w_results_all, "W06", False, str(e))
+
+    try:
+        ledger = client.call("GET", f"/api/health-event/ripple/feedback-ledger?patientId={closure_patient}")
+        ledger_list = ledger if isinstance(ledger, list) else []
+        ok = (len(ledger_list) >= 3
+              and all("intensity" in item and "timingCard" in item and "feedbackStatus" in item
+                      for item in ledger_list))
+        record(w_results_all, "W07", ok, f"回执明细账本{len(ledger_list)}条，字段完整={ok}")
+    except AssertionError as e:
+        record(w_results_all, "W07", False, str(e))
+
+    # W08-W10 ESCALATED升级与消解状态叙事
+    try:
+        target = next((t for t in trigger_list if t.get("status") == "ACTIVE"), None)
+        if target:
+            client.call("POST", f"/api/chrono/trigger/{target.get('triggerId')}/feedback?outcome=ESCALATED&note=W08")
+            res = client.call("GET", f"/api/health-event/ripple/resolution?patientId={closure_patient}")
+            ok = int(res.get("escalatedCount", 0)) >= 1 and "升级" in str(res.get("closureStatus", ""))
+            record(w_results_all, "W08", ok,
+                   f"ESCALATED → escalatedCount={res.get('escalatedCount')}, status={res.get('closureStatus')}")
+        else:
+            record(w_results_all, "W08", False, "无ACTIVE触达")
+    except AssertionError as e:
+        record(w_results_all, "W08", False, str(e))
+
+    try:
+        data = client.call("GET", f"/api/health-weather/daily?patientId={closure_patient}")
+        ok = data.get("weather") in ("SUNNY", "CLOUDY", "RAIN", "STORM") and isinstance(data.get("headline"), str)
+        record(w_results_all, "W09", ok, f"升级后气象合法 weather={data.get('weather')} headline={str(data.get('headline'))[:24]}")
+    except AssertionError as e:
+        record(w_results_all, "W09", False, str(e))
+
+    try:
+        calm = client.call("GET", "/api/health-weather/daily?patientId=888888")
+        ok = calm.get("weather") == "SUNNY"
+        record(w_results_all, "W10", ok, f"隔离性：另一空患者仍为SUNNY（数据不串扰）")
+    except AssertionError as e:
+        record(w_results_all, "W10", False, str(e))
+
+    w_pass = sum(1 for r in w_results_all if r["ok"])
+
     # ---------- 系统级检查 ----------
     print("\n== 系统级检查 ==")
     system_checks = {}
@@ -328,6 +442,7 @@ def main():
     print(f"[{'PASS' if ok else 'FAIL'}] 时间学四类型覆盖 {sorted(all_chrono_types)}")
 
     # ---------- 汇总指标 ----------
+    w_pass_rate = sum(1 for r in w_results_all if r["ok"]) / max(1, len(w_results_all))
     t_pass = sum(1 for r in triage_results if r["ok"]) / max(1, len(triage_results))
     r_pass = sum(1 for r in ripple_results if r["ok"]) / max(1, len(ripple_results))
     g_sens = sens_hits / max(1, len(guardrail_data["dangerous_cases"]))
@@ -344,6 +459,9 @@ def main():
         "guardrail_specificity": round(g_spec, 4),
         "rii_validity_rate": round(rii_rate, 4),
         "rii_checked": rii_checked,
+        "closure_pass_rate": round(w_pass_rate, 4),
+        "closure_pass": sum(1 for r in w_results_all if r["ok"]),
+        "closure_total": len(w_results_all),
         "evidence_chain_valid": system_checks.get("evidence_chain_valid"),
         "evidence_count": system_checks.get("evidence_count"),
         "fhir_provenance": system_checks.get("fhir_provenance"),
@@ -357,6 +475,7 @@ def main():
         ("护栏灵敏度=100%", metrics["guardrail_sensitivity"] >= THRESHOLDS["guardrail_sensitivity"]),
         ("护栏特异度=100%", metrics["guardrail_specificity"] >= THRESHOLDS["guardrail_specificity"]),
         ("RII有效率=100%", metrics["rii_validity_rate"] >= THRESHOLDS["rii_validity_rate"]),
+        ("消解闭环场景≥90%", w_pass_rate >= 0.9),
         ("哈希链完整", metrics["evidence_chain_valid"] is True),
         ("FHIR导出可用", metrics["fhir_provenance"] is True),
         ("MDT五视角", metrics["mdt_agent_views"] == 5),
@@ -368,7 +487,7 @@ def main():
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     report = {
         "benchmark": "RippleBench",
-        "version": "v2",
+        "version": "v3",
         "finishedAt": datetime.now().isoformat(timespec="seconds"),
         "baseUrl": args.base_url,
         "thresholds": THRESHOLDS,
@@ -381,6 +500,7 @@ def main():
             "triage": triage_results,
             "ripple": ripple_results,
             "guardrail": guardrail_results,
+            "closure": w_results_all,
         },
     }
     with open(REPORT_DIR / "ripplebench_report.json", "w", encoding="utf-8") as f:
@@ -394,9 +514,10 @@ def main():
     for c, v in verdicts:
         print(f"  [{'PASS' if v else 'FAIL'}] {c}")
     print("=" * 64)
-    print(f"RippleBench v2 总评: {'全部达标' if all_pass else '存在未达标项'}"
+    print(f"RippleBench v3 总评: {'全部达标' if all_pass else '存在未达标项'}"
           f"（分诊{metrics['triage_pass']}/{metrics['triage_total']} 涟漪{metrics['ripple_pass']}/{metrics['ripple_total']}"
-          f" 护栏灵敏度{metrics['guardrail_sensitivity']:.0%} 特异度{metrics['guardrail_specificity']:.0%}）")
+          f" 护栏灵敏度{metrics['guardrail_sensitivity']:.0%}/特异度{metrics['guardrail_specificity']:.0%}"
+          f" 闭环{metrics['closure_pass']}/{metrics['closure_total']}）")
     print("报告已写入 evaluation/ripplebench/reports/ripplebench_report.{json,md}")
     return 0 if all_pass else 1
 
@@ -423,6 +544,8 @@ def render_markdown(report):
         f"{'✅' if m['guardrail_specificity'] >= 1 else '❌'} |",
         f"| RII强度指数有效率 | **{m['rii_validity_rate']:.0%}**（{m['rii_checked']}次非空推演） | 100% | "
         f"{'✅' if m['rii_validity_rate'] >= 1 else '❌'} |",
+        f"| 消解闭环场景通过率 | **{m['closure_pass_rate']:.0%}**（{m['closure_pass']}/{m['closure_total']}） | ≥90% | "
+        f"{'✅' if m['closure_pass_rate'] >= 0.9 else '❌'} |",
         f"| 哈希链完整性 | valid={m['evidence_chain_valid']}（{m['evidence_count']}条决策） | 必须 | "
         f"{'✅' if m['evidence_chain_valid'] else '❌'} |",
         f"| FHIR Provenance导出 | {m['fhir_provenance']} | 必须 | "
@@ -458,6 +581,9 @@ def render_markdown(report):
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
     lines += ["", "### 反事实护栏", ""]
     for r in report["results"]["guardrail"]:
+        lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
+    lines += ["", "### 消解闭环", ""]
+    for r in report["results"].get("closure", []):
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
     lines.append("")
     return "\n".join(lines)

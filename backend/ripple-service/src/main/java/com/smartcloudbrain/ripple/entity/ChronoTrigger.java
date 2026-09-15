@@ -70,6 +70,18 @@ public class ChronoTrigger {
   @Column(name = "last_fired_at")
   private LocalDateTime lastFiredAt;
 
+  /** 干预回执（涟漪消解闭环）：RESOLVED已缓解 / UNRESOLVED未缓解 / ESCALATED已升级就医，空=待回执。 */
+  @Column(name = "feedback_status", length = 20)
+  private String feedbackStatus;
+
+  /** 干预回执备注（患者/家属自述，如"已补糖缓解"/"胸痛未缓解已拨打120"）。 */
+  @Column(name = "feedback_note", length = 300)
+  private String feedbackNote;
+
+  /** 干预回执时间。 */
+  @Column(name = "feedback_at")
+  private LocalDateTime feedbackAt;
+
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 
@@ -109,6 +121,12 @@ public class ChronoTrigger {
   public void setEvidenceLevel(String evidenceLevel) { this.evidenceLevel = evidenceLevel; }
   public LocalDateTime getLastFiredAt() { return lastFiredAt; }
   public void setLastFiredAt(LocalDateTime lastFiredAt) { this.lastFiredAt = lastFiredAt; }
+  public String getFeedbackStatus() { return feedbackStatus; }
+  public void setFeedbackStatus(String feedbackStatus) { this.feedbackStatus = feedbackStatus; }
+  public String getFeedbackNote() { return feedbackNote; }
+  public void setFeedbackNote(String feedbackNote) { this.feedbackNote = feedbackNote; }
+  public LocalDateTime getFeedbackAt() { return feedbackAt; }
+  public void setFeedbackAt(LocalDateTime feedbackAt) { this.feedbackAt = feedbackAt; }
   public LocalDateTime getCreatedAt() { return createdAt; }
   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

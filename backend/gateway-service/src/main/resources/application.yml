@@ -54,7 +54,7 @@ spring:
         - id: ripple-service
           uri: ${RIPPLE_SERVICE_URI:http://localhost:8092}
           predicates:
-            - Path=/api/health-event/**,/api/mdt/**,/api/drug/lifestyle-conflict,/api/complication/signal,/api/evidence/**,/api/chrono/**
+            - Path=/api/health-event/**,/api/mdt/**,/api/drug/lifestyle-conflict,/api/complication/signal,/api/evidence/**,/api/chrono/**,/api/health-weather/**
       globalcors:
         cors-configurations:
           "[/**]":

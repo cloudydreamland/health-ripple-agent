@@ -18,10 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class RippleController {
 
   private final RippleDeriveService rippleDeriveService;
+  private final com.smartcloudbrain.ripple.service.RippleClosureService closureService;
   private final RippleSecurityGuard securityGuard;
 
-  public RippleController(RippleDeriveService rippleDeriveService, RippleSecurityGuard securityGuard) {
+  public RippleController(RippleDeriveService rippleDeriveService,
+      com.smartcloudbrain.ripple.service.RippleClosureService closureService,
+      RippleSecurityGuard securityGuard) {
     this.rippleDeriveService = rippleDeriveService;
+    this.closureService = closureService;
     this.securityGuard = securityGuard;
   }
 
@@ -36,5 +40,17 @@ public class RippleController {
   @GetMapping("/ripple/patient/{patientId}")
   public Result<?> history(@PathVariable Long patientId) {
     return Result.success(rippleDeriveService.history(patientId));
+  }
+
+  /** GET /api/health-event/ripple/resolution — 患者级干预回执统计与涟漪消解率。 */
+  @GetMapping("/ripple/resolution")
+  public Result<?> resolution(@org.springframework.web.bind.annotation.RequestParam Long patientId) {
+    return Result.success(closureService.resolution(patientId));
+  }
+
+  /** GET /api/health-event/ripple/feedback-ledger — 患者全部触达的回执明细（患者端/家属端列表）。 */
+  @GetMapping("/ripple/feedback-ledger")
+  public Result<?> feedbackLedger(@org.springframework.web.bind.annotation.RequestParam Long patientId) {
+    return Result.success(closureService.feedbackLedger(patientId));
   }
 }

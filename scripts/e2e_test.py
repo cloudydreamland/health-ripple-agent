@@ -420,6 +420,60 @@ def main():
     except AssertionError as e:
         record("14a.时间学触达计划", False, str(e), 0)
 
+    # ---------- 14c. 干预回执 → 涟漪消解闭环 ----------
+    try:
+        data, ms = api.call("GET", "/api/chrono/triggers/patient/" + str(patient_id))
+        triggers_all = data if isinstance(data, list) else data.get("triggers", [])
+        target = next((t for t in triggers_all
+                       if t.get("chronoType") == "WINDOW" and t.get("status") in ("ACTIVE", "FIRED")), None)
+        if target is None:
+            target = next((t for t in triggers_all if t.get("status") == "ACTIVE"), None)
+        assert target, f"无可回执触达: {len(triggers_all)}条"
+        tid = target.get("triggerId") or target.get("id")
+        from urllib.parse import quote as _q
+        api.call("POST", "/api/chrono/trigger/" + str(tid) + "/feedback?outcome=RESOLVED&note=" + _q("已按提醒完成复查，指标正常"))
+        data2, _ = api.call("GET", "/api/health-event/ripple/resolution?patientId=" + str(patient_id))
+        assert int(data2.get("resolvedCount", 0)) >= 1, f"RESOLVED回执未计数: {data2}"
+        assert float(data2.get("totalIntensity", 0)) > 0, f"触达缺RII强度权重: {data2}"
+        assert float(data2.get("resolutionRate", 0)) > 0, f"消解率应>0: {data2}"
+        ledger, _ = api.call("GET", "/api/health-event/ripple/feedback-ledger?patientId=" + str(patient_id))
+        ledger_list = ledger if isinstance(ledger, list) else []
+        assert ledger_list and all("timingCard" in item and "intensity" in item for item in ledger_list), \
+            "回执明细缺timingCard/intensity字段"
+        record("14c.干预回执消解闭环", True,
+               f"RESOLVED回执 → resolvedCount={data2.get('resolvedCount')}, 消解率={data2.get('resolutionRate')}%, "
+               f"强度和={data2.get('totalIntensity')}, 明细{len(ledger_list)}条", ms)
+    except AssertionError as e:
+        record("14c.干预回执消解闭环", False, str(e), 0)
+
+    # ---------- 14d. 健康气象日报 ----------
+    try:
+        weather = {}
+        for _ in range(3):
+            api.call("POST", "/api/health-event/ripple", {
+                "diagnosis": "冠心病",
+                "drugs": [],
+                "patientId": patient_id,
+                "pastHistory": "2型糖尿病,高血压",
+            })
+            data, ms = api.call("GET", "/api/health-weather/daily?patientId=" + str(patient_id))
+            if int(data.get("dueTodayCount", 0)) >= 1:
+                weather = data
+                break
+        if not weather:
+            weather = data
+        assert weather.get("weather") in ("SUNNY", "CLOUDY", "RAIN", "STORM"), f"气象等级非法: {weather}"
+        assert 0 <= float(weather.get("index", -1)) <= 100, f"气象指数越界: {weather}"
+        items = weather.get("items") or []
+        assert items, f"今日事项不应为空: {weather.get('weather')}"
+        assert items[0].get("timingCard", {}).get("evidenceBasis"), f"今日事项应携带Timing Card: {items[0]}"
+        assert "familyTip" in weather, "缺家属提示维度"
+        record("14d.健康气象日报", True,
+               f"weather={weather.get('weather')}({weather.get('weatherLabel')}), 指数={weather.get('index')}, "
+               f"今日事项={len(items)}项(顶级={str(items[0].get('event'))[:18]})", ms)
+    except AssertionError as e:
+        record("14d.健康气象日报", False, str(e), 0)
+
     # ---------- 15. 医生通知（事件驱动链路验证） ----------
     try:
         data, ms = api.call("GET", "/api/notification/list")

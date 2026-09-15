@@ -59,6 +59,19 @@ public class ChronoController {
     return Result.success(view(chronoEngine.ack(id)));
   }
 
+  /**
+   * POST /api/chrono/trigger/{id}/feedback — 干预回执（涟漪消解闭环）。
+   *
+   * @param outcome RESOLVED已缓解 / UNRESOLVED未缓解（2小时后加强触达）/ ESCALATED已升级就医
+   * @param note    患者/家属自述备注
+   */
+  @PostMapping("/trigger/{id}/feedback")
+  public Result<?> feedback(@PathVariable Long id,
+      @RequestParam String outcome,
+      @RequestParam(required = false, defaultValue = "") String note) {
+    return Result.success(view(chronoEngine.feedback(id, outcome, note)));
+  }
+
   private Map<String, Object> view(com.smartcloudbrain.ripple.entity.ChronoTrigger trigger) {
     Map<String, Object> view = new LinkedHashMap<>();
     view.put("triggerId", trigger.getId());
@@ -71,6 +84,9 @@ public class ChronoController {
     view.put("status", trigger.getStatus());
     view.put("action", trigger.getAction());
     view.put("lastFiredAt", trigger.getLastFiredAt() == null ? "" : trigger.getLastFiredAt().toString());
+    view.put("feedbackStatus", trigger.getFeedbackStatus() == null ? "" : trigger.getFeedbackStatus());
+    view.put("feedbackNote", trigger.getFeedbackNote() == null ? "" : trigger.getFeedbackNote());
+    view.put("feedbackAt", trigger.getFeedbackAt() == null ? "" : trigger.getFeedbackAt().toString());
     return view;
   }
 }

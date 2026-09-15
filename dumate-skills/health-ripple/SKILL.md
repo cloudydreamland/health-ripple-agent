@@ -73,6 +73,29 @@ python scripts/main.py --action complication --diagnosis "2型糖尿病"
 
 查询某诊断的并发症早期信号。
 
+### 动作6：健康气象日报（weather）— 患者友好型风险叙事
+
+```
+python scripts/main.py --action weather --patient-id 1
+```
+
+1. 调用 `GET /api/health-weather/daily?patientId=`（后端健康气象服务）
+2. 用天气隐喻转译当日守护态势：晴（无重点守护）/多云（轻度关注）/大雨（重点守护）/暴雨（高度警戒）
+3. 输出今日守护事项（每项携带Timing Card循证卡片）+ 家属提示 + 头条摘要
+4. 指数可解释：今日到期触达强度 ÷ 全部活跃触达强度 × 100，每升级就医项+15
+5. 适合每日早晨由 DuMate 定时任务主动播报给患者/家属群
+
+### 动作7：干预回执（feedback）— 涟漪消解闭环
+
+```
+python scripts/main.py --action feedback --trigger-id 56 --outcome RESOLVED --patient-id 1 --feedback-note "已按提醒完成复查"
+```
+
+1. 调用 `POST /api/chrono/trigger/{id}/feedback?outcome=&note=`
+2. outcome三选一：RESOLVED已缓解 / UNRESOLVED未缓解（自动2小时后加强触达）/ ESCALATED已升级就医
+3. 返回回执结果 + 患者级涟漪消解率（消解率=已缓解触达强度和÷全部触达强度和）
+4. 闭环意义：推演→触达→回执→消解率，让"干预是否有效"第一次可量化
+
 ### 动作5：反事实决策树查询（evidence）
 
 ```

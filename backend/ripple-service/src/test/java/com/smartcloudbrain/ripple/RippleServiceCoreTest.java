@@ -52,6 +52,10 @@ class RippleServiceCoreTest {
   private ChronoEngine chronoEngine;
   @Autowired
   private EvidenceChainRepository evidenceChainRepository;
+  @Autowired
+  private com.smartcloudbrain.ripple.service.RippleClosureService closureService;
+  @Autowired
+  private com.smartcloudbrain.ripple.service.HealthWeatherService healthWeatherService;
 
   @Test
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -195,6 +199,76 @@ class RippleServiceCoreTest {
       assertNotNull(acked.getNextTriggerAt());
       assertEquals("ACTIVE", acked.getStatus());
     }
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void interventionFeedback_shouldCloseRippleLoop() {
+    // 推演：冠心病（含WINDOW黄金窗口）+二甲双胍 → 时间学触达注册
+    Map<String, Object> derived = rippleDeriveService.derive(new RippleDeriveRequest(
+        8L, "冠心病", List.of(new DrugItem("二甲双胍")), ""));
+    List<Map<String, Object>> triggers = castMapList(derived.get("chronoTriggers"));
+    assertFalse(triggers.isEmpty());
+
+    // 回执1：RESOLVED 已缓解（WINDOW类应终结为RESOLVED）
+    Long windowId = triggers.stream()
+        .filter(t -> "WINDOW".equals(t.get("chronoType")))
+        .map(t -> ((Number) t.get("triggerId")).longValue())
+        .findFirst().orElseThrow(() -> new AssertionError("冠心病推演应产生WINDOW触达"));
+    var acked = chronoEngine.feedback(windowId, "RESOLVED", "已按提醒完成复查，指标正常");
+    assertEquals("RESOLVED", acked.getFeedbackStatus());
+    assertEquals("RESOLVED", acked.getStatus());
+
+    // 消解率：已缓解强度必须>0，回执计数正确
+    Map<String, Object> resolution = closureService.resolution(8L);
+    assertTrue(((Number) resolution.get("resolvedCount")).intValue() >= 1, "RESOLVED回执应计数");
+    assertTrue(((Number) resolution.get("totalIntensity")).doubleValue() > 0, "触达应携带RII强度权重");
+    assertTrue(((Number) resolution.get("resolutionRate")).doubleValue() > 0, "消解率应>0");
+    assertNotNull(resolution.get("closureStatus"));
+
+    // 回执2：UNRESOLVED 未缓解 → 2小时后加强触达（守护加压）
+    Map<String, Object> rhythm = triggers.stream()
+        .filter(t -> "RHYTHM".equals(t.get("chronoType")))
+        .findFirst().map(java.util.Collections::unmodifiableMap).orElse(null);
+    if (rhythm != null) {
+      Long rhythmId = ((Number) rhythm.get("triggerId")).longValue();
+      var fed = chronoEngine.feedback(rhythmId, "UNRESOLVED", "夜间仍有心悸出汗");
+      assertEquals("UNRESOLVED", fed.getFeedbackStatus());
+      assertTrue(fed.getNextTriggerAt() != null
+              && fed.getNextTriggerAt().isAfter(java.time.LocalDateTime.now().plusMinutes(90)),
+          "未缓解应把下次触达加强到约2小时后");
+    }
+
+    // 回执明细账本：每项携带强度+Timing Card+回执字段
+    List<Map<String, Object>> ledger = closureService.feedbackLedger(8L);
+    assertFalse(ledger.isEmpty());
+    assertTrue(ledger.stream().allMatch(item -> item.containsKey("intensity")
+        && item.containsKey("timingCard") && item.containsKey("feedbackStatus")));
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void healthWeather_shouldTranslateGuardStateForToday() {
+    // 糖尿病推演产生即时WINDOW触达 → 今日必有守护项 → 气象不应该是"晴"
+    rippleDeriveService.derive(new RippleDeriveRequest(
+        9L, "2型糖尿病", List.of(new DrugItem("二甲双胍")), "高血压"));
+
+    Map<String, Object> weather = healthWeatherService.daily(9L);
+    assertTrue(weather.get("weather") instanceof String
+        && java.util.List.of("SUNNY", "CLOUDY", "RAIN", "STORM").contains(weather.get("weather")),
+        "气象等级非法: " + weather.get("weather"));
+    assertTrue(((Number) weather.get("index")).doubleValue() > 0, "有即时触达时指数应>0");
+    assertTrue(((Number) weather.get("dueTodayCount")).intValue() >= 1, "WINDOW触达应计入今日");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> items = (List<Map<String, Object>>) weather.get("items");
+    assertFalse(items.isEmpty(), "今日事项不应为空");
+    assertTrue(items.get(0).containsKey("timingCard"), "今日事项应携带Timing Card");
+    assertNotNull(weather.get("headline"));
+    assertTrue(weather.containsKey("familyTip"), "应包含家属提示维度");
+    // 空患者：无任何守护数据 → 晴
+    Map<String, Object> calm = healthWeatherService.daily(99999L);
+    assertEquals("SUNNY", calm.get("weather"));
+    assertEquals(0.0, ((Number) calm.get("index")).doubleValue());
   }
 
   @SuppressWarnings("unchecked")
