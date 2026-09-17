@@ -20,19 +20,27 @@
 
 **五 Agent 学科会诊** —— 分诊、处方、病历、随访、涟漪守护五个智能体以专科身份发言，分歧显式暴露、按"患者安全优先"规则收敛裁决，输出会诊纪要。现有的 AI-MDT 都还在组织真人开会，这里是智能体自己开。
 
+**72 小时涟漪预报** —— RII 回答"现在有多大浪"，预报回答"浪什么时候来"：把守护触达的强度按时间学语义在 72 小时轴上确定性叠加，医生看到"今晚 0-3 点有低血糖峰"，患者端翻译成"未来三天守护天气趋势"。每缓解一项触达，对应峰值就从曲线里消失。
+
+**今日守护队列** —— 基层医生早上打开大屏的第一个答案："今天该先管谁"。跨患者按"升级就医 > 未缓解 > 今日到期 > 气象指数"排序，每行带理由。
+
+**守护价值账本** —— 从印鉴链聚合系统真实做过的守护：审计决策数、高危路径锁定数、黄金窗口触达数、回执缓解数。计数型账本，不虚构概率——"避免了 X 次死亡"那种话需要真实世界对照数据才配说。
+
 ## 仓库结构
 
 ```
-dumate-skills/                 5 个 DuMate Skill（Agent Skills 开放标准）
-  health-ripple/                 健康事件涟漪守护（核心创新）
+dumate-skills/                 5 个 DuMate Skill（Agent Skills 开放标准，核心 Skill 9 个动作）
+  health-ripple/                 健康事件涟漪守护（核心创新：推演/会诊/气象/预报/账本/回执）
   medical-triage/ prescription-safety/ medical-record-draft/ followup-plan/
 backend/                       13 个 Spring Boot 3 微服务（21 常驻容器一键部署）
-  ripple-service/                涟漪推演 / 时间学引擎 / 反事实护栏 / 证据链
+  ripple-service/                涟漪推演 / 时间学 / 预报 / 守护队列 / 护栏 / 证据链
 frontend/
-  ripple-console/                涟漪守护指挥中心（水墨涟漪大屏，LIVE/SNAPSHOT 徽章如实标注数据来源）
+  ripple-console/                涟漪守护指挥中心（水墨涟漪大屏：图谱/护栏/时辰/印鉴/预报/队列）
   patient-web/ doctor-web/ admin-web/
-evaluation/ripplebench/        RippleBench v3 量化评测（60 开发病例 + 10 盲测病例 + 自动报告）
+evaluation/ripplebench/        RippleBench v3 量化评测（60 开发病例 + 10 盲测病例 + 系统级检查）
 scripts/e2e_test.py            24 步端到端测试（完整患者旅程 + 越权/未鉴权安全负例）
+scripts/verify_all.py          一键复现全部验证（单测+e2e+评测+冒烟）
+docs/SYSTEM_CARD.md            系统卡：预期用途/评测结果/已知局限（Model Cards 规范）
 sql/ postman/ deploy/
 ```
 
@@ -46,6 +54,7 @@ docker compose -f deploy/docker-compose.yml up -d   # 全栈 21 常驻容器
 
 py -3 scripts/e2e_test.py                           # 端到端 24 步
 py -3 evaluation/ripplebench/run_eval.py            # RippleBench v3 量化评测
+py -3 scripts/verify_all.py                         # 一键复现全部验证（提交前必跑）
 ```
 
 后端不通时大屏会自动切到内置的真实响应快照，顶栏徽章同步变为 SNAPSHOT 并标注快照捕获时间——演示现场断网不慌，屏幕上是什么数据也从不撒谎。
@@ -53,8 +62,8 @@ py -3 evaluation/ripplebench/run_eval.py            # RippleBench v3 量化评�
 ## 测试情况
 
 - 端到端测试 24/24 全过（注册 → 分诊 → 挂号 → 病历 → 处方 → 随访 → 涟漪推演 → 回执消解 → 健康气象 → 通知双通道 → **越权/未鉴权安全负例**）
-- RippleBench v3：**60 开发病例 + 10 盲测病例（held-out，开发期未参与调参）+ 10 闭环场景**——分诊 top-1 20/20，涟漪覆盖 20/20，护栏灵敏度/特异度 100%（真特异度与防幻觉分口径均 100%），**盲测集 10/10**，消解闭环 10/10
-- 后端单元测试全绿：ripple-service 19 项（含**哈希链 4 线程并发回归**、护栏误标覆写、否定分诊）、ai-service 29 项（含安全网红线覆写）
+- RippleBench v3：**60 开发病例 + 10 盲测病例（held-out，开发期未参与调参）+ 12 项判定**——分诊 top-1 20/20，涟漪覆盖 20/20，护栏灵敏度/特异度 100%（真特异度与防幻觉分口径均 100%），**盲测集 10/10**，消解闭环 10/10，**第六轮创新系统级检查 5/5**（预报确定性/诚实空态/队列降序/角色守卫/价值账本）
+- 后端单元测试全绿：ripple-service 23 项（含**哈希链 4 线程并发回归**、护栏误标覆写、**预报节律峰/缓解清零**）、ai-service 29 项（含安全网红线覆写）
 - Skill 安全冒烟 5/5
 - 评测过程本身就是卖点：四轮评测累计揪出 8 处真缺陷（卒中急症掉进兜底、哮喘误路由心内、证据 ID 并发冲突、哈希链并发分叉、否定语境误判、儿科被成人规则抢跑、涟漪守护通知从未真正落库、灵敏度口径脱钩），修复后复测全绿——盲测集首轮就抓到了开发集两轮迭代都没暴露的问题，这套评测不是摆设
 
@@ -67,3 +76,4 @@ py -3 evaluation/ripplebench/run_eval.py            # RippleBench v3 量化评�
 ---
 
 安全边界：智能体会拦风险处方、会推涟漪、会掐触达时机，但不开方、不下诊断、不改治疗方案——终审权在医生。
+系统能力与局限的诚实披露见 [System Card](docs/SYSTEM_CARD.md)。
