@@ -4,7 +4,9 @@ import com.smartcloudbrain.common.result.Result;
 import com.smartcloudbrain.ripple.dto.RippleDeriveRequest;
 import com.smartcloudbrain.ripple.security.PatientOwnershipGuard;
 import com.smartcloudbrain.ripple.security.RippleSecurityGuard;
+import com.smartcloudbrain.ripple.service.GuardQueueService;
 import com.smartcloudbrain.ripple.service.RippleDeriveService;
+import com.smartcloudbrain.ripple.service.RippleForecastService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,15 +28,21 @@ public class RippleController {
   private final com.smartcloudbrain.ripple.service.RippleClosureService closureService;
   private final RippleSecurityGuard securityGuard;
   private final PatientOwnershipGuard ownershipGuard;
+  private final RippleForecastService forecastService;
+  private final GuardQueueService guardQueueService;
 
   public RippleController(RippleDeriveService rippleDeriveService,
       com.smartcloudbrain.ripple.service.RippleClosureService closureService,
       RippleSecurityGuard securityGuard,
-      PatientOwnershipGuard ownershipGuard) {
+      PatientOwnershipGuard ownershipGuard,
+      RippleForecastService forecastService,
+      GuardQueueService guardQueueService) {
     this.rippleDeriveService = rippleDeriveService;
     this.closureService = closureService;
     this.securityGuard = securityGuard;
     this.ownershipGuard = ownershipGuard;
+    this.forecastService = forecastService;
+    this.guardQueueService = guardQueueService;
   }
 
   /** POST /api/health-event/ripple — 一个健康事件触发多维度涟漪推演。 */
@@ -64,5 +72,18 @@ public class RippleController {
   public Result<?> feedbackLedger(@RequestParam Long patientId) {
     ownershipGuard.checkAccess(patientId);
     return Result.success(closureService.feedbackLedger(patientId));
+  }
+
+  /** GET /api/health-event/ripple/forecast — 未来72小时涟漪强度预报（逐小时桶+峰值+驱动事件）。 */
+  @GetMapping("/ripple/forecast")
+  public Result<?> forecast(@RequestParam Long patientId) {
+    ownershipGuard.checkAccess(patientId);
+    return Result.success(forecastService.forecast(patientId));
+  }
+
+  /** GET /api/health-event/guard-queue — 今日守护队列（跨患者优先级排序，仅医生/管理员）。 */
+  @GetMapping("/guard-queue")
+  public Result<?> guardQueue() {
+    return Result.success(guardQueueService.todayQueue());
   }
 }

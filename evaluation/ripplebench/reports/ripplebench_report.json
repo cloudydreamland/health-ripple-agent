@@ -1,7 +1,7 @@
 {
   "benchmark": "RippleBench",
   "version": "v3",
-  "finishedAt": "2026-09-18T01:32:09",
+  "finishedAt": "2026-09-18T02:09:13",
   "baseUrl": "http://localhost:18080",
   "thresholds": {
     "triage_top1_accuracy": 0.9,
@@ -35,7 +35,7 @@
     "blind_pass": 10,
     "blind_total": 10,
     "evidence_chain_valid": true,
-    "evidence_count": 477,
+    "evidence_count": 581,
     "fhir_provenance": true,
     "mdt_agent_views": 5,
     "chrono_type_coverage": [
@@ -89,6 +89,10 @@
     {
       "criterion": "时间学四类型齐全",
       "pass": true
+    },
+    {
+      "criterion": "第六轮创新系统级检查5/5（预报/队列/账本/角色守卫）",
+      "pass": true
     }
   ],
   "allPass": true,
@@ -101,102 +105,123 @@
   ],
   "latency": [
     {
-      "api": "/api/chrono/trigger/905/feedback",
+      "api": "/api/chrono/trigger/1064/feedback",
       "calls": 2,
-      "p50_ms": 10,
-      "p95_ms": 20,
-      "max_ms": 20
+      "p50_ms": 31,
+      "p95_ms": 36,
+      "max_ms": 36
     },
     {
-      "api": "/api/chrono/trigger/927/feedback",
+      "api": "/api/chrono/trigger/1086/feedback",
       "calls": 1,
-      "p50_ms": 21,
-      "p95_ms": 21,
-      "max_ms": 21
+      "p50_ms": 35,
+      "p95_ms": 35,
+      "max_ms": 35
     },
     {
-      "api": "/api/chrono/triggers/patient/119",
+      "api": "/api/chrono/triggers/patient/123",
       "calls": 2,
-      "p50_ms": 6,
-      "p95_ms": 27,
-      "max_ms": 27
+      "p50_ms": 26,
+      "p95_ms": 28,
+      "max_ms": 28
     },
     {
       "api": "/api/doctor/login",
       "calls": 1,
-      "p50_ms": 205,
-      "p95_ms": 205,
-      "max_ms": 205
+      "p50_ms": 214,
+      "p95_ms": 214,
+      "max_ms": 214
     },
     {
-      "api": "/api/evidence/RIPPLE_DERIVATION-20260918013208-fdfc404d/fhir",
+      "api": "/api/evidence/RIPPLE_DERIVATION-20260918020911-dd989656/fhir",
       "calls": 1,
-      "p50_ms": 8,
-      "p95_ms": 8,
-      "max_ms": 8
+      "p50_ms": 26,
+      "p95_ms": 26,
+      "max_ms": 26
+    },
+    {
+      "api": "/api/evidence/ledger",
+      "calls": 1,
+      "p50_ms": 29,
+      "p95_ms": 29,
+      "max_ms": 29
     },
     {
       "api": "/api/evidence/verify",
       "calls": 1,
-      "p50_ms": 38,
-      "p95_ms": 38,
-      "max_ms": 38
+      "p50_ms": 39,
+      "p95_ms": 39,
+      "max_ms": 39
+    },
+    {
+      "api": "/api/health-event/guard-queue",
+      "calls": 2,
+      "p50_ms": 28,
+      "p95_ms": 174,
+      "max_ms": 174
     },
     {
       "api": "/api/health-event/ripple",
       "calls": 49,
-      "p50_ms": 30,
-      "p95_ms": 35,
-      "max_ms": 37
+      "p50_ms": 29,
+      "p95_ms": 39,
+      "max_ms": 40
     },
     {
       "api": "/api/health-event/ripple/feedback-ledger",
       "calls": 1,
-      "p50_ms": 25,
-      "p95_ms": 25,
-      "max_ms": 25
+      "p50_ms": 7,
+      "p95_ms": 7,
+      "max_ms": 7
+    },
+    {
+      "api": "/api/health-event/ripple/forecast",
+      "calls": 3,
+      "p50_ms": 31,
+      "p95_ms": 34,
+      "max_ms": 34
     },
     {
       "api": "/api/health-event/ripple/resolution",
       "calls": 2,
-      "p50_ms": 9,
-      "p95_ms": 21,
-      "max_ms": 21
+      "p50_ms": 8,
+      "p95_ms": 27,
+      "max_ms": 27
     },
     {
       "api": "/api/health-weather/daily",
       "calls": 6,
-      "p50_ms": 26,
-      "p95_ms": 33,
-      "max_ms": 33
+      "p50_ms": 10,
+      "p95_ms": 31,
+      "max_ms": 31
     },
     {
       "api": "/api/mdt/consult",
       "calls": 1,
-      "p50_ms": 32,
-      "p95_ms": 32,
-      "max_ms": 32
+      "p50_ms": 15,
+      "p95_ms": 15,
+      "max_ms": 15
     },
     {
       "api": "/api/patient/login",
       "calls": 1,
-      "p50_ms": 221,
-      "p95_ms": 221,
-      "max_ms": 221
+      "p50_ms": 224,
+      "p95_ms": 224,
+      "max_ms": 224
     },
     {
       "api": "/api/patient/register",
       "calls": 1,
-      "p50_ms": 223,
-      "p95_ms": 223,
-      "max_ms": 223
+      "p50_ms": 243,
+      "p95_ms": 243,
+      "max_ms": 243
     },
     {
       "api": "/api/triage/consult",
       "calls": 24,
-      "p50_ms": 34,
-      "p95_ms": 49,
-      "max_ms": 202
+      "p50_ms": 36,
+      "p95_ms": 48,
+      "max_ms": 48
     }
   ],
   "results": {
@@ -535,7 +560,7 @@
       {
         "id": "W06",
         "ok": true,
-        "detail": "UNRESOLVED → 加强触达至2026-09-18T03:32"
+        "detail": "UNRESOLVED → 加强触达至2026-09-18T04:09"
       },
       {
         "id": "W07",

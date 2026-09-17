@@ -151,3 +151,29 @@ export async function exportFhir(decisionId: string): Promise<Record<string, unk
   }
   return call<Record<string, unknown>>("GET", "/evidence/" + decisionId + "/fhir");
 }
+
+/** 未来72小时涟漪预报（快照模式返回 null——预报必须由真实触达计划计算，不臆造）。 */
+export async function fetchForecast(patientId: number): Promise<Record<string, unknown> | null> {
+  if (!token) {
+    return null;
+  }
+  try {
+    return await call<Record<string, unknown>>("GET", "/health-event/ripple/forecast?patientId=" + patientId);
+  } catch (e) {
+    setMode("snapshot", "预报获取失败：" + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}
+
+/** 今日守护队列（医生视角跨患者聚合；快照模式返回 null）。 */
+export async function fetchGuardQueue(): Promise<Record<string, unknown>[] | null> {
+  if (!token) {
+    return null;
+  }
+  try {
+    return await call<Record<string, unknown>[]>("GET", "/health-event/guard-queue");
+  } catch (e) {
+    setMode("snapshot", "守护队列获取失败：" + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}

@@ -43,6 +43,22 @@ public class PatientOwnershipGuard {
     }
   }
 
+  /**
+   * 聚合类端点的 scope 决策：PATIENT 强制收敛到本人（即使传了他人ID也只返回自己的，
+   * 不泄露"他人是否存在"）；DOCTOR/ADMIN 可带 patientId 查单患者，不带=全量；
+   * 沙箱直连按请求参数处理。
+   */
+  public Long scopeOrForbidden(Long requestedPatientId) {
+    AuthenticatedUser user = currentUserOrNull();
+    if (user == null) {
+      return requestedPatientId;
+    }
+    if (user.role() == RoleType.PATIENT) {
+      return user.userId();
+    }
+    return requestedPatientId;
+  }
+
   /** 校验当前请求有权访问属于目标 patientId 的单条资源；resourcePatientId 为空时按无归属处理。 */
   public void checkResource(Long resourcePatientId) {
     AuthenticatedUser user = currentUserOrNull();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, type SourceMode } from "./api";
+import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, type SourceMode } from "./api";
 import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } from "./types";
 import RiiSummary from "./components/RiiSummary.vue";
 import RidgePlot from "./components/RidgePlot.vue";
@@ -12,6 +12,8 @@ import ChronoDial from "./components/ChronoDial.vue";
 import EvidencePanel from "./components/EvidencePanel.vue";
 import MdtChord from "./components/MdtChord.vue";
 import NodeDetailDrawer from "./components/NodeDetailDrawer.vue";
+import ForecastChart, { type ForecastData } from "./components/ForecastChart.vue";
+import GuardQueuePanel, { type QueueRow } from "./components/GuardQueuePanel.vue";
 
 interface CasePreset {
   id: string;
@@ -45,6 +47,8 @@ const mdt = ref<MdtResponse | null>(null);
 const mdtLoading = ref(false);
 const selectedNode = ref<RippleNode | null>(null);
 const clock = ref("");
+const forecast = ref<ForecastData | null>(null);
+const guardQueue = ref<QueueRow[]>([]);
 
 // 数据源模式实时联动：任何一次实时调用失败，api 层立即把徽章切到 SNAPSHOT 并说明原因
 // （绝不出现"徽章 LIVE、屏幕是旧快照"的失真状态）
@@ -91,6 +95,10 @@ async function run(caseOverride?: CasePreset) {
   } finally {
     running.value = false;
   }
+  // 预报与守护队列跟随推演刷新（live 模式；快照模式保持诚实空态）
+  const f = await fetchForecast(patientId.value);
+  forecast.value = (f as ForecastData) ?? null;
+  guardQueue.value = (await fetchGuardQueue()) as QueueRow[] | null ?? [];
 }
 
 async function runMdt() {
@@ -351,6 +359,36 @@ onMounted(async () => {
       </section>
     </div>
 
+    <!-- 72小时预报 + 今日守护队列 -->
+    <div class="grid-d">
+      <section class="panel">
+        <header class="sec-head">
+          <span class="dot" style="background: var(--red)" />
+          <h2>未来72小时涟漪预报</h2>
+          <span class="en">RIPPLE FORECAST / DETERMINISTIC SUPERPOSITION</span>
+          <span class="spacer" />
+          <span v-if="forecast" class="tag RED">峰 +{{ forecast.peak.hourOffset }}h · {{ forecast.peak.intensity }}</span>
+          <span class="fig">FIG.05</span>
+        </header>
+        <div class="panel-body">
+          <ForecastChart :forecast="forecast" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="sec-head">
+          <span class="dot" style="background: var(--orange, #ffab4a)" />
+          <h2>今日守护队列</h2>
+          <span class="en">GUARD QUEUE / WHO TO GUARD FIRST</span>
+          <span class="spacer" />
+          <span class="fig">FIG.06</span>
+        </header>
+        <div class="panel-body">
+          <GuardQueuePanel :rows="guardQueue" />
+        </div>
+      </section>
+    </div>
+
     <!-- 五Agent角色卡条 -->
     <div class="agent-strip">
       <div
@@ -399,6 +437,9 @@ onMounted(async () => {
 
 .chrono-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1400px) { .chrono-layout { grid-template-columns: 1fr; } }
+
+.grid-d { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-top: 14px; padding: 0 22px; }
+@media (max-width: 1280px) { .grid-d { grid-template-columns: 1fr; } }
 
 .agent-card {
   border: 1.5px solid var(--line-strong);

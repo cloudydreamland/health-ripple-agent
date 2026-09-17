@@ -105,6 +105,29 @@ python scripts/main.py --action evidence --decision-id RIPPLE_DERIVATION-2026091
 
 查询某涟漪推演决策的反事实决策树与哈希链证据，供审计与申诉。
 
+### 动作8：72小时涟漪预报（forecast）
+
+```
+python scripts/main.py --action forecast --patient-id 1
+```
+
+1. 调用 `GET /api/health-event/ripple/forecast?patientId=`（后端预报服务）
+2. 返回未来72小时逐小时涟漪强度桶 + 峰值时段 + 驱动事件（如"凌晨0-3点低血糖峰"）
+3. 确定性可复算：由时间学触达的RII强度按 WINDOW/RHYTHM/PERIODIC/SEASONAL 语义叠加，无随机数
+4. 与消解闭环联动：已缓解触达从预报剔除，未缓解触达×1.5加压
+5. 用途：医生排今天该管谁、患者知道今晚几点要当心；后端不可用时诚实降级（不臆造预报）
+
+### 动作9：守护价值账本（value）
+
+```
+python scripts/main.py --action value
+python scripts/main.py --action value --patient-id 1
+```
+
+1. 调用 `GET /api/evidence/ledger`（不带参=全量账本，医生视角；带 patientId=单患者）
+2. 返回计数型守护动作聚合：审计决策数/高危反事实路径锁定数/黄金窗口触达数/回执缓解数/升级就医转诊数 + 一句话叙事
+3. 诚实边界：全部数字来自已入印鉴链的真实决策，不虚构概率换算；后端不可用时诚实降级
+
 ## 自主决策规则
 
 DuMate AI 读取脚本输出后，按以下规则自主决策（非仅提示）：

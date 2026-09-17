@@ -6,6 +6,7 @@ import com.smartcloudbrain.common.result.Result;
 import com.smartcloudbrain.ripple.event.RippleEventPublisher;
 import com.smartcloudbrain.ripple.security.PatientOwnershipGuard;
 import com.smartcloudbrain.ripple.service.EvidenceChainService;
+import com.smartcloudbrain.ripple.service.GuardianLedgerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * - 查询单条证据（含反事实决策树）
  * - 查询患者全部决策证据
  * - 哈希链完整性校验（tamper-evident audit）
+ * - 守护价值账本（计数型守护动作聚合）
  *
  * 患者维度端点统一经 {@link PatientOwnershipGuard} 归属校验（防越权遍历他人医疗数据）。
  */
@@ -27,12 +29,14 @@ public class EvidenceController {
   private final EvidenceChainService evidenceChainService;
   private final RippleEventPublisher eventPublisher;
   private final PatientOwnershipGuard ownershipGuard;
+  private final GuardianLedgerService guardianLedgerService;
 
   public EvidenceController(EvidenceChainService evidenceChainService, RippleEventPublisher eventPublisher,
-      PatientOwnershipGuard ownershipGuard) {
+      PatientOwnershipGuard ownershipGuard, GuardianLedgerService guardianLedgerService) {
     this.evidenceChainService = evidenceChainService;
     this.eventPublisher = eventPublisher;
     this.ownershipGuard = ownershipGuard;
+    this.guardianLedgerService = guardianLedgerService;
   }
 
   /** GET /api/evidence/{decisionId} — 查询单条决策证据（反事实决策树可追问）。 */
@@ -74,5 +78,15 @@ public class EvidenceController {
   @GetMapping("/verify")
   public Result<?> verify() {
     return Result.success(evidenceChainService.verify());
+  }
+
+  /**
+   * GET /api/evidence/ledger — 守护价值账本（计数型：拦截/触达/回执聚合叙事）。
+   * 医生不带参=全量账本；患者访问时强制限定本人 scope。
+   */
+  @GetMapping("/ledger")
+  public Result<?> ledger(@org.springframework.web.bind.annotation.RequestParam(required = false) Long patientId) {
+    Long scoped = ownershipGuard.scopeOrForbidden(patientId);
+    return Result.success(guardianLedgerService.ledger(scoped));
   }
 }

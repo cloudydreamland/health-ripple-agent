@@ -1051,6 +1051,51 @@ def action_weather(args):
 
 
 # ============================================================
+# action: forecast（72小时涟漪预报）- 从"看见涟漪"到"预见涟漪"
+# ============================================================
+def action_forecast(args):
+    """查询患者未来72小时涟漪强度预报（逐小时桶+峰值+驱动事件，确定性可复算）。"""
+    if not args.patient_id:
+        return {"error": "missing_param", "message": "patient_id is required"}
+
+    path = "/api/health-event/ripple/forecast?patientId=" + urllib.parse.quote(str(args.patient_id))
+    backend_result = _http_get(path)
+
+    if isinstance(backend_result, dict) and "error" not in backend_result and backend_result:
+        backend_result["safetyBoundary"] = SAFETY_BOUNDARY
+        return backend_result
+
+    # 降级：预报依赖患者真实触达计划与RII强度，本地无法降级推算（不做臆造预报）
+    return {
+        "patientId": args.patient_id,
+        "degraded": True,
+        "degradedReason": "后端不可用：72小时预报需患者触达计划与RII强度（在线数据），本地不做臆造预报",
+        "buckets": [],
+        "safetyBoundary": SAFETY_BOUNDARY,
+    }
+
+
+# ============================================================
+# action: value（守护价值账本）- 计数型守护动作聚合
+# ============================================================
+def action_value(args):
+    """查询守护价值账本（审计决策/高危路径锁定/黄金窗口触达/回执消解计数）。"""
+    patient_id = _parse_int(args.patient_id)
+    path = "/api/evidence/ledger" + ("?patientId=" + str(patient_id) if patient_id else "")
+    backend_result = _http_get(path)
+
+    if isinstance(backend_result, dict) and "error" not in backend_result and backend_result:
+        backend_result["safetyBoundary"] = SAFETY_BOUNDARY
+        return backend_result
+
+    return {
+        "degraded": True,
+        "degradedReason": "后端不可用：守护账本需读取印鉴链（在线数据），本地不做臆造统计",
+        "safetyBoundary": SAFETY_BOUNDARY,
+    }
+
+
+# ============================================================
 # action: feedback（干预回执）- 涟漪消解闭环
 # ============================================================
 def action_feedback(args):
@@ -1096,8 +1141,8 @@ def _parse_int(value):
 def build_parser():
     parser = argparse.ArgumentParser(description="智慧云脑·健康事件涟漪守护智能体 Skill（含涟漪推演+反事实决策树+MDT会诊）")
     parser.add_argument("--action", required=True,
-                        choices=["ripple", "mdt", "conflict", "complication", "evidence", "weather", "feedback"],
-                        help="执行的动作：ripple=涟漪推演, mdt=MDT会诊, conflict=药物冲突, complication=并发症信号, evidence=反事实决策树, weather=健康气象日报, feedback=干预回执")
+                        choices=["ripple", "mdt", "conflict", "complication", "evidence", "weather", "forecast", "value", "feedback"],
+                        help="执行的动作：ripple=涟漪推演, mdt=MDT会诊, conflict=药物冲突, complication=并发症信号, evidence=反事实决策树, weather=健康气象日报, forecast=72小时涟漪预报, value=守护价值账本, feedback=干预回执")
     parser.add_argument("--gateway-url", default=None, help="后端网关地址，覆盖环境变量")
     parser.add_argument("--api-token", default=None, help="后端网关 Bearer 令牌（缺省读环境变量 SCB_API_TOKEN）")
 
@@ -1154,6 +1199,10 @@ def main():
         result = action_evidence(args)
     elif args.action == "weather":
         result = action_weather(args)
+    elif args.action == "forecast":
+        result = action_forecast(args)
+    elif args.action == "value":
+        result = action_value(args)
     elif args.action == "feedback":
         result = action_feedback(args)
     else:

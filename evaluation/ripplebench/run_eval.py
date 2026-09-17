@@ -550,6 +550,68 @@ def main():
     ok = expected_types <= all_chrono_types
     print(f"[{'PASS' if ok else 'FAIL'}] 时间学四类型覆盖 {sorted(all_chrono_types)}")
 
+    # ---------- 第六轮创新系统级检查：72小时预报 / 今日守护队列 / 守护价值账本 ----------
+    client.auth(doctor_token)  # 盲测集分诊用例可能停在患者令牌上；本块以医生身份执行
+    try:
+        fc = client.call("GET", f"/api/health-event/ripple/forecast?patientId={patient.get('patientId')}")
+        buckets = fc.get("buckets") or []
+        ok = (len(buckets) == 72
+              and int(fc.get("activeTriggers", 0)) >= 1
+              and float((fc.get("peak") or {}).get("intensity", 0)) > 0
+              and bool((fc.get("peak") or {}).get("drivers")))
+        fc2 = client.call("GET", f"/api/health-event/ripple/forecast?patientId={patient.get('patientId')}")
+        ok = ok and float(fc2.get("horizonAvg", -1)) == float(fc.get("horizonAvg", -2))
+        system_checks["forecast"] = ok
+        print(f"[{'PASS' if ok else 'FAIL'}] 72小时涟漪预报（72桶/峰值/驱动标注/确定性）")
+    except AssertionError as e:
+        system_checks["forecast"] = False
+        print(f"[FAIL] 72小时涟漪预报 {e}")
+    try:
+        empty = client.call("GET", "/api/health-event/ripple/forecast?patientId=999998")
+        ok = (not empty.get("activeTriggers")
+              and all(float(b.get("intensity", -1)) == 0.0 for b in empty.get("buckets") or []))
+        system_checks["forecast_empty"] = ok
+        print(f"[{'PASS' if ok else 'FAIL'}] 预报诚实空态（无触达患者全零，不臆造）")
+    except AssertionError as e:
+        system_checks["forecast_empty"] = False
+        print(f"[FAIL] 预报诚实空态 {e}")
+    try:
+        queue = client.call("GET", "/api/health-event/guard-queue")
+        ordered = all(float(queue[i]["priorityScore"]) >= float(queue[i + 1]["priorityScore"])
+                      for i in range(len(queue) - 1))
+        ok = (isinstance(queue, list) and len(queue) >= 1
+              and all("priorityScore" in r and "reason" in r for r in queue) and ordered)
+        system_checks["guard_queue"] = ok
+        print(f"[{'PASS' if ok else 'FAIL'}] 今日守护队列（{len(queue)}名患者按优先级降序）")
+    except AssertionError as e:
+        system_checks["guard_queue"] = False
+        print(f"[FAIL] 今日守护队列 {e}")
+    try:
+        client.auth(patient_token)
+        try:
+            client.call("GET", "/api/health-event/guard-queue")
+            role_ok = False
+        except AssertionError:
+            role_ok = True  # 期望被拒
+        client.auth(doctor_token)
+        system_checks["queue_role_guard"] = role_ok
+        print(f"[{'PASS' if role_ok else 'FAIL'}] 守护队列角色守卫（患者访问必须403）")
+    except AssertionError as e:
+        system_checks["queue_role_guard"] = False
+        client.auth(doctor_token)
+        print(f"[FAIL] 守护队列角色守卫 {e}")
+    try:
+        ledger = client.call("GET", "/api/evidence/ledger")
+        ok = (int(ledger.get("totalDecisions", 0)) >= 1
+              and int(ledger.get("flaggedPathsLocked", 0)) >= 1
+              and "印鉴链在案" in str(ledger.get("narrative")))
+        system_checks["value_ledger"] = ok
+        print(f"[{'PASS' if ok else 'FAIL'}] 守护价值账本（决策{ledger.get('totalDecisions')}/"
+              f"锁定高危路径{ledger.get('flaggedPathsLocked')}）")
+    except AssertionError as e:
+        system_checks["value_ledger"] = False
+        print(f"[FAIL] 守护价值账本 {e}")
+
     # ---------- 汇总指标 ----------
     w_pass_rate = sum(1 for r in w_results_all if r["ok"]) / max(1, len(w_results_all))
     t_pass = sum(1 for r in triage_results if r["ok"]) / max(1, len(triage_results))
@@ -583,6 +645,8 @@ def main():
         "chrono_type_coverage": system_checks.get("chrono_type_coverage"),
     }
 
+    round6_checks = [system_checks.get(k) is True for k in
+                     ("forecast", "forecast_empty", "guard_queue", "queue_role_guard", "value_ledger")]
     verdicts = [
         ("分诊top-1准确率≥90%", metrics["triage_top1_accuracy"] >= THRESHOLDS["triage_top1_accuracy"]),
         ("涟漪用例通过率≥90%", metrics["ripple_case_pass_rate"] >= THRESHOLDS["ripple_case_pass_rate"]),
@@ -595,6 +659,7 @@ def main():
         ("FHIR导出可用", metrics["fhir_provenance"] is True),
         ("MDT五视角", metrics["mdt_agent_views"] == 5),
         ("时间学四类型齐全", expected_types <= all_chrono_types),
+        ("第六轮创新系统级检查5/5（预报/队列/账本/角色守卫）", all(round6_checks)),
     ]
     all_pass = all(v for _, v in verdicts)
 

@@ -69,6 +69,21 @@ interface RippleHistoryItem {
   rippleGraph: { summary?: { rippleIntensity?: { index: number; level: string } } };
 }
 
+interface ForecastBucket {
+  hourOffset: number;
+  intensity: number;
+  drivers: string[];
+}
+
+interface Forecast {
+  horizonHours: number;
+  buckets: ForecastBucket[];
+  peak: { hourOffset: number; intensity: number; drivers: string[] };
+  horizonAvg: number;
+  activeTriggers: number;
+  degraded?: boolean;
+}
+
 const auth = useAuthStore();
 const elderMode = ref(localStorage.getItem("scb-elder-mode") === "1");
 const loading = ref(true);
@@ -80,6 +95,7 @@ const weather = ref<Weather | null>(null);
 const ledger = ref<LedgerItem[]>([]);
 const resolution = ref<Resolution | null>(null);
 const history = ref<RippleHistoryItem[]>([]);
+const forecast = ref<Forecast | null>(null);
 const feedbackBusy = ref<number | null>(null);
 const shared = ref(false);
 
@@ -110,22 +126,53 @@ const TYPE_LABEL: Record<string, string> = {
   SEASONAL: "季节",
 };
 
+/** 预报强度 → 守护天气色（与今日气象同一套语言：晴/多云/大雨/暴雨）。 */
+function forecastColor(v: number): string {
+  if (v >= 45) return "#ff5d6c";
+  if (v >= 25) return "#ffab4a";
+  if (v > 0) return "#ffd94a";
+  return "#3ee6a4";
+}
+
+/** 72个逐小时桶聚合为24根3小时柱（取窗口内峰值），方便患者一眼看趋势。 */
+const forecastColumns = computed(() => {
+  if (!forecast.value?.buckets?.length) return [];
+  const cols: { offset: number; intensity: number; drivers: string[] }[] = [];
+  for (let i = 0; i < forecast.value.buckets.length; i += 3) {
+    const slice = forecast.value.buckets.slice(i, i + 3);
+    const top = slice.reduce((a, b) => (b.intensity > a.intensity ? b : a), slice[0]);
+    cols.push({ offset: i, intensity: Math.round(top.intensity), drivers: top.drivers });
+  }
+  return cols;
+});
+
+const forecastPeakText = computed(() => {
+  if (!forecast.value || !forecast.value.peak || forecast.value.peak.intensity <= 0) return "";
+  const p = forecast.value.peak;
+  const drivers = p.drivers.length ? p.drivers.slice(0, 2).join("、") : "守护事项";
+  return p.hourOffset <= 1
+    ? `接下来的1小时最需要注意：${drivers}`
+    : `未来 ${p.hourOffset} 小时前后最需要注意：${drivers}`;
+});
+
 async function loadAll() {
   if (!patientId.value) return;
   loading.value = true;
   errorMsg.value = "";
   const token = auth.token();
   try {
-    const [w, l, r, h] = await Promise.all([
+    const [w, l, r, h, f] = await Promise.all([
       request<Weather>(`/api/health-weather/daily?patientId=${patientId.value}`, {}, token).catch(() => null),
       request<LedgerItem[]>(`/api/health-event/ripple/feedback-ledger?patientId=${patientId.value}`, {}, token).catch(() => []),
       request<Resolution>(`/api/health-event/ripple/resolution?patientId=${patientId.value}`, {}, token).catch(() => null),
       request<RippleHistoryItem[]>(`/api/health-event/ripple/patient/${patientId.value}`, {}, token).catch(() => []),
+      request<Forecast>(`/api/health-event/ripple/forecast?patientId=${patientId.value}`, {}, token).catch(() => null),
     ]);
     weather.value = w;
     ledger.value = Array.isArray(l) ? l : [];
     resolution.value = r;
     history.value = Array.isArray(h) ? h : [];
+    forecast.value = f && !f.degraded ? f : null;
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : "加载失败";
   } finally {
@@ -251,6 +298,20 @@ onMounted(loadAll);
         </li>
       </ul>
       <p v-if="weather.familyTip" class="rp-family">👨‍👩‍👧 家属须知：{{ weather.familyTip }}</p>
+    </section>
+
+    <!-- 未来72小时守护天气趋势（预报） -->
+    <section v-if="forecast && forecastColumns.length" class="rp-card">
+      <h3>未来三天守护天气趋势</h3>
+      <p class="rp-hint">每一格是 3 小时——颜色越暖表示那个时段越需要当心。这是由你的守护计划计算出来的趋势，每缓解一项，格子就会降下去。</p>
+      <div class="rp-fc" role="img" aria-label="未来72小时守护强度趋势图">
+        <div v-for="col in forecastColumns" :key="col.offset" class="rp-fc-col"
+             :title="`${col.offset}小时后 · 强度${col.intensity}${col.drivers.length ? ' · ' + col.drivers.join('、') : ''}`">
+          <div class="rp-fc-bar" :style="{ height: Math.max(4, Math.min(72, col.intensity)) + 'px', background: forecastColor(col.intensity) }" />
+          <span v-if="col.offset % 24 === 0" class="rp-fc-t">+{{ col.offset }}h</span>
+        </div>
+      </div>
+      <p v-if="forecastPeakText" class="rp-fc-peak">⏰ {{ forecastPeakText }}</p>
     </section>
 
     <!-- 涟漪曲线 + 消解率 -->
@@ -399,4 +460,11 @@ onMounted(loadAll);
   .rp-ring circle { transition: none; }
 }
 .rp-share-text { width: 100%; border: 1px dashed #2f93a8; border-radius: 8px; padding: 10px; font-size: 14px; font-family: inherit; background: #f0f6f4; }
+
+/* 守护天气趋势（预报条） */
+.rp-fc { display: flex; align-items: flex-end; gap: 3px; height: 92px; padding: 8px 4px 0; border-bottom: 2px solid #211e15; }
+.rp-fc-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+.rp-fc-bar { width: 100%; border-radius: 3px 3px 0 0; }
+.rp-fc-t { font-size: 9px; color: #8b8778; margin-top: 3px; font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace; }
+.rp-fc-peak { margin: 8px 0 0; font-size: 13.5px; color: #b3541e; font-weight: 600; }
 </style>
