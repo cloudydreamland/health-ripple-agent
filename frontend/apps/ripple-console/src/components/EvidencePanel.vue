@@ -3,6 +3,11 @@ import { ref } from "vue";
 import type { ChainVerifyResult, EvidenceView } from "../types";
 import { exportFhir, verifyChain } from "../api";
 
+/**
+ * 朱砂印鉴链 —— 哈希链的东方表达。
+ * prevHash 与 hash 各成一枚印，链式相扣；「校验」如逐枚验印，
+ * 结论以盖印方式落定（CHAIN VERIFIED / TAMPERED）。
+ */
 const props = defineProps<{ evidence: EvidenceView | null }>();
 
 const verifying = ref(false);
@@ -10,6 +15,11 @@ const verifyResult = ref<ChainVerifyResult | null>(null);
 const exporting = ref(false);
 const fhirJson = ref<string>("");
 const fhirError = ref("");
+
+function shortHash(h: unknown): string {
+  const s = String(h ?? "");
+  return s.length > 18 ? s.slice(0, 16) + "…" : s;
+}
 
 async function verify() {
   verifying.value = true;
@@ -37,41 +47,50 @@ async function exportFhirJson() {
 
 <template>
   <div v-if="evidence" class="evidence">
-    <div class="chain-block">
-      <div class="block-row">
-        <span class="blk-label">决策ID</span>
-        <span class="mono decision-id">{{ evidence.decisionId }}</span>
+    <!-- 印鉴链 -->
+    <div class="seal-chain">
+      <div class="seal prev">
+        <span class="seal-tag mono">PREV 印</span>
+        <span class="seal-hash mono" :title="String(evidence.prevHash)">{{ shortHash(evidence.prevHash) }}</span>
+        <span class="seal-glyph">印</span>
       </div>
-      <div class="block-row">
-        <span class="blk-label">决策类型</span>
-        <span class="tag CYAN">{{ evidence.decisionType }}</span>
-        <span class="blk-label" style="margin-left: 12px">置信度</span>
-        <b>{{ evidence.confidence }}</b>
+      <div class="chain-link">
+        <svg width="52" height="12" viewBox="0 0 52 12">
+          <line x1="0" y1="6" x2="52" y2="6" stroke="#8f8a75" stroke-width="1.2" stroke-dasharray="3 4" />
+        </svg>
+        <span class="mono link-label">SHA-256 链式相扣</span>
       </div>
-      <div class="block-row">
-        <span class="blk-label">prevHash</span>
-        <span class="mono hash">{{ String(evidence.prevHash).slice(0, 18) }}…</span>
+      <div class="seal current">
+        <span class="seal-tag mono">HASH 印 · 本条</span>
+        <span class="seal-hash mono" :title="String(evidence.hash)">{{ shortHash(evidence.hash) }}</span>
+        <span class="seal-glyph">印</span>
       </div>
-      <div class="block-row">
-        <span class="blk-label">hash</span>
-        <span class="mono hash current">{{ String(evidence.hash).slice(0, 18) }}…</span>
-      </div>
-      <p class="hint chain-note">↑ 本条 hash 由 prevHash 链式计算（SHA-256），任何一条被篡改，从该条起全部校验失败。</p>
     </div>
 
+    <div class="meta-row">
+      <span class="k mono">DECISION ID</span>
+      <span class="mono v id">{{ evidence.decisionId }}</span>
+      <span class="tag CYAN">{{ evidence.decisionType }}</span>
+      <span class="mono conf">置信度 {{ evidence.confidence }}</span>
+    </div>
+    <p class="hint chain-note">任何一条被篡改，从该枚印起全部验印失败，篡改点精确定位——责任证据由此固化，并可导出 HL7 FHIR R4 Provenance。</p>
+
     <div class="actions">
-      <button :disabled="verifying" @click="verify">{{ verifying ? "校验中…" : "校验链完整性" }}</button>
+      <button :disabled="verifying" @click="verify">{{ verifying ? "验印中 …" : "逐枚验印" }}</button>
       <button class="ghost" :disabled="exporting" @click="exportFhirJson">
-        {{ exporting ? "导出中…" : "导出 FHIR Provenance" }}
+        {{ exporting ? "导出中 …" : "导出 FHIR Provenance" }}
       </button>
     </div>
 
-    <div v-if="verifyResult" class="verify-result" :class="verifyResult.valid ? 'ok' : 'bad'">
+    <!-- 盖章结论 -->
+    <div v-if="verifyResult" class="stamp" :class="verifyResult.valid ? 'ok' : 'bad'">
       <template v-if="verifyResult.valid">
-        ✅ 链完整：{{ verifyResult.count }} 条决策记录全链校验通过
+        <b>验印通过</b>
+        <span class="mono">CHAIN VERIFIED · {{ verifyResult.count }} RECORDS</span>
       </template>
       <template v-else>
-        ⚠️ 校验失败，篡改定位：{{ verifyResult.brokenAt }}
+        <b>验印失败</b>
+        <span class="mono">TAMPERED AT · {{ verifyResult.brokenAt }}</span>
       </template>
     </div>
 
@@ -82,39 +101,71 @@ async function exportFhirJson() {
 </template>
 
 <style scoped>
-.chain-block {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg-inset);
-  padding: 10px 14px;
+.evidence { display: flex; flex-direction: column; gap: 11px; }
+.seal-chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.seal {
+  position: relative;
+  border: 2px solid var(--red);
+  border-radius: 7px;
+  padding: 8px 12px 9px;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  min-width: 0;
 }
-.block-row { display: flex; align-items: center; gap: 8px; }
-.blk-label { font-size: 11px; color: var(--text-faint); width: 60px; }
-.decision-id { color: var(--cyan); font-size: 11.5px; word-break: break-all; }
-.hash { color: var(--text-dim); }
-.hash.current { color: var(--green); }
-.chain-note { margin: 4px 0 0; }
-.actions { display: flex; gap: 10px; margin: 12px 0; }
-.verify-result {
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12.5px;
-  border: 1px solid;
+.seal.prev { transform: rotate(-1.6deg); opacity: 0.82; }
+.seal.current { transform: rotate(1.2deg); box-shadow: 0 2px 10px rgba(189, 64, 51, 0.14); }
+.seal-tag { font-size: 8.5px; letter-spacing: 1.2px; color: var(--red); }
+.seal-hash { font-size: 11px; color: var(--ink); }
+.seal-glyph {
+  position: absolute;
+  right: 3px; bottom: 1px;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  color: var(--red);
+  opacity: 0.45;
 }
-.verify-result.ok { color: var(--green); border-color: rgba(62, 230, 164, 0.4); background: var(--green-bg); }
-.verify-result.bad { color: var(--red); border-color: rgba(255, 93, 108, 0.4); background: var(--red-bg); }
+.chain-link { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.link-label { font-size: 8.5px; color: var(--faint); letter-spacing: 0.5px; white-space: nowrap; }
+.meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.k { font-size: 9.5px; color: var(--faint); letter-spacing: 1.2px; }
+.v.id { color: var(--cyan); font-size: 11.5px; word-break: break-all; }
+.conf { color: var(--ink-soft); font-size: 11px; }
+.chain-note { margin: 0; font-size: 10.5px; }
+.actions { display: flex; gap: 10px; }
+.stamp {
+  align-self: flex-start;
+  border: 3px solid;
+  border-radius: 9px;
+  padding: 8px 18px;
+  transform: rotate(-3deg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-serif);
+  background: transparent;
+  animation: stampIn 0.38s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes stampIn {
+  from { transform: rotate(-9deg) scale(1.9); opacity: 0; }
+  to { transform: rotate(-3deg) scale(1); opacity: 1; }
+}
+.stamp b { font-size: 18px; letter-spacing: 4px; }
+.stamp span { font-size: 9.5px; letter-spacing: 0.8px; font-family: var(--font-mono); }
+.stamp.ok { color: var(--red); border-color: var(--red); }
+.stamp.bad { color: var(--ink); border-color: var(--ink); }
 .fhir-pre {
-  max-height: 260px;
+  max-height: 240px;
   overflow: auto;
-  background: var(--bg-inset);
+  background: var(--card-inset);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 12px;
-  color: var(--text-dim);
+  color: var(--ink-soft);
   white-space: pre-wrap;
   word-break: break-all;
+  font-size: 10.5px;
+  margin: 0;
 }
 </style>

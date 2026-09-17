@@ -150,10 +150,19 @@ export interface ChainVerifyResult {
   message?: string;
 }
 
-export const DIMENSION_META: Record<string, { label: string; color: string; icon: string }> = {
-  drugLifestyleConflicts: { label: "药物-生活冲突", color: "#ff5d6c", icon: "💊" },
-  complicationSignals: { label: "并发症早期信号", color: "#ffab4a", icon: "🩺" },
-  recheckWindows: { label: "复查窗口", color: "#3fd8f2", icon: "🔬" },
-  chronoTriggers: { label: "时间学触达", color: "#9d7bff", icon: "⏰" },
-  familyAttentions: { label: "家属注意事项", color: "#3ee6a4", icon: "🏠" },
+export const DIMENSION_META: Record<string, { label: string; color: string; en: string; icon: string }> = {
+  drugLifestyleConflicts: { label: "药物-生活冲突", color: "#bd4033", en: "CONFLICT", icon: " Rx" },
+  complicationSignals: { label: "并发症早期信号", color: "#c07a1d", en: "SIGNAL", icon: " Sig" },
+  recheckWindows: { label: "复查窗口", color: "#37808a", en: "RECHECK", icon: " Lab" },
+  chronoTriggers: { label: "时间学触达", color: "#7a63a8", en: "CHRONO", icon: " Chr" },
+  familyAttentions: { label: "家属注意事项", color: "#41795f", en: "FAMILY", icon: " Fam" },
+};
+
+/** 五Agent 学科配色（与弦图/底部角色卡共用）——黛青/朱砂/竹青/青瓷/紫藤。 */
+export const AGENT_META: Record<string, { label: string; en: string; char: string; color: string }> = {
+  triageView: { label: "分诊 Agent", en: "TRIAGE", char: "分", color: "#33628f" },
+  prescriptionView: { label: "处方 Agent", en: "RX SAFETY", char: "方", color: "#bd4033" },
+  recordView: { label: "病历 Agent", en: "RECORD", char: "历", color: "#37808a" },
+  followupView: { label: "随访 Agent", en: "FOLLOW-UP", char: "随", color: "#41795f" },
+  rippleView: { label: "涟漪守护 Agent", en: "RIPPLE", char: "守", color: "#7a63a8" },
 };
