@@ -13,9 +13,16 @@ import org.springframework.stereotype.Service;
  * 节点强度 = 100 × 严重度S × 紧迫度U × 可干预度A × e^(−λ(r−1))，λ=0.22 为空间衰减系数。
  *
  * 事件级指标：
- * - RII：强度最高前5个节点均值（0-100），衡量该健康事件的整体连锁冲击力；
+ * - RII：强度最高前5个节点均值（理论量程 0-90.25：上限=100×S_max0.95×U_max1.0×A_max0.95，
+ *   环衰减使远环节点不可能触顶——这保证了"高分必然来自近环高风险"），
+ *   衡量该健康事件的整体连锁冲击力；
  * - 有效扩散半径：存在强度≥15的节点的最大环数（涟漪实际波及几层生活圈）；
  * - Top风险：强度降序前3节点（医生视线第一落点）。
+ *
+ * 风险等级阈值（RED≥45 / ORANGE≥25）的推导依据：环1高危节点（S=0.95,U=0.9,A=0.9）
+ * 强度≈77-81，环1中危节点≈35——因此 Top5 均值≥45 当且仅当近环高风险在节点构成中占主导
+ * （"该事件的连锁冲击以高危项为主"），25-45 对应"存在单一高危或中危为主"，
+ * <25 为"低危/远环为主"。阈值同时经单测单调性约束（严重度/环衰减单调）与旗舰病例校验。
  *
  * 全部评分维度（S/U/A/环数/衰减系数）随响应输出，评分过程本身可解释、可审计——
  * 与反事实推理、哈希链共同构成"可解释且可量化"的涟漪推演闭环。
@@ -129,7 +136,7 @@ public class RippleIntensityModel {
         round2(severity), round2(urgency), round2(actionability));
   }
 
-  /** 严重度：文本风险等级映射；未知等级取中位 0.5。 */
+  /** 严重度：文本风险等级映射；未知/缺失等级按保守中位 0.5 处理（不臆测高危也不轻纵）。 */
   private double severityOf(String dimension, Map<String, Object> node) {
     String level = String.valueOf(firstNonNull(node.get("severity"), node.get("urgency"), "MEDIUM"));
     return switch (level) {
@@ -150,7 +157,7 @@ public class RippleIntensityModel {
         default -> 0.6;
       };
     }
-    if ("recheckWindows" .equals(dimension) || "chronoTriggers".equals(dimension)) {
+    if ("recheckWindows".equals(dimension) || "chronoTriggers".equals(dimension)) {
       return switch (String.valueOf(node.get("chronoType"))) {
         case "WINDOW" -> 0.95;
         case "RHYTHM" -> 0.75;
@@ -169,13 +176,14 @@ public class RippleIntensityModel {
     return 0.5;
   }
 
-  /** 可干预度：有明确处置建议 +0.45，建议含量化数字（更可执行）再 +0.05。 */
+  /** 可干预度：有明确处置建议 +0.45；建议含量化执行参数（数字+单位，如"15g糖/2周/＜5g盐"）再 +0.05。 */
   private double actionabilityOf(Map<String, Object> node) {
     String guidance = String.valueOf(firstNonNull(node.get("advice"), node.get("action"), ""));
     double base = 0.45;
     if (!guidance.isBlank() && !"null".equals(guidance)) {
       base += 0.45;
-      if (guidance.matches(".*\\d.*")) {
+      // 量化执行参数 = 数字后接计量单位（纯数字不算——"每天喝8杯水"与"凌晨3点"应同权）
+      if (guidance.matches(".*\\d+(\\.\\d+)?\\s*(g|mg|ml|mmol|μg|ug|kg|％|%|小时|分钟|天|日|周|个月|月|年|次|滴|杯).*")) {
         base += 0.05;
       }
     }
@@ -193,7 +201,7 @@ public class RippleIntensityModel {
     };
   }
 
-  /** 风险等级：对齐医疗 alert 三级色（红/橙/黄），阈值按旗舰病例（糖尿病+二甲双胍）校准。 */
+  /** 风险等级：对齐医疗 alert 三级色（红/橙/黄），推导依据见类注释（近环高危占主导⇔RED）。 */
   private String levelOf(double index) {
     if (index >= 45) {
       return "RED";

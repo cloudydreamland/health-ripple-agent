@@ -80,10 +80,8 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     if (authorization != null && authorization.startsWith("Bearer ")) {
       return authorization.substring("Bearer ".length());
     }
-    String queryToken = request.getQueryParams().getFirst("token");
-    if (queryToken != null && !queryToken.isBlank()) {
-      return queryToken;
-    }
+    // 不接受 ?token= 查询参数：JWT 进入 URL 会泄漏到访问日志/代理日志/浏览器历史。
+    // WebSocket 场景走 Sec-WebSocket-Protocol 子协议传递（下方）。
     List<String> protocols = request.getHeaders().get("Sec-WebSocket-Protocol");
     if (protocols != null) {
       for (String header : protocols) {

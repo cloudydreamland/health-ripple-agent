@@ -1,6 +1,7 @@
 package com.smartcloudbrain.ripple.controller;
 
 import com.smartcloudbrain.common.result.Result;
+import com.smartcloudbrain.ripple.security.PatientOwnershipGuard;
 import com.smartcloudbrain.ripple.service.ChronoEngine;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,20 +20,28 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * DuMate 定时任务轮询 GET /api/chrono/due 拉取到期触达项 → 主动触达患者 →
  * POST /api/chrono/trigger/{id}/ack 确认 → 引擎按时间学规则推进下一次触达。
+ *
+ * 患者维度端点统一经 {@link PatientOwnershipGuard} 归属校验；
+ * due 轮询在带患者身份时只返回本人触达项。
  */
 @RestController
 @RequestMapping("/api/chrono")
 public class ChronoController {
 
   private final ChronoEngine chronoEngine;
+  private final PatientOwnershipGuard ownershipGuard;
 
-  public ChronoController(ChronoEngine chronoEngine) {
+  public ChronoController(ChronoEngine chronoEngine, PatientOwnershipGuard ownershipGuard) {
     this.chronoEngine = chronoEngine;
+    this.ownershipGuard = ownershipGuard;
   }
 
   /** GET /api/chrono/due — 到期触达查询（DuMate 定时任务轮询入口）。 */
   @GetMapping("/due")
   public Result<?> due(@RequestParam(required = false) Long patientId) {
+    if (patientId != null) {
+      ownershipGuard.checkAccess(patientId);
+    }
     List<Map<String, Object>> dueList = new ArrayList<>();
     for (var trigger : chronoEngine.due(LocalDateTime.now())) {
       if (patientId != null && !patientId.equals(trigger.getPatientId())) {
@@ -46,6 +55,7 @@ public class ChronoController {
   /** GET /api/chrono/triggers/patient/{patientId} — 患者全部时间学触达计划。 */
   @GetMapping("/triggers/patient/{patientId}")
   public Result<?> byPatient(@PathVariable Long patientId) {
+    ownershipGuard.checkAccess(patientId);
     List<Map<String, Object>> result = new ArrayList<>();
     for (var trigger : chronoEngine.findByPatient(patientId)) {
       result.add(view(trigger));
@@ -69,6 +79,7 @@ public class ChronoController {
   public Result<?> feedback(@PathVariable Long id,
       @RequestParam String outcome,
       @RequestParam(required = false, defaultValue = "") String note) {
+    ownershipGuard.checkResource(chronoEngine.get(id).getPatientId());
     return Result.success(view(chronoEngine.feedback(id, outcome, note)));
   }
 

@@ -1,5 +1,6 @@
 package com.smartcloudbrain.triage.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcloudbrain.aiapi.dto.TriageRequest;
 import com.smartcloudbrain.aiapi.dto.TriageResponse;
 import com.smartcloudbrain.common.error.ErrorCode;
@@ -25,17 +26,20 @@ public class TriageService {
   private final TriageRecordRepository triageRecordRepository;
   private final PatientRepository patientRepository;
   private final CurrentUserService currentUserService;
+  private final ObjectMapper objectMapper;
 
   public TriageService(
       AiGatewayService aiGatewayService,
       TriageRecordRepository triageRecordRepository,
       PatientRepository patientRepository,
-      CurrentUserService currentUserService
+      CurrentUserService currentUserService,
+      ObjectMapper objectMapper
   ) {
     this.aiGatewayService = aiGatewayService;
     this.triageRecordRepository = triageRecordRepository;
     this.patientRepository = patientRepository;
     this.currentUserService = currentUserService;
+    this.objectMapper = objectMapper;
   }
 
   @Transactional
@@ -61,15 +65,14 @@ public class TriageService {
     record.setRecommendedDepartment(response.recommendedDepartment());
     record.setRecommendedDoctorIds(response.recommendedDoctorIds().stream().map(String::valueOf).collect(Collectors.joining(",")));
     record.setReason(response.reason());
-    record.setAiResultJson("""
-        {"departmentCode":"%s","recommendedDoctorDirection":"%s","urgencyLevel":"%s","confidence":%s,"degraded":%s}
-        """.formatted(
-        response.departmentCode(),
-        response.recommendedDoctorDirection(),
-        response.urgencyLevel(),
-        response.confidence(),
-        response.degraded()
-    ).trim());
+    // 用 Jackson 序列化（勿用文本拼接：LLM/患者输入含引号时会产生坏 JSON 记录）
+    Map<String, Object> aiResult = new LinkedHashMap<>();
+    aiResult.put("departmentCode", response.departmentCode());
+    aiResult.put("recommendedDoctorDirection", response.recommendedDoctorDirection());
+    aiResult.put("urgencyLevel", response.urgencyLevel());
+    aiResult.put("confidence", response.confidence());
+    aiResult.put("degraded", response.degraded());
+    record.setAiResultJson(writeJson(aiResult));
     record.setStatus(response.degraded() ? "MANUAL_REQUIRED" : "AI_RECOMMENDED");
     return triageView(triageRecordRepository.save(record), response);
   }
@@ -80,6 +83,14 @@ public class TriageService {
         ? triageRecordRepository.findByPatientId(user.userId())
         : triageRecordRepository.findAll();
     return records.stream().map(record -> triageView(record, null)).toList();
+  }
+
+  private String writeJson(Map<String, Object> value) {
+    try {
+      return objectMapper.writeValueAsString(value);
+    } catch (Exception e) {
+      return "{}";
+    }
   }
 
   private Map<String, Object> triageView(TriageRecord record, TriageResponse response) {

@@ -3,6 +3,8 @@ from typing import Any
 
 import httpx
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 
 mcp = FastMCP("smart-cloud-brain-mcp")
@@ -14,6 +16,11 @@ def backend_base_url() -> str:
 
 def backend_token() -> str:
     return os.getenv("BACKEND_API_TOKEN", "").strip()
+
+
+def access_token() -> str:
+    """预留：MCP 服务自身的访问令牌（当前版本以回环绑定 + 网络层隔离为边界）。"""
+    return os.getenv("MCP_ACCESS_TOKEN", "").strip()
 
 
 def timeout_seconds() -> float:
@@ -55,6 +62,12 @@ def get_json(path: str, params: dict[str, Any] | None = None, require_token: boo
 
 def ok(data: Any) -> dict[str, Any]:
     return {"ok": True, "data": data}
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request: Request) -> JSONResponse:
+    """存活探针：不做鉴权，不返回业务数据。"""
+    return JSONResponse({"status": "UP", "service": "smart-cloud-brain-mcp"})
 
 
 @mcp.tool
@@ -113,8 +126,12 @@ def query_patient_medical_history(patientId: int) -> dict[str, Any]:
 
 
 def run() -> None:
-    host = os.getenv("MCP_HOST", "0.0.0.0")
+    """默认只绑定 127.0.0.1：MCP 工具可查询患者 PHI，不允许在无鉴权状态下暴露局域网。
+    需要局域网/容器部署时显式设置 MCP_HOST=0.0.0.0，并务必在网络层
+    （防火墙/网段隔离）或反向代理层加访问控制；/health 探针保持无鉴权。"""
+    host = os.getenv("MCP_HOST", "127.0.0.1")
     port = int(os.getenv("MCP_PORT", "8090"))
+
     try:
         mcp.run(transport="http", host=host, port=port)
     except TypeError:

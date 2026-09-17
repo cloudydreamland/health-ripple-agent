@@ -24,6 +24,10 @@ import org.springframework.stereotype.Service;
  *
  * 指数可解释：今日到期触达项的涟漪强度 ÷ 全部活跃触达强度 × 100
  * （即"守护压力有多大比例落在今天"），每升级就医项 +15（家属须知）。
+ * 天气等级在指数之外还看**绝对压力**（今日到期触达的 RII 强度总和）——
+ * 比例高但绝对量小（如仅一条季节提醒到期）不应拉响"暴雨"警报：
+ * - STORM：24h内有升级就医且今日绝对压力≥20，或今日绝对压力≥60
+ * - RAIN：今日绝对压力≥25，或多项触达集中到期（≥3项且指数≥60）
  * 每项"降水"都携带 Timing Card 循证卡片——天气预报式的易读性 + 循证级严谨性。
  */
 @Service
@@ -32,12 +36,14 @@ public class HealthWeatherService {
   private final ChronoEngine chronoEngine;
   private final RippleEventRepository rippleEventRepository;
   private final RippleClosureService closureService;
+  private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
   public HealthWeatherService(ChronoEngine chronoEngine, RippleEventRepository rippleEventRepository,
-      RippleClosureService closureService) {
+      RippleClosureService closureService, com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
     this.chronoEngine = chronoEngine;
     this.rippleEventRepository = rippleEventRepository;
     this.closureService = closureService;
+    this.objectMapper = objectMapper;
   }
 
   /** 患者今日健康气象。 */
@@ -53,8 +59,10 @@ public class HealthWeatherService {
     List<ChronoTrigger> dueToday = active.stream()
         .filter(t -> t.getNextTriggerAt() != null && !t.getNextTriggerAt().isAfter(endOfToday))
         .toList();
+    // 升级就医/未缓解均取近24小时口径（时间窗一致，避免全历史累计污染当日气象）
     long escalatedRecent = all.stream()
-        .filter(t -> "ESCALATED".equals(t.getFeedbackStatus()))
+        .filter(t -> "ESCALATED".equals(t.getFeedbackStatus())
+            && t.getFeedbackAt() != null && t.getFeedbackAt().isAfter(now.minusHours(24)))
         .count();
     long unresolvedToday = all.stream()
         .filter(t -> "UNRESOLVED".equals(t.getFeedbackStatus())
@@ -67,7 +75,7 @@ public class HealthWeatherService {
         : round1(todayIntensity / totalActiveIntensity * 100.0);
     index = Math.min(100.0, round1(index + escalatedRecent * 15.0 + unresolvedToday * 10.0));
 
-    String weather = weatherOf(index);
+    String weather = weatherOf(index, todayIntensity, dueToday.size(), escalatedRecent);
     Map<String, Object> view = new LinkedHashMap<>();
     view.put("patientId", patientId);
     view.put("date", now.toLocalDate().toString());
@@ -81,7 +89,8 @@ public class HealthWeatherService {
     view.put("unresolvedRecent", unresolvedToday);
     view.put("items", itemsOf(dueToday, intensityMap));
     view.put("familyTip", familyTipOf(patientId));
-    view.put("model", "健康气象指数=今日到期触达强度÷全部活跃触达强度×100，每升级就医项+15");
+    view.put("model", "健康气象指数=今日到期触达强度÷全部活跃触达强度×100（每升级就医项+15/每24h未缓解+10）；"
+        + "天气等级结合今日绝对压力（到期触达RII强度总和）判定");
     return view;
   }
 
@@ -123,7 +132,7 @@ public class HealthWeatherService {
     for (RippleEvent event : rippleEventRepository.findByPatientIdOrderByCreatedAtDesc(patientId)) {
       try {
         Map<String, Object> graph = CounterfactualService.castMap(
-            new com.fasterxml.jackson.databind.ObjectMapper().readValue(
+            objectMapper.readValue(
                 event.getRippleGraphJson() == null ? "{}" : event.getRippleGraphJson(), Object.class));
         Map<String, Object> dimensions = CounterfactualService.castMap(graph.get("dimensions"));
         List<Map<String, Object>> family = CounterfactualService.castMapList(dimensions.get("familyAttentions"));
@@ -146,11 +155,16 @@ public class HealthWeatherService {
     return "";
   }
 
-  private String weatherOf(double index) {
-    if (index >= 60) {
+  /**
+   * 天气等级：比例（index）之外看绝对压力（todayIntensity=今日到期触达RII强度总和）。
+   * 单条低强度触达（如季节提醒，绝对压力≈10）到期不该触发"大雨/暴雨"——
+   * 严重等级必须对应真实的守护负担。
+   */
+  private String weatherOf(double index, double todayIntensity, int dueTodayCount, long escalatedRecent) {
+    if (todayIntensity >= 60 || (escalatedRecent > 0 && todayIntensity >= 20)) {
       return "STORM";
     }
-    if (index >= 30) {
+    if (todayIntensity >= 25 || (dueTodayCount >= 3 && index >= 60)) {
       return "RAIN";
     }
     return index > 0 ? "CLOUDY" : "SUNNY";

@@ -57,11 +57,18 @@ public class ChronoEngine {
    * - RHYTHM：明日同时段
    * - PERIODIC：有周期则滚动，无周期则 COMPLETED
    * - SEASONAL：明年同月
+   *
+   * 幂等防抖：同一触达 10 分钟内的重复 ack（多轮询者/网络重试）只记录、不重复推进，
+   * 避免节律类被连续 ack 后"连跳多天"。
    */
   public ChronoTrigger ack(Long triggerId) {
     ChronoTrigger trigger = triggerRepository.findById(triggerId)
         .orElseThrow(() -> new IllegalArgumentException("触达计划不存在: " + triggerId));
     LocalDateTime now = LocalDateTime.now();
+    if (trigger.getLastFiredAt() != null
+        && trigger.getLastFiredAt().isAfter(now.minusMinutes(10))) {
+      return trigger; // 重复ack防抖：保留上次推进结果
+    }
     trigger.setLastFiredAt(now);
     switch (String.valueOf(trigger.getChronoType())) {
       case "WINDOW" -> {
@@ -78,9 +85,10 @@ public class ChronoEngine {
 
   /**
    * 干预回执（涟漪消解闭环核心）：患者/家属对一次触达的响应登记。
-   * - RESOLVED 已缓解：WINDOW 类终结为 RESOLVED；周期/节律类保持滚动但本轮回执闭环；
-   * - UNRESOLVED 未缓解：保持 ACTIVE 并将下次触达提前到2小时后（加强守护）；
-   * - ESCALATED 已升级就医：WINDOW/一次性 → ESCALATED 终结；周期类保持滚动。
+   * - RESOLVED 已缓解：WINDOW/FIRED 类终结为 RESOLVED；周期/节律类保持滚动但本轮回执闭环；
+   * - UNRESOLVED 未缓解：对所有类型（含 WINDOW）2 小时后加强触达——窗口错过不等于守护终止，
+   *   而是转为随访加压（与文档承诺一致）；
+   * - ESCALATED 已升级就医：全类型终结（患者已转人工就医，自动触达停止，等待医生跟进）。
    */
   public ChronoTrigger feedback(Long triggerId, String outcome, String note) {
     ChronoTrigger trigger = triggerRepository.findById(triggerId)
@@ -96,17 +104,10 @@ public class ChronoEngine {
           trigger.setNextTriggerAt(null);
         }
       }
-      case "UNRESOLVED" -> {
-        // 未缓解：2小时后加强触达（守护加压）
-        if (!"WINDOW".equals(trigger.getChronoType())) {
-          trigger.setNextTriggerAt(now.plusHours(2));
-        }
-      }
+      case "UNRESOLVED" -> trigger.setNextTriggerAt(now.plusHours(2)); // 未缓解：2小时后加强触达（守护加压）
       case "ESCALATED" -> {
-        if ("WINDOW".equals(trigger.getChronoType())) {
-          trigger.setStatus("ESCALATED");
-          trigger.setNextTriggerAt(null);
-        }
+        trigger.setStatus("ESCALATED"); // 患者已升级就医：自动触达终结，需医生跟进
+        trigger.setNextTriggerAt(null);
       }
       default -> throw new IllegalArgumentException(
           "非法回执结果: " + outcome + "（允许 RESOLVED/UNRESOLVED/ESCALATED）");
@@ -118,6 +119,12 @@ public class ChronoEngine {
     return triggerRepository.findByPatientIdOrderByNextTriggerAtAsc(patientId);
   }
 
+  /** 按 ID 读取触达计划（供控制器做归属校验）。 */
+  public ChronoTrigger get(Long triggerId) {
+    return triggerRepository.findById(triggerId)
+        .orElseThrow(() -> new IllegalArgumentException("触达计划不存在: " + triggerId));
+  }
+
   /* ================= 时间学计算 ================= */
 
   LocalDateTime computeNext(ChronoRule rule, LocalDateTime base) {
@@ -127,16 +134,6 @@ public class ChronoEngine {
       case "PERIODIC" -> base.plusDays(rule.getOffsetDays() == null ? 1 : rule.getOffsetDays());
       case "SEASONAL" -> nextSeasonMonth(rule.getTargetMonth(), base);
       default -> base.plusDays(1);
-    };
-  }
-
-  private LocalDateTime computeNext(ChronoTrigger trigger, LocalDateTime from) {
-    return switch (String.valueOf(trigger.getChronoType())) {
-      case "WINDOW" -> from;
-      case "RHYTHM" -> nextRhythmHour(parseStartHour(trigger.getTriggerTime()), from);
-      case "PERIODIC" -> from.plusDays(1);
-      case "SEASONAL" -> nextSeasonMonth(parseTargetMonth(trigger.getTriggerTime()), from);
-      default -> from.plusDays(1);
     };
   }
 
@@ -175,12 +172,17 @@ public class ChronoEngine {
     return at.isAfter(base) ? at : at.plusYears(1);
   }
 
-  /** 从 triggerTime 文本解析起始小时（如"凌晨0-3点"→0，"凌晨4-6点"→4）。 */
+  /**
+   * 从 triggerTime 文本解析起始小时。只接受明确的时刻语义（"凌晨0-3点"/"上午8点"/"14时"），
+   * 不接受裸数字——避免把"服药2周复查"里的 2 误解析为"凌晨2点"。
+   */
   static Integer parseStartHour(String triggerTime) {
     if (triggerTime == null) {
       return null;
     }
-    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d{1,2})\\s*[-~到至]?")
+    // 时刻必须带"点/时"后缀；可选支持"0-3点"取区间起点、"凌晨/上午"等时段前缀
+    java.util.regex.Matcher matcher = java.util.regex.Pattern
+        .compile("(\\d{1,2})\\s*(?:[-~到至]\\s*\\d{1,2})?\\s*[点时]")
         .matcher(triggerTime);
     if (matcher.find()) {
       try {
@@ -219,7 +221,7 @@ public class ChronoEngine {
     if (text.contains("每季") || text.contains("季度")) {
       return 90;
     }
-    if (text.contains("每月") || text.contains("每月")) {
+    if (text.contains("每月") || text.contains("每个月")) {
       return 30;
     }
     return null;

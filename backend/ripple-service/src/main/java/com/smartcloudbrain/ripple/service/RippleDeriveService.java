@@ -112,6 +112,9 @@ public class RippleDeriveService {
         counterfactualTree.get("guardrailSummary"));
 
     // Step6: 哈希链证据（含反事实决策树）——审计基石
+    // 置信度由推演产出推导（近环高危/复查窗/触达计划/家属圈覆盖越充分越可信），
+    // 不再把常数写入"证据"；无知识命中时取下界——诚实反映"本次推演依据有限"
+    double confidence = deriveConfidence(graph, highRiskCount);
     Map<String, Object> evidence = evidenceChainService.append(
         "RIPPLE_DERIVATION",
         request.patientId(),
@@ -132,7 +135,7 @@ public class RippleDeriveService {
             "rippleSummary", summary,
             "dimensions", List.copyOf(CounterfactualService.castMap(graph.get("dimensions")).keySet())),
         counterfactualTree,
-        0.88,
+        confidence,
         chronoTriggerViews.isEmpty() ? "RIPPLE_DERIVED" : "RIPPLE_DERIVED+CHRONO_TRIGGER_SETUP",
         "health-ripple-agent");
 
@@ -173,6 +176,28 @@ public class RippleDeriveService {
       result.add(view);
     }
     return result;
+  }
+
+  /**
+   * 推演置信度：由图谱覆盖推导（0.60 下界-0.95 上界）——近环高危识别、复查窗、
+   * 时间学触达、家属圈四类证据每具备一项加分。空知识命中时取下界，诚实降级。
+   */
+  static double deriveConfidence(Map<String, Object> graph, int highRiskCount) {
+    Map<String, Object> dimensions = CounterfactualService.castMap(graph.get("dimensions"));
+    double confidence = 0.60;
+    if (highRiskCount > 0) {
+      confidence += 0.15;
+    }
+    if (!CounterfactualService.castMapList(dimensions.get("recheckWindows")).isEmpty()) {
+      confidence += 0.07;
+    }
+    if (!CounterfactualService.castMapList(dimensions.get("chronoTriggers")).isEmpty()) {
+      confidence += 0.07;
+    }
+    if (!CounterfactualService.castMapList(dimensions.get("familyAttentions")).isEmpty()) {
+      confidence += 0.06;
+    }
+    return Math.min(0.95, Math.round(confidence * 100.0) / 100.0);
   }
 
   /* ================= 五维图谱构建 ================= */

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.smartcloudbrain.ai.provider.AiProvider;
 import com.smartcloudbrain.ai.service.PromptTemplateService;
+import com.smartcloudbrain.ai.triage.TriageSafetyNet;
 import com.smartcloudbrain.aiapi.dto.TriageRequest;
 import com.smartcloudbrain.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ class AiOrchestrationServiceTest {
     doThrow(new IllegalStateException("status must not be null"))
         .when(logService).record(any(), any(), any(), any(), any(), any(), any(), any(Long.class), any(Boolean.class), any());
 
-    AiOrchestrationService service = new AiOrchestrationService(provider, logService, promptService);
+    AiOrchestrationService service = new AiOrchestrationService(provider, logService, promptService, new TriageSafetyNet());
 
     BusinessException thrown = assertThrows(BusinessException.class, () -> service.triage(mock(TriageRequest.class)));
     assertSame(original, thrown);

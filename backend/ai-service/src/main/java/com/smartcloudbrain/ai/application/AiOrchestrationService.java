@@ -1,6 +1,7 @@
 package com.smartcloudbrain.ai.application;
 
 import com.smartcloudbrain.ai.provider.AiProvider;
+import com.smartcloudbrain.ai.triage.TriageSafetyNet;
 import com.smartcloudbrain.aiapi.dto.MedicalRecordGenerateRequest;
 import com.smartcloudbrain.aiapi.dto.MedicalRecordGenerateResponse;
 import com.smartcloudbrain.aiapi.dto.PrescriptionCheckRequest;
@@ -19,23 +20,27 @@ public class AiOrchestrationService {
   private final AiProvider aiProvider;
   private final AiTaskLogService aiTaskLogService;
   private final PromptTemplateService promptTemplateService;
+  private final TriageSafetyNet triageSafetyNet;
 
   public AiOrchestrationService(
       AiProvider aiProvider,
       AiTaskLogService aiTaskLogService,
-      PromptTemplateService promptTemplateService
+      PromptTemplateService promptTemplateService,
+      TriageSafetyNet triageSafetyNet
   ) {
     this.aiProvider = aiProvider;
     this.aiTaskLogService = aiTaskLogService;
     this.promptTemplateService = promptTemplateService;
+    this.triageSafetyNet = triageSafetyNet;
   }
 
+  /** 分诊：Provider 输出后必经安全网红线覆写（急症强制 EMERGENCY，与 Provider 无关）。 */
   public TriageResponse triage(TriageRequest request) {
     return execute(
         "TRIAGE",
         request,
         () -> promptTemplateService.resolve("TRIAGE", "GENERAL"),
-        prompt -> aiProvider.triage(request, prompt)
+        prompt -> triageSafetyNet.apply(request, aiProvider.triage(request, prompt))
     );
   }
 

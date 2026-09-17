@@ -4,6 +4,7 @@ import com.smartcloudbrain.common.error.ErrorCode;
 import com.smartcloudbrain.common.exception.BusinessException;
 import com.smartcloudbrain.common.result.Result;
 import com.smartcloudbrain.ripple.event.RippleEventPublisher;
+import com.smartcloudbrain.ripple.security.PatientOwnershipGuard;
 import com.smartcloudbrain.ripple.service.EvidenceChainService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
  * - 查询单条证据（含反事实决策树）
  * - 查询患者全部决策证据
  * - 哈希链完整性校验（tamper-evident audit）
+ *
+ * 患者维度端点统一经 {@link PatientOwnershipGuard} 归属校验（防越权遍历他人医疗数据）。
  */
 @RestController
 @RequestMapping("/api/evidence")
@@ -23,10 +26,13 @@ public class EvidenceController {
 
   private final EvidenceChainService evidenceChainService;
   private final RippleEventPublisher eventPublisher;
+  private final PatientOwnershipGuard ownershipGuard;
 
-  public EvidenceController(EvidenceChainService evidenceChainService, RippleEventPublisher eventPublisher) {
+  public EvidenceController(EvidenceChainService evidenceChainService, RippleEventPublisher eventPublisher,
+      PatientOwnershipGuard ownershipGuard) {
     this.evidenceChainService = evidenceChainService;
     this.eventPublisher = eventPublisher;
+    this.ownershipGuard = ownershipGuard;
   }
 
   /** GET /api/evidence/{decisionId} — 查询单条决策证据（反事实决策树可追问）。 */
@@ -36,6 +42,7 @@ public class EvidenceController {
     if (evidence == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    ownershipGuard.checkResource((Long) evidence.get("patientId"));
     eventPublisher.publishAudit("evidence_query",
         (Long) evidence.get("patientId"),
         (String) evidence.get("decisionType"),
@@ -46,17 +53,20 @@ public class EvidenceController {
   /** GET /api/evidence/patient/{patientId} — 患者全部决策证据。 */
   @GetMapping("/patient/{patientId}")
   public Result<?> byPatient(@PathVariable Long patientId) {
+    ownershipGuard.checkAccess(patientId);
     return Result.success(evidenceChainService.findByPatient(patientId));
   }
 
   /**
    * GET /api/evidence/{decisionId}/fhir — 导出 HL7 FHIR R4 Provenance 兼容 JSON。
    *
-   * 对齐 AI Transparency on FHIR IG（2026 ballot）：AI 决策审计记录可被
-   * 医院信息系统按国际标准消费（agent=AI参与者, entity=决策依据, signature=哈希链）。
+   * AI 决策审计记录可被医院信息系统按国际标准消费
+   * （agent=AI参与者, entity=决策依据, extension=哈希链证明）。
    */
   @GetMapping("/{decisionId}/fhir")
   public Result<?> asFhirProvenance(@PathVariable String decisionId) {
+    var evidence = evidenceChainService.findByDecisionId(decisionId);
+    ownershipGuard.checkResource(evidence == null ? null : (Long) evidence.get("patientId"));
     return Result.success(evidenceChainService.exportFhirProvenance(decisionId));
   }
 

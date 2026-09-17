@@ -3,12 +3,14 @@ package com.smartcloudbrain.ripple;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.smartcloudbrain.ripple.dto.DrugItem;
 import com.smartcloudbrain.ripple.dto.MdtConsultRequest;
 import com.smartcloudbrain.ripple.dto.RippleDeriveRequest;
 import com.smartcloudbrain.ripple.entity.EvidenceChain;
+import com.smartcloudbrain.ripple.repository.ChronoTriggerRepository;
 import com.smartcloudbrain.ripple.repository.EvidenceChainRepository;
 import com.smartcloudbrain.ripple.service.ChronoEngine;
 import com.smartcloudbrain.ripple.service.EvidenceChainService;
@@ -52,6 +54,8 @@ class RippleServiceCoreTest {
   private ChronoEngine chronoEngine;
   @Autowired
   private EvidenceChainRepository evidenceChainRepository;
+  @Autowired
+  private ChronoTriggerRepository triggerRepository;
   @Autowired
   private com.smartcloudbrain.ripple.service.RippleClosureService closureService;
   @Autowired
@@ -181,13 +185,14 @@ class RippleServiceCoreTest {
         .findFirst().orElseThrow();
     assertTrue(String.valueOf(periodic.get("nextTriggerAt")).matches("\\d{4}-\\d{2}-\\d{2}T.*"));
 
-    // 模拟到期：直接把一条计划的时间改为过去 → due 应包含它
+    // 模拟到期：把一条计划时间改为过去并落库 → due 必须真实包含它（防恒真断言回归）
     var allTriggers = chronoEngine.findByPatient(7L);
     var target = allTriggers.get(0);
     target.setNextTriggerAt(java.time.LocalDateTime.now().minusMinutes(1));
-    // 通过 repository 保存（ChronoEngine 无公开保存方法，借用ack路径外的方式）
-    // 此处直接验证 due 查询逻辑：使用修改后对象的查询条件
-    assertTrue(chronoEngine.due(java.time.LocalDateTime.now()) != null);
+    triggerRepository.save(target);
+    List<com.smartcloudbrain.ripple.entity.ChronoTrigger> dueNow = chronoEngine.due(java.time.LocalDateTime.now());
+    assertTrue(dueNow.stream().anyMatch(t -> t.getId().equals(target.getId())),
+        "到期查询应包含刚被置为过期的触达项");
 
     // ack 推进：RHYTHM 类型 ack 后应推进到明天同时段或今天稍晚
     Map<String, Object> rhythm = triggers.stream()
@@ -198,6 +203,40 @@ class RippleServiceCoreTest {
       var acked = chronoEngine.ack(id);
       assertNotNull(acked.getNextTriggerAt());
       assertEquals("ACTIVE", acked.getStatus());
+      // 幂等防抖：10分钟内重复 ack 不得再次推进（防止连跳多天）
+      var firstAdvancedAt = acked.getNextTriggerAt();
+      var duplicate = chronoEngine.ack(id);
+      assertEquals(firstAdvancedAt, duplicate.getNextTriggerAt(), "重复ack防抖：不应再次推进");
+    }
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void chronoFeedback_windowUnresolvedIntensifiesAndEscalatedTerminates() {
+    // 冠心病推演产生 WINDOW 触达
+    Map<String, Object> derived = rippleDeriveService.derive(new RippleDeriveRequest(
+        71L, "冠心病", null, ""));
+    Long windowId = castMapList(derived.get("chronoTriggers")).stream()
+        .filter(t -> "WINDOW".equals(t.get("chronoType")))
+        .map(t -> ((Number) t.get("triggerId")).longValue())
+        .findFirst().orElseThrow(() -> new AssertionError("冠心病推演应产生WINDOW触达"));
+
+    // UNRESOLVED（含 WINDOW）：2小时后加强触达，守护不因窗口错过而静默
+    var unresolved = chronoEngine.feedback(windowId, "UNRESOLVED", "胸痛未缓解");
+    assertEquals("UNRESOLVED", unresolved.getFeedbackStatus());
+    assertTrue(unresolved.getNextTriggerAt() != null
+            && unresolved.getNextTriggerAt().isAfter(java.time.LocalDateTime.now().plusMinutes(90)),
+        "WINDOW未缓解也应加压至约2小时后（守护不静默）");
+
+    // ESCALATED：全类型终结（患者已升级就医，自动触达停止）
+    Long periodicId = castMapList(derived.get("chronoTriggers")).stream()
+        .filter(t -> "PERIODIC".equals(t.get("chronoType")))
+        .map(t -> ((Number) t.get("triggerId")).longValue())
+        .findFirst().orElse(null);
+    if (periodicId != null) {
+      var escalated = chronoEngine.feedback(periodicId, "ESCALATED", "已到急诊");
+      assertEquals("ESCALATED", escalated.getStatus());
+      assertNull(escalated.getNextTriggerAt(), "升级就医后自动触达应终结");
     }
   }
 
