@@ -86,6 +86,12 @@ services:
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
 
   redis:
     image: redis:7.4-alpine
@@ -150,7 +156,7 @@ services:
       db-init:
         condition: service_completed_successfully
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     environment: &domain-env
       SERVER_PORT: 8082
       DB_HOST: ${DB_SERVICE_HOST:-kingbase}
@@ -272,7 +278,7 @@ services:
       db-init:
         condition: service_completed_successfully
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       doctor-service:
         condition: service_healthy
       triage-service:
@@ -342,6 +348,12 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     networks:
       - default
 
@@ -441,6 +453,11 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/html:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   kingbase-data:

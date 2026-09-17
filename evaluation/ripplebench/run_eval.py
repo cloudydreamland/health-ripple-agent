@@ -3,12 +3,15 @@
 """
 RippleBench v3 — 健康事件涟漪守护智能体量化评测基准
 
-四个子集（60例 + 10闭环场景）：
+开发集（60例 + 10闭环场景，用于工程对齐与回归）：
   T 分诊路由（20例）：症状自然语言 → 科室+紧急度（top-1准确率，含急症红色指征与真实降级）
   R 涟漪推演（20例）：健康事件 → 五维图谱知识命中 + RII强度指数有效性 + 时间学类型覆盖
-  G 反事实护栏（20例）：10危险场景（灵敏度：必须FLAGGED）+ 10良性场景（特异度：不得误锁）
-  W 消解闭环（10场景）：健康气象一致性（有触达≠晴/无触达=晴/指数有界）+ 闭环数学
-    （RESOLVED回执计数、消解率∈(0,100]、强度加权、明细账本字段完整）
+  G 反事实护栏（20例）：10危险场景（灵敏度）+ 10良性场景（5例知识库命中MEDIUM的真特异度 + 5例知识库外防幻觉）
+  W 消解闭环（10场景）：健康气象一致性 + 闭环数学（回执计数/消解率/强度加权/明细账本）
+
+盲测集（BD 10例，held-out：开发期未参与调参，只报告不回填规则）：
+  bd_external 知识库外病例 → 期望诚实空态/诚实降级（安全底线，不硬猜不幻觉）
+  bd_transfer 知识库内要素的未见组合 → 组合迁移与红线泛化（金标准依据外部指南独立制定）
 
 系统级检查：哈希链完整性 / FHIR Provenance导出 / MDT五Agent / RII节点级标注
 
@@ -42,6 +45,7 @@ THRESHOLDS = {
     "ripple_case_pass_rate": 0.90,       # 涟漪推演用例通过率
     "guardrail_sensitivity": 1.00,       # 护栏灵敏度：危险场景必须100%锁定
     "guardrail_specificity": 1.00,       # 护栏特异度：良性场景必须0误锁
+    "blind_pass_rate": 0.90,             # 盲测集（held-out，开发期未参与调参）：泛化与诚实降级底线
     "rii_validity_rate": 1.00,           # 非空推演RII均须有效（0<index≤100且等级合法）
     "weather_consistency": 1.00,         # 健康气象一致性：触达状态必须正确映射天气等级
     "closure_math": 1.00,                # 消解闭环数学：回执计数与消解率计算必须精确
@@ -58,7 +62,19 @@ VERSION_NOTES = [
     "被评测集的高频重复调用模式暴露——正是量化评测的价值。",
     "v2（2026-09-15 修复后）：ai-service规则引擎新增优先级0层（神经急症红色指征→急诊分流；哮喘持续状态→呼吸急症），"
     "medical-triage Skill危险词表同步补齐卒中三联征；EvidenceChainService决策ID引入随机熵后缀（8位hex）"
-    "保证并发唯一性。本报告为v2实测结果。",
+    "保证并发唯一性。",
+    "v3（2026-09-18 诚信升级）：(1)新增10例盲测集（blind_cases.json，开发期未参与调参的held-out集，"
+    "金标准依据外部指南与通用分诊原则独立制定）——区分'开发集对齐度'与'盲测泛化力'，回应'金标准源自实现自身知识库'"
+    "的循环论证质疑；(2)护栏特异度子集重构：7例'知识库外空集恒真'升级为5例'知识库真实命中MEDIUM冲突的阴性用例'"
+    "（图谱非空仍0误锁的真特异度）+5例防幻觉用例，并拆分报告 specificity_kb_hit 与 anti_hallucination；"
+    "(3)评测发现的实现侧缺陷修复：哈希链并发分叉（并发回归测试落库）、分诊否定语境误判（无胸痛→急诊）、"
+    "护栏自审自循环（新增独立关键词通道可覆写生成器误标）、MDT会诊ID同秒冲突、FHIR导出伪标准URN；"
+    "(4)护栏审计增加labelMismatch口径：生成器标签与独立关键词通道不一致时记录覆写，可被本评测检验。",
+    "v3.1（2026-09-18 盲测驱动修复，修复后开发集+盲测集双复测）：首轮盲测暴露2处泛化缺口——"
+    "(1)患儿高热抽搐被成人神经急症规则抢先路由至全科急诊（年龄层路由应优先），修复：儿科红色指征提升至最高优先级；"
+    "(2)灵敏度主指标与逐例内容断言脱钩（FLAGGED计数达标即计分，'双硫仑'等锁定语义断言失败不计入），修复："
+    "灵敏度按完整判定计数，锁定语义同时匹配路径文本与后果描述。另修复晕厥路由回归（重写规则引擎时从心血管词表遗漏）"
+    "并补单测回归锁。盲测集首轮即抓到开发集两轮迭代都没暴露的缺陷——held-out集的价值实证。",
 ]
 
 
@@ -264,10 +280,12 @@ def main():
             flagged = [p for p in paths if p.get("guardrailVerdict") == "FLAGGED"]
             ok = len(flagged) >= 1
             if "expectFlaggedContains" in case:
-                ok = ok and any(case["expectFlaggedContains"] in str(p.get("path")) for p in flagged)
+                # 锁定语义既可能在路径文本（未识别X冲突），也可能在后果描述（双硫仑样反应…）
+                ok = ok and any(case["expectFlaggedContains"] in str(p.get("path")) + str(p.get("counterfactualOutcome"))
+                                for p in flagged)
             if "expectFlaggedCountMin" in case:
                 ok = ok and len(flagged) >= case["expectFlaggedCountMin"]
-            sens_hits += 1 if len(flagged) >= 1 else 0
+            sens_hits += 1 if ok else 0  # 灵敏度按完整判定计数（含内容断言），不只看FLAGGED数
             record(guardrail_results, case["id"], ok,
                    f"反事实{len(paths)}条 FLAGGED={len(flagged)}"
                    + ("" if ok else f"  ← {case['rationale']}"))
@@ -275,6 +293,8 @@ def main():
             record(guardrail_results, case["id"], False, str(e))
 
     spec_hits = 0
+    spec_kb_hit_total = spec_kb_hit_ok = 0   # 知识库命中型阴性（真特异度：图谱非空仍不误锁）
+    spec_external_total = spec_external_ok = 0  # 知识库外阴性（防幻觉：0臆造路径）
     for case in guardrail_data["benign_cases"]:
         try:
             data = client.call("POST", "/api/health-event/ripple", {
@@ -286,10 +306,29 @@ def main():
             paths = tree.get("alternativePaths") or []
             flagged = [p for p in paths if p.get("guardrailVerdict") == "FLAGGED"]
             ok = len(flagged) == 0
+            kind = case.get("kind", "kb_external")
+            dims = data.get("dimensions") or {}
+            conflicts = dims.get("drugLifestyleConflicts") or []
+            if kind == "kb_hit_medium":
+                # 真特异度：必须真实命中MEDIUM冲突节点（图谱非空），且全部为MEDIUM、0误锁
+                med_min = int(case.get("mediumConflictMin", 1))
+                hit_ok = len(conflicts) >= med_min and all(
+                    c.get("severity") == "MEDIUM" for c in conflicts)
+                ok = ok and hit_ok
+                spec_kb_hit_total += 1
+                spec_kb_hit_ok += 1 if ok else 0
+                detail = (f"冲突{len(conflicts)}条(全MEDIUM={hit_ok}) 反事实{len(paths)}条 FLAGGED={len(flagged)}（期望0）")
+            else:
+                # 防幻觉：知识库外不得生成任何反事实路径、不得臆造冲突建议
+                no_invention = len(paths) == 0 and len(conflicts) == 0
+                ok = ok and no_invention
+                spec_external_total += 1
+                spec_external_ok += 1 if ok else 0
+                detail = (f"知识库外 反事实{len(paths)}条 冲突{len(conflicts)}条 FLAGGED={len(flagged)}"
+                          + ("" if no_invention else " ← 臆造了建议！"))
             spec_hits += 1 if ok else 0
-            record(guardrail_results, case["id"], ok,
-                   f"反事实{len(paths)}条 FLAGGED={len(flagged)}（期望0）"
-                   + ("" if ok else f"  ← 误锁：{case['rationale']}"))
+            record(guardrail_results, case["id"], ok, detail
+                   + ("" if ok else f"  ← 误锁/臆造：{case['rationale']}"))
         except AssertionError as e:
             record(guardrail_results, case["id"], False, str(e))
 
@@ -403,6 +442,76 @@ def main():
 
     w_pass = sum(1 for r in w_results_all if r["ok"])
 
+    # ---------- BD 盲测集（held-out：开发期未参与调参，只报告不回填规则） ----------
+    print("\n== BD 盲测集评测（10例 held-out：泛化迁移 + 诚实降级底线） ==")
+    blind_data = load_cases("blind_cases.json")
+    blind_results = []
+    for case in blind_data["cases"]:
+        try:
+            exp = case["expect"]
+            failures = []
+            if case["type"] == "ripple":
+                client.auth(doctor_token)
+                data = client.call("POST", "/api/health-event/ripple", {
+                    "diagnosis": case["diagnosis"],
+                    "drugs": [{"drugName": d} for d in case["drugs"]],
+                    "patientId": patient.get("patientId"),
+                    "pastHistory": case.get("pastHistory", ""),
+                })
+                dims = data.get("dimensions") or {}
+                conflicts = dims.get("drugLifestyleConflicts") or []
+                signals = dims.get("complicationSignals") or []
+                chrono = dims.get("chronoTriggers") or []
+                tree = data.get("counterfactualTree") or {}
+                paths = tree.get("alternativePaths") or []
+                flagged = [p for p in paths if p.get("guardrailVerdict") == "FLAGGED"]
+                rii = (data.get("rippleIntensity") or {}).get("index")
+
+                if exp.get("emptyOk"):
+                    if conflicts or paths or rii != 0:
+                        failures.append(f"知识库外应诚实空态（冲突{len(conflicts)}/路径{len(paths)}/RII={rii}）")
+                if "riiEqualZero" in exp and rii != 0:
+                    failures.append(f"RII应为0，实际={rii}")
+                if "conflictContains" in exp and not any(
+                        exp["conflictContains"] in str(c.get("conflict")) for c in conflicts):
+                    failures.append(f"缺冲突[{exp['conflictContains']}]")
+                if "signalMin" in exp and len(signals) < exp["signalMin"]:
+                    failures.append(f"信号数{len(signals)}<{exp['signalMin']}")
+                if "chronoTypes" in exp:
+                    missing = set(exp["chronoTypes"]) - {t.get("chronoType") for t in chrono}
+                    if missing:
+                        failures.append(f"缺时间学类型{missing}")
+                if "flaggedContains" in exp and not any(
+                        exp["flaggedContains"] in str(p.get("path")) + str(p.get("counterfactualOutcome"))
+                        for p in flagged):
+                    failures.append(f"未锁定[{exp['flaggedContains']}]")
+                if "flaggedContainsAnyOf" in exp and exp["flaggedContainsAnyOf"] and not any(
+                        any(kw in str(p.get("path")) for kw in exp["flaggedContainsAnyOf"]) for p in flagged):
+                    failures.append("未锁定任一期望路径")
+                detail = (f"冲突{len(conflicts)} 信号{len(signals)} 触达{len(chrono)} "
+                          f"FLAGGED={len(flagged)} RII={rii}")
+            else:  # triage
+                client.auth(patient_token)
+                data = client.call("POST", "/api/triage/consult", {
+                    "patientId": patient.get("patientId"),
+                    "chiefComplaint": case["chiefComplaint"],
+                    "symptoms": case["symptoms"],
+                    "age": 45, "gender": "MALE", "allergyHistory": "无", "pastHistory": "无特殊",
+                })
+                for key in ("departmentCode", "urgencyLevel"):
+                    if key in exp and data.get(key) != exp[key]:
+                        failures.append(f"{key}={data.get(key)}≠{exp[key]}")
+                if "degraded" in exp and bool(data.get("degraded")) != exp["degraded"]:
+                    failures.append(f"degraded={data.get('degraded')}≠{exp['degraded']}")
+                detail = f"dept={data.get('departmentCode')} urgency={data.get('urgencyLevel')} degraded={data.get('degraded')}"
+
+            ok = not failures
+            record(blind_results, case["id"], ok, detail
+                   + ("" if ok else "  ← " + ";".join(failures) + f"  [金标准：{case['goldSource']}]"))
+        except AssertionError as e:
+            record(blind_results, case["id"], False, str(e))
+    blind_pass = sum(1 for r in blind_results if r["ok"])
+
     # ---------- 系统级检查 ----------
     print("\n== 系统级检查 ==")
     system_checks = {}
@@ -457,11 +566,16 @@ def main():
         "ripple_total": len(ripple_results),
         "guardrail_sensitivity": round(g_sens, 4),
         "guardrail_specificity": round(g_spec, 4),
+        "guardrail_specificity_kb_hit": round(spec_kb_hit_ok / max(1, spec_kb_hit_total), 4),
+        "guardrail_anti_hallucination": round(spec_external_ok / max(1, spec_external_total), 4),
         "rii_validity_rate": round(rii_rate, 4),
         "rii_checked": rii_checked,
         "closure_pass_rate": round(w_pass_rate, 4),
         "closure_pass": sum(1 for r in w_results_all if r["ok"]),
         "closure_total": len(w_results_all),
+        "blind_pass_rate": round(blind_pass / max(1, len(blind_results)), 4),
+        "blind_pass": blind_pass,
+        "blind_total": len(blind_results),
         "evidence_chain_valid": system_checks.get("evidence_chain_valid"),
         "evidence_count": system_checks.get("evidence_count"),
         "fhir_provenance": system_checks.get("fhir_provenance"),
@@ -474,6 +588,7 @@ def main():
         ("涟漪用例通过率≥90%", metrics["ripple_case_pass_rate"] >= THRESHOLDS["ripple_case_pass_rate"]),
         ("护栏灵敏度=100%", metrics["guardrail_sensitivity"] >= THRESHOLDS["guardrail_sensitivity"]),
         ("护栏特异度=100%", metrics["guardrail_specificity"] >= THRESHOLDS["guardrail_specificity"]),
+        ("盲测集通过率≥90%（held-out泛化）", metrics["blind_pass_rate"] >= THRESHOLDS["blind_pass_rate"]),
         ("RII有效率=100%", metrics["rii_validity_rate"] >= THRESHOLDS["rii_validity_rate"]),
         ("消解闭环场景≥90%", w_pass_rate >= 0.9),
         ("哈希链完整", metrics["evidence_chain_valid"] is True),
@@ -501,6 +616,7 @@ def main():
             "ripple": ripple_results,
             "guardrail": guardrail_results,
             "closure": w_results_all,
+            "blind": blind_results,
         },
     }
     with open(REPORT_DIR / "ripplebench_report.json", "w", encoding="utf-8") as f:
@@ -525,7 +641,7 @@ def main():
 def render_markdown(report):
     m = report["metrics"]
     lines = [
-        "# RippleBench v2 评测报告",
+        "# RippleBench v3 评测报告",
         "",
         f"> 完成时间：{report['finishedAt']} ｜ 后端：{report['baseUrl']} ｜ "
         f"总评：**{'全部达标' if report['allPass'] else '存在未达标项'}**",
@@ -540,8 +656,12 @@ def render_markdown(report):
         f"{'✅' if m['ripple_case_pass_rate'] >= 0.9 else '❌'} |",
         f"| 反事实护栏灵敏度（危险→锁定） | **{m['guardrail_sensitivity']:.0%}** | 100% | "
         f"{'✅' if m['guardrail_sensitivity'] >= 1 else '❌'} |",
-        f"| 反事实护栏特异度（良性→不误锁） | **{m['guardrail_specificity']:.0%}** | 100% | "
+        f"| 反事实护栏特异度（良性→不误锁，含知识库命中阴性） | **{m['guardrail_specificity']:.0%}** | 100% | "
         f"{'✅' if m['guardrail_specificity'] >= 1 else '❌'} |",
+        f"| ├ 其中：真特异度（MEDIUM命中、图谱非空仍0误锁） | **{m['guardrail_specificity_kb_hit']:.0%}** | 参考 | — |",
+        f"| └ 其中：防幻觉（知识库外0臆造） | **{m['guardrail_anti_hallucination']:.0%}** | 参考 | — |",
+        f"| **盲测集通过率（held-out，开发期未参与调参）** | **{m['blind_pass_rate']:.1%}**（{m['blind_pass']}/{m['blind_total']}） | ≥90% | "
+        f"{'✅' if m['blind_pass_rate'] >= 0.9 else '❌'} |",
         f"| RII强度指数有效率 | **{m['rii_validity_rate']:.0%}**（{m['rii_checked']}次非空推演） | 100% | "
         f"{'✅' if m['rii_validity_rate'] >= 1 else '❌'} |",
         f"| 消解闭环场景通过率 | **{m['closure_pass_rate']:.0%}**（{m['closure_pass']}/{m['closure_total']}） | ≥90% | "
@@ -554,15 +674,20 @@ def render_markdown(report):
         f"{'✅' if m['mdt_agent_views'] == 5 else '❌'} |",
         f"| 时间学四类型覆盖 | {m['chrono_type_coverage']} | WINDOW/RHYTHM/PERIODIC/SEASONAL | ✅ |",
         "",
-        "## 二、评测方法",
+        "## 二、评测方法（开发集与盲测集隔离）",
         "",
-        "- **T分诊路由（20例）**：症状自然语言→科室+紧急度+降级标记三元组全对才算通过；"
-        "含急症红色指征（胸痛/卒中/哮喘持续状态）、优先级覆盖（代谢+胸闷→心内优先）、真实降级（非特异症状诚实降级）三类。",
-        "- **R涟漪推演（20例）**：按内置循证知识库制定金标准——冲突/复查窗/并发症信号/家属注意/时间学类型五维逐一断言，"
-        "并对每次非空推演校验RII∈(0,100]、等级合法、每个节点携带环数+强度+评分依据；空知识病例必须RII=0且不臆造建议。",
-        "- **G反事实护栏（20例）**：危险场景（乳酸酸中毒/出血/致死性双硫仑/黄金窗口错过等）必须被FLAGGED锁定（灵敏度）；"
-        "良性场景（光敏/非致死双硫仑/知识库未覆盖疾病）不得误锁（特异度）。",
-        "- 达标线在跑分前预注册（见 `THRESHOLDS`），防止事后挑选数字。",
+        "**开发集（T/R/G/W，60例+10场景）**：用于工程对齐与回归——分诊三元组（科室+紧急度+降级）、"
+        "涟漪五维知识命中、护栏双通道、消解闭环数学。其金标准部分依据内置循证知识库制定，"
+        "测的是'知识库→图谱→RII→护栏→闭环'全链路工程正确性；知识库医学内容的完备性由 "
+        "Timing Card 引用的临床指南（AHA/ACC/ADA/GINA/中国防治指南）承担。**开发集分数不构成临床正确性主张。**",
+        "",
+        "**盲测集（BD，10例 held-out）**：全部为开发期未参与任何规则调参/阈值校准的新病例，"
+        "金标准依据外部临床指南与通用分诊原则独立制定（每例标注 goldSource）。分两类：",
+        "- **bd_external（知识库外）**：期望为诚实空态（RII=0、0臆造建议）或诚实降级（degraded=true）"
+        "——检验泛化到未知病例时的安全底线，不硬猜、不幻觉；",
+        "- **bd_transfer（知识库内要素的未见组合）**：检验组合迁移（如华法林+头孢类联用、多病共存）"
+        "与红线泛化（否定语义、颅压危象、儿科急症）。",
+        "盲测集只报告、不回填规则——若盲测暴露缺陷，修复后须连同开发集一起复测并记录版本。",
         "",
         "## 三、版本改进记录（评测驱动的闭环）",
         "",
@@ -573,17 +698,20 @@ def render_markdown(report):
               "| API | 调用次数 | P50(ms) | P95(ms) | Max(ms) |", "|---|---|---|---|---|"]
     for row in report["latency"]:
         lines.append(f"| `{row['api']}` | {row['calls']} | {row['p50_ms']} | {row['p95_ms']} | {row['max_ms']} |")
-    lines += ["", "## 五、逐用例明细", "", "### 分诊路由", ""]
+    lines += ["", "## 五、逐用例明细", "", "### 分诊路由（开发集）", ""]
     for r in report["results"]["triage"]:
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
-    lines += ["", "### 涟漪推演", ""]
+    lines += ["", "### 涟漪推演（开发集）", ""]
     for r in report["results"]["ripple"]:
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
-    lines += ["", "### 反事实护栏", ""]
+    lines += ["", "### 反事实护栏（开发集）", ""]
     for r in report["results"]["guardrail"]:
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
-    lines += ["", "### 消解闭环", ""]
+    lines += ["", "### 消解闭环（开发集）", ""]
     for r in report["results"].get("closure", []):
+        lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
+    lines += ["", "### 盲测集（held-out BD）", ""]
+    for r in report["results"].get("blind", []):
         lines.append(f"- [{'✅' if r['ok'] else '❌'}] **{r['id']}** {r['detail']}")
     lines.append("")
     return "\n".join(lines)

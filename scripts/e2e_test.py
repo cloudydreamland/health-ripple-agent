@@ -271,22 +271,35 @@ def main():
         })
         ripple = data if isinstance(data, dict) else {}
         dims = data.get("dimensions") or {}
-        dim_count = len(dims)
         cft = data.get("counterfactualTree") or {}
         triggers = data.get("chronoTriggers") or []
         evidence = data.get("evidenceChain") or {}
         decision_id = evidence.get("decisionId")
-        assert dim_count == 5, f"五维图谱实际维度={dim_count}"
-        assert cft.get("counterfactualCount", 0) >= 3, f"反事实树路径数={cft.get('counterfactualCount')}"
+        # 五维不是"键有5个"——每一维必须有真实内容（防恒真断言）
+        expected_dims = ("drugLifestyleConflicts", "recheckWindows", "complicationSignals",
+                         "familyAttentions", "chronoTriggers")
+        for dim_name in expected_dims:
+            assert len(dims.get(dim_name) or []) >= 1, f"维度{dim_name}为空，五维图谱名存实亡"
+        assert len(dims.get("recheckWindows")) >= 2, "复查窗应≥2条（2周肝肾功/3个月糖化）"
+        assert len(dims.get("complicationSignals")) >= 4, "糖尿病+高血压并发症信号应≥4条"
+        paths = cft.get("alternativePaths") or []
+        assert cft.get("counterfactualCount", 0) >= 6, f"反事实树路径数={cft.get('counterfactualCount')}"
+        assert any(p.get("pathKind") == "PATIENT_RISK" and p.get("wasRejected") is False for p in paths), \
+            "缺少PATIENT_RISK患者行为路径（不依从警示）"
+        assert all(p.get("guardrailVerdict") in ("SAFE", "FLAGGED") for p in paths), "存在未审计路径"
         assert len(triggers) >= 4, f"时间学触达数={len(triggers)}"
         assert decision_id, "证据链缺 decisionId"
         # 反事实护栏：审计结论存在且FLAGGED路径禁止下发
         guardrail = cft.get("guardrailSummary") or {}
         assert guardrail.get("auditedPaths", 0) >= 3, f"护栏未审计反事实路径: {guardrail}"
         assert guardrail.get("flaggedPaths", 0) >= 1, f"高危场景应有FLAGGED路径: {guardrail}"
+        assert guardrail.get("policyIds"), "护栏审计应引用策略ID: {guardrail}"
         record("10.涟漪推演", True,
-               f"五维图谱={dim_count}维, 反事实路径={cft.get('counterfactualCount')}条"
-               f"(护栏审计={guardrail.get('auditedPaths')}/FLAGGED={guardrail.get('flaggedPaths')}), "
+               f"五维全非空(冲突{len(dims.get('drugLifestyleConflicts'))}/复查{len(dims.get('recheckWindows'))}"
+               f"/信号{len(dims.get('complicationSignals'))}/家属{len(dims.get('familyAttentions'))}"
+               f"/触达{len(dims.get('chronoTriggers'))}), 反事实路径={cft.get('counterfactualCount')}条"
+               f"(护栏审计={guardrail.get('auditedPaths')}/FLAGGED={guardrail.get('flaggedPaths')}"
+               f"/策略={len(guardrail.get('policyIds') or [])}条), "
                f"时间学触达={len(triggers)}项, evidence={str(decision_id)[:40]}", ms)
     except AssertionError as e:
         record("10.涟漪推演", False, str(e), 0)
@@ -327,13 +340,27 @@ def main():
         })
         consultation = data.get("consultation") or {}
         consensus_notes = data.get("consensusNotes") or []
-        agent_count = len(consultation)
-        assert agent_count == 5, f"MDT视角数={agent_count}"
+        # 不是"键有5个"——每个Agent视角必须有实质分析内容（防恒真断言）
+        for view_name in ("triageView", "prescriptionView", "recordView", "followupView", "rippleView"):
+            view = consultation.get(view_name) or {}
+            assert str(view.get("analysis") or "").strip(), f"MDT视角{view_name}缺实质分析"
+        # 胸闷主诉 → 分诊Agent必须判HIGH紧急度
+        assert str((consultation.get("triageView") or {}).get("urgencySuggestion", "")).startswith("HIGH"), \
+            "胸闷气短主诉应判HIGH紧急度"
+        # 慢性肾病既往史 → 处方Agent必须识别NSAIDs冲突
+        presc_notes = (consultation.get("prescriptionView") or {}).get("drugRiskNotes") or []
+        assert any("NSAIDs" in str(n) for n in presc_notes), "慢性肾病应触发NSAIDs冲突提醒"
+        # 会诊动力学：分歧/收敛与数据推导的置信度必须存在
+        deliberation = data.get("deliberation") or {}
+        assert deliberation.get("convergence"), "MDT缺收敛裁决（会诊动力学）"
+        confidence = data.get("confidence")
+        assert isinstance(confidence, (int, float)) and 0.5 < confidence <= 0.95, \
+            f"MDT置信度应∈(0.5,0.95]且由会诊产出推导: {confidence}"
         assert isinstance(consensus_notes, list) and len(consensus_notes) >= 2, f"MDT共识要点数={len(consensus_notes)}"
         mdt_evidence = (data.get("evidenceChain") or {}).get("decisionId")
         record("11.MDT多智能体会诊", True,
-               f"五Agent={agent_count}视角, 共识要点={len(consensus_notes)}条, "
-               f"evidence={str(mdt_evidence)[:40]}", ms)
+               f"五Agent视角全实质分析, 共识要点={len(consensus_notes)}条, 分歧/收敛={str(deliberation.get('summary'))[:24]}, "
+               f"置信度={confidence}(数据推导), evidence={str(mdt_evidence)[:40]}", ms)
     except AssertionError as e:
         record("11.MDT多智能体会诊", False, str(e), 0)
 
@@ -380,21 +407,34 @@ def main():
         except AssertionError as e:
             record("13.证据可追溯查询", False, str(e), 0)
 
-    # ---------- 13b. FHIR Provenance 标准导出（HL7 AI Transparency 对齐） ----------
+    # ---------- 13b. FHIR Provenance 标准导出 ----------
     if decision_id:
         try:
             data, ms = api.call("GET", "/api/evidence/" + decision_id + "/fhir")
             assert data.get("resourceType") == "Provenance", f"非FHIR Provenance资源: {data.get('resourceType')}"
             agent = (data.get("agent") or [{}])[0]
-            sig = (data.get("signature") or [{}])[0]
             assert agent.get("who", {}).get("display"), "FHIR agent缺AI参与者标识"
-            assert sig.get("data"), "FHIR signature缺哈希链签名"
+            assert agent.get("type", {}).get("coding"), "FHIR agent.type缺术语编码"
+            # target 为 FHIR R4 Provenance 必填字段
+            assert data.get("target"), "FHIR Provenance缺target（必填字段）"
             entity = (data.get("entity") or [{}])[0]
             details = entity.get("detail") or []
             assert len(details) >= 3, f"FHIR entity决策依据不足: {len(details)}项"
+            # 哈希链证明以 FHIR 扩展承载（不冒充标准字段），算法标识为 NIST CSOR 官方 OID
+            exts = data.get("extension") or []
+            chain_ext = next((e for e in exts
+                              if str(e.get("url", "")).endswith("evidence-hash-chain")), None)
+            assert chain_ext, "缺哈希链证明扩展(evidence-hash-chain)"
+            sub = {e.get("url"): e for e in chain_ext.get("extension") or []}
+            assert str(sub.get("hash", {}).get("valueString") or ""), "哈希链扩展缺hash"
+            assert str(sub.get("prevHash", {}).get("valueString") or ""), "哈希链扩展缺prevHash"
+            algo = sub.get("hashAlgorithm", {}).get("valueCoding", {})
+            assert algo.get("code") == "2.16.840.1.101.3.4.2.1", \
+                f"SHA-256算法标识应为NIST官方OID 2.16.840.1.101.3.4.2.1: {algo}"
             record("13b.FHIR Provenance导出", True,
                    f"resourceType=Provenance, agent={agent.get('who', {}).get('display')}, "
-                   f"entity依据={len(details)}项, signature哈希前8位={str(sig.get('data'))[:8]}", ms)
+                   f"entity依据={len(details)}项, 哈希链扩展[hash前8位={str(sub.get('hash', {}).get('valueString'))[:8]}, "
+                   f"算法OID={algo.get('code')}]", ms)
         except AssertionError as e:
             record("13b.FHIR Provenance导出", False, str(e), 0)
 
@@ -474,15 +514,81 @@ def main():
     except AssertionError as e:
         record("14d.健康气象日报", False, str(e), 0)
 
-    # ---------- 15. 医生通知（事件驱动链路验证） ----------
+    # ---------- 15. 事件驱动通知（真验证：医生通道 + 患者涟漪守护通知各查各的收件箱） ----------
     try:
         data, ms = api.call("GET", "/api/notification/list")
-        notifications = data if isinstance(data, list) else data.get("notifications", data.get("list", []))
-        record("15.医生通知查询", True, f"通知数={len(notifications) if isinstance(notifications, list) else 'N/A'}", ms)
+        doctor_inbox = data if isinstance(data, list) else data.get("notifications", data.get("list", []))
+        assert isinstance(doctor_inbox, list) and doctor_inbox, "医生通知列表为空（诊疗事件未触达通知服务）"
+        # 涟漪守护通知发给患者（事件消费者按 patientId 投递）——切回患者令牌查患者收件箱
+        api.auth(patient_token)
+        pdata, _ = api.call("GET", "/api/notification/list")
+        patient_inbox = pdata if isinstance(pdata, list) else pdata.get("notifications", pdata.get("list", []))
+        ripple_notices = [n for n in patient_inbox
+                          if "2型糖尿病" in str(n.get("content") or "") + str(n.get("title") or "")
+                          or n.get("type") == "RIPPLE_GUARD_PLAN"]
+        api.auth(doctor_token)
+        assert ripple_notices, f"患者收件箱{len(patient_inbox)}条中无本患者涟漪推演事件（ripple.derived事件驱动链路断裂）"
+        record("15.事件驱动通知双通道", True,
+               f"医生通道{len(doctor_inbox)}条(病历/处方类) + 患者通道涟漪守护通知{len(ripple_notices)}条"
+               f"(type={ripple_notices[0].get('type')}), RabbitMQ ripple.derived 链路验证通过", ms)
     except AssertionError as e:
-        record("15.医生通知查询", False, str(e), 0)
+        record("15.事件驱动通知双通道", False, str(e), 0)
+
+    # ---------- 16a. 越权访问负例（IDOR 回归：患者只能访问本人涟漪数据） ----------
+    try:
+        intruder, ms = _register_intruder(api)
+        violated = []
+        for method, path in (
+            ("GET", f"/api/health-weather/daily?patientId={patient_id}"),
+            ("GET", f"/api/health-event/ripple/resolution?patientId={patient_id}"),
+            ("GET", f"/api/health-event/ripple/patient/{patient_id}"),
+            ("GET", f"/api/chrono/triggers/patient/{patient_id}"),
+        ):
+            try:
+                intruder.call(method, path)
+                violated.append(path)
+            except AssertionError:
+                pass  # 期望失败：越权被拒绝
+        assert not violated, f"越权访问未被拦截: {violated}"
+        record("16a.越权访问负例(IDOR回归)", True,
+               f"另一患者访问他人4类涟漪数据全部被拒（403），患者数据归属校验生效", ms)
+    except AssertionError as e:
+        record("16a.越权访问负例(IDOR回归)", False, str(e), 0)
+
+    # ---------- 16b. 未鉴权访问负例 ----------
+    try:
+        anon = E2EClient(api.base_url)
+        violated = []
+        for method, path in (
+            ("GET", f"/api/health-weather/daily?patientId={patient_id}"),
+            ("GET", "/api/evidence/verify"),
+            ("GET", f"/api/chrono/triggers/patient/{patient_id}"),
+        ):
+            try:
+                anon.call(method, path)
+                violated.append(path)
+            except AssertionError:
+                pass
+        assert not violated, f"未鉴权访问未被拦截: {violated}"
+        record("16b.未鉴权访问负例", True, "无令牌访问3类涟漪端点全部被拒（401），网关JWT边界生效", 0)
+    except AssertionError as e:
+        record("16b.未鉴权访问负例", False, str(e), 0)
 
     return summary()
+
+
+def _register_intruder(api):
+    """注册并登录另一名患者（用于越权负例），返回带其令牌的客户端。"""
+    import urllib.parse
+    intruder = E2EClient(api.base_url)
+    phone = "137{:08d}".format(int(time.time() * 1000) % 100000000)
+    data, _ = intruder.call("POST", "/api/patient/register", {
+        "name": "越权测试患者", "phone": phone, "password": "intruder_123",
+        "gender": "FEMALE", "age": 40, "allergyHistory": "无", "pastHistory": "无特殊",
+    })
+    token, _ = intruder.call("POST", "/api/patient/login", {"account": phone, "password": "intruder_123"})
+    intruder.auth(token.get("token"))
+    return intruder, 0
 
 
 def summary():

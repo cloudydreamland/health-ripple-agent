@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { deriveRipple, consultMdt, probeBackend, type SourceMode } from "./api";
+import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, type SourceMode } from "./api";
 import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } from "./types";
 import RiiSummary from "./components/RiiSummary.vue";
 import RidgePlot from "./components/RidgePlot.vue";
@@ -31,8 +31,10 @@ const CASES: CasePreset[] = [
   { id: "multi", label: "多病共存：糖尿病+高血压+慢性肾病", diagnosis: "2型糖尿病", drugs: ["二甲双胍"], pastHistory: "高血压,慢性肾病", chiefComplaint: "胸闷气短3天", mdtReady: true },
 ];
 
-const mode = ref<SourceMode>("demo");
+const mode = ref<SourceMode>("snapshot");
+const modeReason = ref("");
 const caseId = ref("flagship");
+const patientId = ref(Number(localStorage.getItem("rc-patient-id") ?? 1) || 1);
 const customDiagnosis = ref("");
 const customDrugs = ref("");
 const customHistory = ref("");
@@ -43,6 +45,18 @@ const mdt = ref<MdtResponse | null>(null);
 const mdtLoading = ref(false);
 const selectedNode = ref<RippleNode | null>(null);
 const clock = ref("");
+
+// 数据源模式实时联动：任何一次实时调用失败，api 层立即把徽章切到 SNAPSHOT 并说明原因
+// （绝不出现"徽章 LIVE、屏幕是旧快照"的失真状态）
+const unwatchMode = onModeChange((m, reason) => {
+  mode.value = m;
+  modeReason.value = reason;
+});
+onBeforeUnmount(unwatchMode);
+
+function persistPatientId() {
+  localStorage.setItem("rc-patient-id", String(patientId.value || 1));
+}
 
 const timer = window.setInterval(() => {
   clock.value = new Date().toTimeString().slice(0, 8);
@@ -70,9 +84,10 @@ async function run(caseOverride?: CasePreset) {
     ? customDrugs.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
     : preset.drugs;
   const pastHistory = preset.id === "custom" ? customHistory.value.trim() : preset.pastHistory;
+  persistPatientId();
   try {
-    ripple.value = await deriveRipple({ diagnosis, drugs, pastHistory, patientId: 1 });
-    latencyMs.value = Math.round(performance.now() - started);
+    ripple.value = await deriveRipple({ diagnosis, drugs, pastHistory, patientId: patientId.value });
+    latencyMs.value = mode.value === "live" ? Math.round(performance.now() - started) : null;
   } finally {
     running.value = false;
   }
@@ -80,9 +95,10 @@ async function run(caseOverride?: CasePreset) {
 
 async function runMdt() {
   mdtLoading.value = true;
+  persistPatientId();
   try {
     mdt.value = await consultMdt(
-      { diagnosis: currentCase.value.diagnosis, drugs: currentCase.value.drugs, pastHistory: currentCase.value.pastHistory, patientId: 1 },
+      { diagnosis: currentCase.value.diagnosis, drugs: currentCase.value.drugs, pastHistory: currentCase.value.pastHistory, patientId: patientId.value },
       currentCase.value.chiefComplaint,
     );
   } finally {
@@ -90,14 +106,18 @@ async function runMdt() {
   }
 }
 
-/** 守护活动日志：一次推演的完整事件流（倒序呈现）。 */
+/** 守护活动日志：一次推演的完整事件流（倒序呈现）。
+ * 时间轴诚信约定：live 模式用真实墙钟（now - 事件在流中的实际间隔仅作展示近似，
+ * 首条为推演完成时刻）；snapshot 模式以快照捕获时刻为基准回放——时间不是编造的"现在"。 */
 const activityEvents = computed<LogEvent[]>(() => {
   const r = ripple.value;
   if (!r) return [];
   const evts: LogEvent[] = [];
-  const now = Date.now();
+  const isSnapshot = mode.value !== "live";
+  const captured = new Date(snapshotMeta().capturedAt).getTime();
+  const base = Number.isFinite(captured) && isSnapshot ? captured : Date.now();
   let offset = 0;
-  const at = () => new Date(now - offset++ * 900).toTimeString().slice(0, 8);
+  const at = () => new Date(base - offset++ * 900).toTimeString().slice(0, 8);
 
   const he = r.healthEvent;
   evts.push({ time: at(), code: "事件", color: "#33628f", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
@@ -149,14 +169,29 @@ onMounted(async () => {
       </div>
       <div class="topbar-spacer" />
       <div class="clock">{{ clock }}<small>LOCAL / 24H</small></div>
-      <span class="live-pill" :class="{ demo: mode !== 'live' }">
-        <span class="dot" />{{ mode === "live" ? "LIVE" : "DEMO" }}
+      <span class="live-pill" :class="{ demo: mode !== 'live' }"
+            :title="mode === 'live' ? '实时连接后端网关' : '快照模式：' + (modeReason || '后端不可达')">
+        <span class="dot" />{{ mode === "live" ? "LIVE" : "SNAPSHOT" }}
       </span>
+      <label class="pid-box" title="患者ID（越权校验随患者角色生效）">
+        PID <input v-model.number="patientId" type="number" min="1" @change="run()" />
+      </label>
       <select v-model="caseId" @change="run()">
         <option v-for="c in CASES" :key="c.id" :value="c.id">{{ c.label }}</option>
       </select>
       <button class="big" :disabled="running" @click="run()">{{ running ? "推演中 …" : "落石 · 推演涟漪" }}</button>
     </header>
+
+    <!-- 快照模式诚实横幅：屏幕内容是何时捕获的真实响应，一眼可查 -->
+    <div v-if="mode !== 'live'" class="panel snapshot-banner">
+      <div class="panel-body snapshot-banner-body">
+        <b>SNAPSHOT 模式</b>
+        <span>
+          当前展示 {{ snapshotMeta().capturedAt }} 捕获的真实后端响应（{{ snapshotMeta().note }}）。
+          原因：{{ modeReason || "后端不可达" }}。连接后端后自动恢复实时推演。
+        </span>
+      </div>
+    </div>
 
     <!-- 自定义病例输入 -->
     <div v-if="caseId === 'custom'" class="panel">
@@ -343,6 +378,21 @@ onMounted(async () => {
 <style scoped>
 .custom-bar { display: flex; gap: 10px; flex-wrap: wrap; }
 .custom-bar input { flex: 1; min-width: 200px; }
+
+.snapshot-banner { margin: 0 22px 12px; border-color: #c07a1d; }
+.snapshot-banner-body { display: flex; gap: 12px; align-items: baseline; font-size: 12px; color: #c07a1d; }
+.snapshot-banner-body b { font-family: var(--font-serif); letter-spacing: 2px; flex: none; }
+
+.pid-box {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted); letter-spacing: 1px;
+}
+.pid-box input {
+  width: 64px; padding: 7px 9px;
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--card); color: var(--ink);
+  font-family: var(--font-mono); font-size: 12px;
+}
 
 .ridge-layout { display: grid; grid-template-columns: 250px 1fr; gap: 18px; }
 @media (max-width: 1180px) { .ridge-layout { grid-template-columns: 1fr; } }

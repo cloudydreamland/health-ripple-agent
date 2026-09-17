@@ -73,6 +73,8 @@ const auth = useAuthStore();
 const elderMode = ref(localStorage.getItem("scb-elder-mode") === "1");
 const loading = ref(true);
 const errorMsg = ref("");
+const shareText = ref("");
+const shareFallback = ref(false);
 
 const weather = ref<Weather | null>(null);
 const ledger = ref<LedgerItem[]>([]);
@@ -132,6 +134,11 @@ async function loadAll() {
 }
 
 async function sendFeedback(item: LedgerItem, outcome: string) {
+  // 已就医不可撤销（会计入气象警报与家属提示），必须二次确认防误触
+  if (outcome === "ESCALATED"
+    && !window.confirm("确认已完成就医、需要医生跟进吗？\n确认后该事项将终结并通知家属重点关注，不可撤销。")) {
+    return;
+  }
   feedbackBusy.value = item.triggerId;
   try {
     await request(
@@ -145,13 +152,34 @@ async function sendFeedback(item: LedgerItem, outcome: string) {
   }
 }
 
-function acknowledge(item: LedgerItem) {
-  item.feedbackStatus = item.feedbackStatus || "ACKNOWLEDGED";
-}
-
 function toggleElder() {
   elderMode.value = !elderMode.value;
   localStorage.setItem("scb-elder-mode", elderMode.value ? "1" : "0");
+}
+
+/** 剪贴板写入：优先 Clipboard API（需 HTTPS/localhost），失败回退 execCommand，
+ * 再失败把文本展示出来供手动复制——演示环境常为 http 局域网地址，必须有兜底。 */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    /* 回退 execCommand */
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 async function shareToFamily() {
@@ -164,12 +192,12 @@ async function shareToFamily() {
   if (resolution.value) {
     lines.push(`守护回执：已缓解${resolution.value.resolvedCount}项，消解率${resolution.value.resolutionRate}%（${resolution.value.closureStatus}）`);
   }
-  try {
-    await navigator.clipboard.writeText(lines.join("\n"));
+  shareText.value = lines.join("\n");
+  if (await copyText(shareText.value)) {
     shared.value = true;
     setTimeout(() => (shared.value = false), 2500);
-  } catch {
-    shared.value = false;
+  } else {
+    shareFallback.value = true; // 无法自动复制：展示文本让患者/家属手动复制
   }
 }
 
@@ -191,8 +219,16 @@ onMounted(loadAll);
       </div>
     </header>
 
-    <p v-if="errorMsg" class="rp-error">{{ errorMsg }}（请确认后端已启动）</p>
-    <p v-if="loading" class="rp-loading">正在加载守护数据…</p>
+    <p v-if="errorMsg" class="rp-error" role="status" aria-live="polite">守护数据暂时加载不出来，请稍后下拉重试；如持续失败请联系您的医生或社区工作人员。</p>
+    <p v-if="loading" class="rp-loading" role="status">正在加载守护数据…</p>
+
+    <!-- 剪贴板不可用时的手动复制兜底（http 局域网环境常见） -->
+    <section v-if="shareFallback" class="rp-card" role="region" aria-label="复制分享内容">
+      <h3>请手动复制给家属</h3>
+      <textarea class="rp-share-text" readonly rows="5" @focus="($event.target as HTMLTextAreaElement).select()">{{ shareText }}</textarea>
+      <p class="rp-hint">点击文本框全选后，用"复制"或长按复制发给家属。</p>
+      <button class="ghost" type="button" @click="shareFallback = false">关闭</button>
+    </section>
 
     <!-- 今日健康气象 -->
     <section v-if="weather" class="rp-weather" :style="{ borderColor: weather.color + '66' }">
@@ -282,6 +318,7 @@ onMounted(loadAll);
               <button class="warn" type="button" :disabled="feedbackBusy === item.triggerId" @click="sendFeedback(item, 'UNRESOLVED')">未缓解</button>
               <button class="danger" type="button" :disabled="feedbackBusy === item.triggerId" @click="sendFeedback(item, 'ESCALATED')">已就医</button>
             </div>
+            <span v-else-if="item.feedbackStatus === 'ESCALATED'" class="rp-hint">已升级就医，等待医生跟进</span>
           </div>
         </li>
       </ul>
@@ -346,12 +383,20 @@ onMounted(loadAll);
 .rp-fb[data-fb="ESCALATED"] { color: #d94f63; font-weight: 600; }
 .rp-btns { display: flex; gap: 6px; }
 
-/* 适老化模式：大字号 + 高对比 */
+/* 适老化模式：大字号 + 真高对比 + 焦点可视 + 动效可关 */
 .elder-mode { font-size: 18px; }
 .elder-mode .rp-head h2 { font-size: 26px; }
 .elder-mode .rp-headline, .elder-mode .rp-status { font-size: 18px; }
 .elder-mode .rp-event, .elder-mode .rp-ledger-main b { font-size: 18px; }
-.elder-mode .rp-hint, .elder-mode .rp-ledger-card, .elder-mode .rp-time { font-size: 15px; color: #4c483c; }
-.elder-mode .rp-btns button, .elder-mode .rp-actions button { font-size: 16px; padding: 10px 16px; }
+.elder-mode .rp-hint, .elder-mode .rp-ledger-card, .elder-mode .rp-time { font-size: 15px; color: #3a362a; }
+.elder-mode .rp-btns button, .elder-mode .rp-actions button { font-size: 17px; padding: 12px 18px; }
 .elder-mode .rp-type { font-size: 14px; }
+.elder-mode .rp-head p, .elder-mode .rp-index span, .elder-mode .rp-fb { color: #3a362a; }
+
+/* 可访问性：键盘焦点可见、屏幕阅读器友好、跟随系统减弱动效 */
+.rp-btns button:focus-visible, .rp-actions button:focus-visible { outline: 3px solid #2f93a8; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .rp-ring circle { transition: none; }
+}
+.rp-share-text { width: 100%; border: 1px dashed #2f93a8; border-radius: 8px; padding: 10px; font-size: 14px; font-family: inherit; background: #f0f6f4; }
 </style>

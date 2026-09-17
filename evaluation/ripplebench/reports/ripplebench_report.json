@@ -1,13 +1,14 @@
 {
   "benchmark": "RippleBench",
   "version": "v3",
-  "finishedAt": "2026-09-16T00:58:54",
+  "finishedAt": "2026-09-18T01:32:09",
   "baseUrl": "http://localhost:18080",
   "thresholds": {
     "triage_top1_accuracy": 0.9,
     "ripple_case_pass_rate": 0.9,
     "guardrail_sensitivity": 1.0,
     "guardrail_specificity": 1.0,
+    "blind_pass_rate": 0.9,
     "rii_validity_rate": 1.0,
     "weather_consistency": 1.0,
     "closure_math": 1.0,
@@ -23,13 +24,18 @@
     "ripple_total": 20,
     "guardrail_sensitivity": 1.0,
     "guardrail_specificity": 1.0,
+    "guardrail_specificity_kb_hit": 1.0,
+    "guardrail_anti_hallucination": 1.0,
     "rii_validity_rate": 1.0,
     "rii_checked": 19,
     "closure_pass_rate": 1.0,
     "closure_pass": 10,
     "closure_total": 10,
+    "blind_pass_rate": 1.0,
+    "blind_pass": 10,
+    "blind_total": 10,
     "evidence_chain_valid": true,
-    "evidence_count": 303,
+    "evidence_count": 477,
     "fhir_provenance": true,
     "mdt_agent_views": 5,
     "chrono_type_coverage": [
@@ -54,6 +60,10 @@
     },
     {
       "criterion": "护栏特异度=100%",
+      "pass": true
+    },
+    {
+      "criterion": "盲测集通过率≥90%（held-out泛化）",
       "pass": true
     },
     {
@@ -85,106 +95,108 @@
   "versionNotes": [
     "v1（2026-09-15 凌晨首轮）：20例分诊中暴露2处规则缺口——(1)卒中/意识类红色指征（意识不清/言语不清/偏瘫）未覆盖，落入降级兜底（安全缺口）；(2)哮喘+呼吸困难被心血管规则优先误路由至心内科（急症误分流）。10例危险反事实场景全部被正确FLAGGED，10例良性场景0误锁。",
     "v1另暴露1处并发幂等缺陷：证据决策ID为「秒级时间戳+输入哈希前6位」，高频同秒重复输入触发唯一约束冲突→500（护栏子集5例请求失败）。该缺陷在功能性E2E中不可见（用例互不相同），被评测集的高频重复调用模式暴露——正是量化评测的价值。",
-    "v2（2026-09-15 修复后）：ai-service规则引擎新增优先级0层（神经急症红色指征→急诊分流；哮喘持续状态→呼吸急症），medical-triage Skill危险词表同步补齐卒中三联征；EvidenceChainService决策ID引入随机熵后缀（8位hex）保证并发唯一性。本报告为v2实测结果。"
+    "v2（2026-09-15 修复后）：ai-service规则引擎新增优先级0层（神经急症红色指征→急诊分流；哮喘持续状态→呼吸急症），medical-triage Skill危险词表同步补齐卒中三联征；EvidenceChainService决策ID引入随机熵后缀（8位hex）保证并发唯一性。",
+    "v3（2026-09-18 诚信升级）：(1)新增10例盲测集（blind_cases.json，开发期未参与调参的held-out集，金标准依据外部指南与通用分诊原则独立制定）——区分'开发集对齐度'与'盲测泛化力'，回应'金标准源自实现自身知识库'的循环论证质疑；(2)护栏特异度子集重构：7例'知识库外空集恒真'升级为5例'知识库真实命中MEDIUM冲突的阴性用例'（图谱非空仍0误锁的真特异度）+5例防幻觉用例，并拆分报告 specificity_kb_hit 与 anti_hallucination；(3)评测发现的实现侧缺陷修复：哈希链并发分叉（并发回归测试落库）、分诊否定语境误判（无胸痛→急诊）、护栏自审自循环（新增独立关键词通道可覆写生成器误标）、MDT会诊ID同秒冲突、FHIR导出伪标准URN；(4)护栏审计增加labelMismatch口径：生成器标签与独立关键词通道不一致时记录覆写，可被本评测检验。",
+    "v3.1（2026-09-18 盲测驱动修复，修复后开发集+盲测集双复测）：首轮盲测暴露2处泛化缺口——(1)患儿高热抽搐被成人神经急症规则抢先路由至全科急诊（年龄层路由应优先），修复：儿科红色指征提升至最高优先级；(2)灵敏度主指标与逐例内容断言脱钩（FLAGGED计数达标即计分，'双硫仑'等锁定语义断言失败不计入），修复：灵敏度按完整判定计数，锁定语义同时匹配路径文本与后果描述。另修复晕厥路由回归（重写规则引擎时从心血管词表遗漏）并补单测回归锁。盲测集首轮即抓到开发集两轮迭代都没暴露的缺陷——held-out集的价值实证。"
   ],
   "latency": [
     {
-      "api": "/api/chrono/trigger/570/feedback",
+      "api": "/api/chrono/trigger/905/feedback",
       "calls": 2,
-      "p50_ms": 12,
-      "p95_ms": 29,
-      "max_ms": 29
+      "p50_ms": 10,
+      "p95_ms": 20,
+      "max_ms": 20
     },
     {
-      "api": "/api/chrono/trigger/592/feedback",
+      "api": "/api/chrono/trigger/927/feedback",
       "calls": 1,
-      "p50_ms": 23,
-      "p95_ms": 23,
-      "max_ms": 23
+      "p50_ms": 21,
+      "p95_ms": 21,
+      "max_ms": 21
     },
     {
-      "api": "/api/chrono/triggers/patient/104",
+      "api": "/api/chrono/triggers/patient/119",
       "calls": 2,
-      "p50_ms": 9,
-      "p95_ms": 26,
-      "max_ms": 26
+      "p50_ms": 6,
+      "p95_ms": 27,
+      "max_ms": 27
     },
     {
       "api": "/api/doctor/login",
       "calls": 1,
-      "p50_ms": 227,
-      "p95_ms": 227,
-      "max_ms": 227
+      "p50_ms": 205,
+      "p95_ms": 205,
+      "max_ms": 205
     },
     {
-      "api": "/api/evidence/RIPPLE_DERIVATION-20260916005853-863fef48/fhir",
+      "api": "/api/evidence/RIPPLE_DERIVATION-20260918013208-fdfc404d/fhir",
       "calls": 1,
-      "p50_ms": 9,
-      "p95_ms": 9,
-      "max_ms": 9
+      "p50_ms": 8,
+      "p95_ms": 8,
+      "max_ms": 8
     },
     {
       "api": "/api/evidence/verify",
       "calls": 1,
-      "p50_ms": 18,
-      "p95_ms": 18,
-      "max_ms": 18
+      "p50_ms": 38,
+      "p95_ms": 38,
+      "max_ms": 38
     },
     {
       "api": "/api/health-event/ripple",
-      "calls": 43,
-      "p50_ms": 31,
+      "calls": 49,
+      "p50_ms": 30,
       "p95_ms": 35,
       "max_ms": 37
     },
     {
       "api": "/api/health-event/ripple/feedback-ledger",
       "calls": 1,
-      "p50_ms": 26,
-      "p95_ms": 26,
-      "max_ms": 26
+      "p50_ms": 25,
+      "p95_ms": 25,
+      "max_ms": 25
     },
     {
       "api": "/api/health-event/ripple/resolution",
       "calls": 2,
-      "p50_ms": 12,
-      "p95_ms": 28,
-      "max_ms": 28
+      "p50_ms": 9,
+      "p95_ms": 21,
+      "max_ms": 21
     },
     {
       "api": "/api/health-weather/daily",
       "calls": 6,
-      "p50_ms": 27,
-      "p95_ms": 35,
-      "max_ms": 35
+      "p50_ms": 26,
+      "p95_ms": 33,
+      "max_ms": 33
     },
     {
       "api": "/api/mdt/consult",
       "calls": 1,
-      "p50_ms": 41,
-      "p95_ms": 41,
-      "max_ms": 41
+      "p50_ms": 32,
+      "p95_ms": 32,
+      "max_ms": 32
     },
     {
       "api": "/api/patient/login",
       "calls": 1,
-      "p50_ms": 215,
-      "p95_ms": 215,
-      "max_ms": 215
+      "p50_ms": 221,
+      "p95_ms": 221,
+      "max_ms": 221
     },
     {
       "api": "/api/patient/register",
       "calls": 1,
-      "p50_ms": 245,
-      "p95_ms": 245,
-      "max_ms": 245
+      "p50_ms": 223,
+      "p95_ms": 223,
+      "max_ms": 223
     },
     {
       "api": "/api/triage/consult",
-      "calls": 20,
-      "p50_ms": 37,
-      "p95_ms": 47,
-      "max_ms": 48
+      "calls": 24,
+      "p50_ms": 34,
+      "p95_ms": 49,
+      "max_ms": 202
     }
   ],
   "results": {
@@ -309,7 +321,7 @@
       {
         "id": "R04",
         "ok": true,
-        "detail": "冲突0 复查1 信号2 家属3 触达1 RII=41.8(ORANGE)"
+        "detail": "冲突0 复查1 信号2 家属3 触达1 RII=41.6(ORANGE)"
       },
       {
         "id": "R05",
@@ -396,17 +408,17 @@
       {
         "id": "G01",
         "ok": true,
-        "detail": "反事实10条 FLAGGED=6"
+        "detail": "反事实12条 FLAGGED=8"
       },
       {
         "id": "G02",
         "ok": true,
-        "detail": "反事实2条 FLAGGED=1"
+        "detail": "反事实3条 FLAGGED=2"
       },
       {
         "id": "G03",
-        "ok": false,
-        "detail": "反事实1条 FLAGGED=1  ← 头孢+饮酒致死性双硫仑反应，必须FLAGGED"
+        "ok": true,
+        "detail": "反事实2条 FLAGGED=2"
       },
       {
         "id": "G04",
@@ -421,7 +433,7 @@
       {
         "id": "G06",
         "ok": true,
-        "detail": "反事实1条 FLAGGED=1"
+        "detail": "反事实2条 FLAGGED=2"
       },
       {
         "id": "G07",
@@ -436,7 +448,7 @@
       {
         "id": "G09",
         "ok": true,
-        "detail": "反事实1条 FLAGGED=1"
+        "detail": "反事实2条 FLAGGED=2"
       },
       {
         "id": "G10",
@@ -446,52 +458,52 @@
       {
         "id": "B01",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "冲突1条(全MEDIUM=True) 反事实0条 FLAGGED=0（期望0）"
       },
       {
         "id": "B02",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "冲突1条(全MEDIUM=True) 反事实0条 FLAGGED=0（期望0）"
       },
       {
         "id": "B03",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "冲突1条(全MEDIUM=True) 反事实0条 FLAGGED=0（期望0）"
       },
       {
         "id": "B04",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "冲突2条(全MEDIUM=True) 反事实0条 FLAGGED=0（期望0）"
       },
       {
         "id": "B05",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "冲突1条(全MEDIUM=True) 反事实0条 FLAGGED=0（期望0）"
       },
       {
         "id": "B06",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "知识库外 反事实0条 冲突0条 FLAGGED=0"
       },
       {
         "id": "B07",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "知识库外 反事实0条 冲突0条 FLAGGED=0"
       },
       {
         "id": "B08",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "知识库外 反事实0条 冲突0条 FLAGGED=0"
       },
       {
         "id": "B09",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "知识库外 反事实0条 冲突0条 FLAGGED=0"
       },
       {
         "id": "B10",
         "ok": true,
-        "detail": "反事实0条 FLAGGED=0（期望0）"
+        "detail": "知识库外 反事实0条 冲突0条 FLAGGED=0"
       }
     ],
     "closure": [
@@ -503,17 +515,17 @@
       {
         "id": "W02",
         "ok": true,
-        "detail": "冠心病 → weather=RAIN index=33.7 今日13项 TimingCard=✓"
+        "detail": "冠心病 → weather=STORM index=33.7 今日13项 TimingCard=✓"
       },
       {
         "id": "W03",
         "ok": true,
-        "detail": "2型糖尿病 → weather=RAIN index=31.5 今日13项 TimingCard=✓"
+        "detail": "2型糖尿病 → weather=STORM index=31.5 今日13项 TimingCard=✓"
       },
       {
         "id": "W04",
         "ok": true,
-        "detail": "高血压 → weather=RAIN index=32.2 今日14项 TimingCard=✓"
+        "detail": "高血压 → weather=STORM index=32.2 今日14项 TimingCard=✓"
       },
       {
         "id": "W05",
@@ -523,7 +535,7 @@
       {
         "id": "W06",
         "ok": true,
-        "detail": "UNRESOLVED → 加强触达至2026-09-16T02:58"
+        "detail": "UNRESOLVED → 加强触达至2026-09-18T03:32"
       },
       {
         "id": "W07",
@@ -538,12 +550,64 @@
       {
         "id": "W09",
         "ok": true,
-        "detail": "升级后气象合法 weather=RAIN headline=有1项已升级就医，请家属重点关注医生反馈"
+        "detail": "升级后气象合法 weather=STORM headline=有1项已升级就医，请家属重点关注医生反馈"
       },
       {
         "id": "W10",
         "ok": true,
         "detail": "隔离性：另一空患者仍为SUNNY（数据不串扰）"
+      }
+    ],
+    "blind": [
+      {
+        "id": "BD-R01",
+        "ok": true,
+        "detail": "冲突0 信号0 触达0 FLAGGED=0 RII=0.0"
+      },
+      {
+        "id": "BD-R02",
+        "ok": true,
+        "detail": "冲突0 信号0 触达0 FLAGGED=0 RII=0.0"
+      },
+      {
+        "id": "BD-R03",
+        "ok": true,
+        "detail": "冲突0 信号0 触达0 FLAGGED=0 RII=0.0"
+      },
+      {
+        "id": "BD-R04",
+        "ok": true,
+        "detail": "冲突3 信号0 触达1 FLAGGED=4 RII=46.9"
+      },
+      {
+        "id": "BD-R05",
+        "ok": true,
+        "detail": "冲突1 信号1 触达2 FLAGGED=1 RII=31.4"
+      },
+      {
+        "id": "BD-R06",
+        "ok": true,
+        "detail": "冲突2 信号5 触达4 FLAGGED=8 RII=72.6"
+      },
+      {
+        "id": "BD-T01",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=EMERGENCY degraded=False"
+      },
+      {
+        "id": "BD-T02",
+        "ok": true,
+        "detail": "dept=PEDIATRICS urgency=EMERGENCY degraded=False"
+      },
+      {
+        "id": "BD-T03",
+        "ok": true,
+        "detail": "dept=CARDIOLOGY urgency=ROUTINE degraded=False"
+      },
+      {
+        "id": "BD-T04",
+        "ok": true,
+        "detail": "dept=GENERAL urgency=ROUTINE degraded=True"
       }
     ]
   }

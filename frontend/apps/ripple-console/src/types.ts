@@ -144,10 +144,11 @@ export interface MdtResponse {
 }
 
 export interface ChainVerifyResult {
-  valid: boolean;
+  valid: boolean | null; // null = 离线快照模式（无法实时校验，不冒充结论）
   count: number;
   brokenAt?: string;
   message?: string;
+  offline?: boolean;
 }
 
 export const DIMENSION_META: Record<string, { label: string; color: string; en: string; icon: string }> = {

@@ -317,9 +317,22 @@ CHRONO_TRIGGERS = {
 # ============================================================
 # 证据链 + 反事实决策树持久化（核心创新·XAI学术前沿）
 # ============================================================
-def _build_evidence_chain(decision_type, inputs, ai_output, reasoning, counterfactual_tree=None, confidence=0.85, action_taken="RIPPLE_DERIVED"):
-    """构建涟漪推演证据链+反事实决策树，可审计可申诉。"""
-    decision_id = f"{decision_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{hashlib.md5(json.dumps(inputs, ensure_ascii=False).encode()).hexdigest()[:6]}"
+def _build_evidence_chain(decision_type, inputs, ai_output, reasoning, counterfactual_tree=None, confidence=None, action_taken="RIPPLE_DERIVED"):
+    """构建涟漪推演证据链+反事实决策树，可审计可申诉。
+
+    decision_id：秒级时间戳 + 输入SHA-256 + 随机熵（与后端同源设计，防同秒并发冲突）；
+    置信度：未显式给出时由推演产出推导（依据条数/反事实树完整度），不写死常数冒充精确。
+    """
+    import uuid
+    uniqueness = hashlib.sha256(
+        (json.dumps(inputs, ensure_ascii=False, sort_keys=True) + "|" + str(uuid.uuid4())).encode()
+    ).hexdigest()[:8]
+    decision_id = f"{decision_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uniqueness}"
+    if confidence is None:
+        confidence = 0.60 + (0.10 if len(reasoning) >= 3 else 0.0) \
+            + (0.10 if counterfactual_tree else 0.0) \
+            + (0.05 if (ai_output or {}).get("rippleSummary") else 0.0)
+        confidence = round(min(0.90, confidence), 2)
     evidence = {
         "decisionId": decision_id,
         "decisionType": decision_type,
@@ -336,7 +349,7 @@ def _build_evidence_chain(decision_type, inputs, ai_output, reasoning, counterfa
         evidence["counterfactualTree"] = counterfactual_tree
         evidence["chosenPath"] = counterfactual_tree.get("chosenPath", "")
         evidence["alternativePaths"] = counterfactual_tree.get("alternativePaths", [])
-    evidence["hash"] = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
+    evidence["hash"] = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     _persist_evidence(decision_id, evidence)
     return evidence
 
@@ -859,7 +872,7 @@ def action_ripple(args):
                 f"主动建议MDT: {proactive_mdt}",
             ],
             counterfactual_tree=counterfactual_tree,
-            confidence=0.88,
+            confidence=None,
             action_taken="RIPPLE_DERIVED+CHRONO_TRIGGER_SETUP" if ripple_graph.get("dimensions", {}).get("chronoTriggers") else "RIPPLE_DERIVED",
         )
 
@@ -936,7 +949,7 @@ def action_mdt(args):
                 ],
                 "counterfactualCount": 1,
             },
-            confidence=0.90,
+            confidence=None,
             action_taken="MDT_CONSULTED",
         )
     mdt["evidenceChain"] = evidence

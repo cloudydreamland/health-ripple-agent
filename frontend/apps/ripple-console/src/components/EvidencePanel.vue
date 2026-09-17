@@ -82,8 +82,13 @@ async function exportFhirJson() {
       </button>
     </div>
 
-    <!-- 盖章结论 -->
-    <div v-if="verifyResult" class="stamp" :class="verifyResult.valid ? 'ok' : 'bad'">
+    <!-- 盖章结论（offline=true 时如实呈现快照状态，不冒充实时校验结论） -->
+    <div v-if="verifyResult && verifyResult.offline === true" class="stamp offline">
+      <b>离线快照</b>
+      <span class="mono">SNAPSHOT · 实时验印需连接后端</span>
+      <span class="hint offline-note">{{ verifyResult.message }}</span>
+    </div>
+    <div v-else-if="verifyResult" class="stamp" :class="verifyResult.valid ? 'ok' : 'bad'">
       <template v-if="verifyResult.valid">
         <b>验印通过</b>
         <span class="mono">CHAIN VERIFIED · {{ verifyResult.count }} RECORDS</span>
@@ -155,6 +160,8 @@ async function exportFhirJson() {
 .stamp span { font-size: 9.5px; letter-spacing: 0.8px; font-family: var(--font-mono); }
 .stamp.ok { color: var(--red); border-color: var(--red); }
 .stamp.bad { color: var(--ink); border-color: var(--ink); }
+.stamp.offline { color: #8f8a75; border-color: #8f8a75; animation: none; transform: rotate(-2deg); }
+.offline-note { font-size: 10px; max-width: 280px; white-space: normal; letter-spacing: 0; }
 .fhir-pre {
   max-height: 240px;
   overflow: auto;

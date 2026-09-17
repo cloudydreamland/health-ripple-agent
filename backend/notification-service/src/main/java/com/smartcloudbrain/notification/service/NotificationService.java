@@ -32,7 +32,12 @@ public class NotificationService {
   }
 
   public List<Map<String, Object>> list(String readStatus) {
-    AuthenticatedUser user = currentUserService.require(RoleType.DOCTOR);
+    AuthenticatedUser user = currentUserService.get();
+    // 医生看自己的诊疗通知；患者看自己的守护通知（涟漪守护 ripple.derived 按 patientId 投递）
+    if (user.role() == RoleType.PATIENT) {
+      return notificationRepository.findByPatientIdOrderByCreatedAtDesc(user.userId())
+          .stream().map(this::notificationView).toList();
+    }
     List<NotificationMessage> messages = readStatus == null || readStatus.isBlank()
         ? notificationRepository.findByDoctorId(user.userId())
         : notificationRepository.findByDoctorIdAndReadStatus(user.userId(), readStatus);
@@ -63,31 +68,34 @@ public class NotificationService {
     message.setRiskLevel(request.riskLevel());
     message.setReadStatus("UNREAD");
     NotificationMessage saved = notificationRepository.save(message);
-    webSocketHandler.sendToDoctor(request.doctorId(), """
-        {"type":"%s","notificationId":%d,"riskLevel":"%s","title":"%s","content":"%s"}
-        """.formatted(
-        saved.getType(),
-        saved.getId(),
-        saved.getRiskLevel() == null ? "" : saved.getRiskLevel(),
-        escape(saved.getTitle()),
-        escape(saved.getContent())
-    ).trim());
+    if (request.doctorId() != null) {
+      webSocketHandler.sendToDoctor(request.doctorId(), """
+          {"type":"%s","notificationId":%d,"riskLevel":"%s","title":"%s","content":"%s"}
+          """.formatted(
+          saved.getType(),
+          saved.getId(),
+          saved.getRiskLevel() == null ? "" : saved.getRiskLevel(),
+          escape(saved.getTitle()),
+          escape(saved.getContent())
+      ).trim());
+    }
     return notificationView(saved);
   }
 
+  /** 患者向通知的 doctorId 为 null——用 LinkedHashMap 承载（Map.of 不接受 null 值）。 */
   private Map<String, Object> notificationView(NotificationMessage message) {
-    return Map.of(
-        "notificationId", message.getId(),
-        "doctorId", message.getDoctorId(),
-        "patientId", message.getPatientId() == null ? 0L : message.getPatientId(),
-        "prescriptionId", message.getPrescriptionId() == null ? 0L : message.getPrescriptionId(),
-        "type", message.getType(),
-        "title", message.getTitle(),
-        "content", message.getContent(),
-        "riskLevel", message.getRiskLevel() == null ? "" : message.getRiskLevel(),
-        "readStatus", message.getReadStatus(),
-        "createdAt", message.getCreatedAt() == null ? "" : message.getCreatedAt().toString()
-    );
+    Map<String, Object> view = new java.util.LinkedHashMap<>();
+    view.put("notificationId", message.getId());
+    view.put("doctorId", message.getDoctorId() == null ? 0L : message.getDoctorId());
+    view.put("patientId", message.getPatientId() == null ? 0L : message.getPatientId());
+    view.put("prescriptionId", message.getPrescriptionId() == null ? 0L : message.getPrescriptionId());
+    view.put("type", message.getType());
+    view.put("title", message.getTitle());
+    view.put("content", message.getContent());
+    view.put("riskLevel", message.getRiskLevel() == null ? "" : message.getRiskLevel());
+    view.put("readStatus", message.getReadStatus());
+    view.put("createdAt", message.getCreatedAt() == null ? "" : message.getCreatedAt().toString());
+    return view;
   }
 
   private String escape(String value) {
