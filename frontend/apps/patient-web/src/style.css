@@ -1,11 +1,164 @@
 @import "../../../packages/shared-ui/src/styles/index.css";
 
+/* ============================================================
+   患者端 · 「数字宣纸 · 水墨涟漪」主题（与指挥中心同源）
+   Inkp Patient Theme：宣纸底 / 墨线数据 / 朱砂印鉴 / 呼吸节律
+   令牌覆写 .theme-patient（在 shared-ui 之后引入，同特异性后者胜出）
+   ============================================================ */
+
+.theme-patient {
+  /* 宣纸与墨 */
+  --bg: #f2eee1;
+  --surface: #faf7ec;
+  --surface-alt: #f4f0e2;
+  --surface-warm: #f4f0e2;
+  --ink: #26231b;
+  --muted: #8f8a75;
+  --subtle: #bab49c;
+  --line: #e5dfcb;
+  --line-strong: #cdc5a9;
+
+  /* 国画色：朱砂为主色 */
+  --primary: #bd4033;
+  --primary-strong: #9c3226;
+  --primary-soft: rgba(189, 64, 51, 0.08);
+  --accent: #c07a1d;
+  --accent-soft: rgba(192, 122, 29, 0.1);
+  --success: #41795f;
+  --success-soft: rgba(65, 121, 95, 0.1);
+  --warning: #a8871a;
+  --warning-soft: rgba(168, 135, 26, 0.11);
+  --danger: #bd4033;
+  --danger-soft: rgba(189, 64, 51, 0.08);
+  --info: #33628f;
+  --info-soft: rgba(51, 98, 143, 0.09);
+
+  --shadow: 0 1px 2px rgba(48, 42, 24, 0.06), 0 12px 30px rgba(48, 42, 24, 0.07);
+  --radius: 10px;
+  --focus: 0 0 0 3px rgba(189, 64, 51, 0.16);
+
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "Songti SC", serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "IBM Plex Mono", Consolas, monospace;
+}
+
+/* 宣纸底 + 顶部淡墨晕（水汽） */
+.patient-page.theme-patient {
+  background:
+    radial-gradient(1100px 300px at 18% -60px, rgba(51, 98, 143, 0.05), transparent 70%),
+    radial-gradient(900px 260px at 85% -50px, rgba(189, 64, 51, 0.04), transparent 70%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+/* ---------- 通用组件的墨线化 ---------- */
+.patient-page.theme-patient .panel {
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.patient-page.theme-patient .notice {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.patient-page.theme-patient button,
+.patient-page.theme-patient .button {
+  border-radius: 9px;
+  font-weight: 600;
+}
+
+.patient-page.theme-patient .button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.patient-page.theme-patient .button.primary:hover {
+  background: var(--primary-strong);
+}
+
+/* 墨线卡片（摘要/槽位/病历） */
+.patient-page.theme-patient .patient-summary-card,
+.patient-page.theme-patient .slot-card,
+.patient-page.theme-patient .record-card {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  border-radius: 10px;
+}
+
+.patient-page.theme-patient .slot-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* 旧主题的蓝色标题全部转墨色 */
+.patient-page.theme-patient h1,
+.patient-page.theme-patient h2,
+.patient-page.theme-patient h3,
+.patient-page.theme-patient .patient-summary-card strong,
+.patient-page.theme-patient .auth-copy h1 {
+  color: var(--ink);
+}
+
+/* ---------- 呼吸节律动效（守护与患者同呼吸） ---------- */
+@keyframes breath-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@keyframes ripple-out {
+  0% { transform: scale(0.72); opacity: 0.55; }
+  70% { opacity: 0.12; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.breath-halo {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.breath-halo .halo-core {
+  position: relative;
+  z-index: 2;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  animation: breath-scale 5.5s ease-in-out infinite;
+}
+
+.breath-halo .halo-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  animation: ripple-out 5.5s ease-out infinite;
+}
+
+.breath-halo .halo-ring.r2 { animation-delay: 2.75s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-halo .halo-core, .breath-halo .halo-ring { animation: none; }
+  .breath-halo .halo-ring { opacity: 0.25; transform: scale(0.9); }
+}
+
+/* ---------- 旧圆角覆盖保留 ---------- */
 .patient-page.theme-patient .panel,
 .patient-page.theme-patient button,
 .patient-page.theme-patient input,
 .patient-page.theme-patient textarea,
 .patient-page.theme-patient select {
-  border-radius: 4px;
+  border-radius: 9px;
 }
 
 .portal-notices {
@@ -25,7 +178,7 @@
 
 .auth-copy h1 {
   margin: 0;
-  color: #12385b;
+  color: var(--ink);
   font-size: 46px;
   line-height: 1.08;
 }
@@ -47,8 +200,8 @@
 .patient-summary-card {
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
 }
 
 .patient-summary-card span {
@@ -59,7 +212,7 @@
 .patient-summary-card strong {
   display: block;
   margin-top: 4px;
-  color: #12385b;
+  color: var(--ink);
   font-size: 20px;
 }
 
@@ -73,8 +226,8 @@
   display: grid;
   gap: 8px;
   padding: 14px;
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
 }
 
 .slot-card.selected {
