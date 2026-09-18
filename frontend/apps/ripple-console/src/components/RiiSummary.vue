@@ -78,7 +78,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf));
   color: var(--muted);
 }
 .big-index { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
-.big-index b { font-family: var(--font-mono); font-size: 58px; line-height: 1; letter-spacing: -2px; font-variant-numeric: tabular-nums; }
+.big-index b { font-family: var(--font-mono); font-size: 38px; line-height: 1; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
 .formula { margin: 0; color: var(--ink-soft); line-height: 1.7; }
 .formula span { color: var(--faint); font-size: 10.5px; }
 .radius-row { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 10px; }

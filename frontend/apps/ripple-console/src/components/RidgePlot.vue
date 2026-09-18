@@ -139,7 +139,7 @@ const axisTicks = [0, 20, 40, 60, 80, 100];
 
 <style scoped>
 .ridge { min-width: 0; }
-.ridge-svg { width: 100%; display: block; }
+.ridge-svg { width: 100%; height: auto; max-height: clamp(300px, 40vh, 410px); display: block; margin: 0 auto; }
 .ridge-layer {
   fill: #faf7ec;
   fill-opacity: 0.92;
