@@ -1,6 +1,6 @@
 # RippleBench v3 评测报告
 
-> 完成时间：2026-09-18T02:09:13 ｜ 后端：http://localhost:18080 ｜ 总评：**全部达标**
+> 完成时间：2026-09-19T01:46:49 ｜ 后端：http://localhost:18080 ｜ 总评：**全部达标**
 
 ## 一、核心指标
 
@@ -15,7 +15,7 @@
 | **盲测集通过率（held-out，开发期未参与调参）** | **100.0%**（10/10） | ≥90% | ✅ |
 | RII强度指数有效率 | **100%**（19次非空推演） | 100% | ✅ |
 | 消解闭环场景通过率 | **100%**（10/10） | ≥90% | ✅ |
-| 哈希链完整性 | valid=True（581条决策） | 必须 | ✅ |
+| 哈希链完整性 | valid=True（798条决策） | 必须 | ✅ |
 | FHIR Provenance导出 | True | 必须 | ✅ |
 | MDT五Agent会诊 | views=5 | 5 | ✅ |
 | 时间学四类型覆盖 | ['PERIODIC', 'RHYTHM', 'SEASONAL', 'WINDOW'] | WINDOW/RHYTHM/PERIODIC/SEASONAL | ✅ |
@@ -41,23 +41,23 @@
 
 | API | 调用次数 | P50(ms) | P95(ms) | Max(ms) |
 |---|---|---|---|---|
-| `/api/chrono/trigger/1064/feedback` | 2 | 31 | 36 | 36 |
-| `/api/chrono/trigger/1086/feedback` | 1 | 35 | 35 | 35 |
-| `/api/chrono/triggers/patient/123` | 2 | 26 | 28 | 28 |
-| `/api/doctor/login` | 1 | 214 | 214 | 214 |
-| `/api/evidence/RIPPLE_DERIVATION-20260918020911-dd989656/fhir` | 1 | 26 | 26 | 26 |
-| `/api/evidence/ledger` | 1 | 29 | 29 | 29 |
-| `/api/evidence/verify` | 1 | 39 | 39 | 39 |
-| `/api/health-event/guard-queue` | 2 | 28 | 174 | 174 |
-| `/api/health-event/ripple` | 49 | 29 | 39 | 40 |
-| `/api/health-event/ripple/feedback-ledger` | 1 | 7 | 7 | 7 |
-| `/api/health-event/ripple/forecast` | 3 | 31 | 34 | 34 |
-| `/api/health-event/ripple/resolution` | 2 | 8 | 27 | 27 |
-| `/api/health-weather/daily` | 6 | 10 | 31 | 31 |
-| `/api/mdt/consult` | 1 | 15 | 15 | 15 |
-| `/api/patient/login` | 1 | 224 | 224 | 224 |
-| `/api/patient/register` | 1 | 243 | 243 | 243 |
-| `/api/triage/consult` | 24 | 36 | 48 | 48 |
+| `/api/chrono/trigger/1926/feedback` | 2 | 10 | 11 | 11 |
+| `/api/chrono/trigger/1927/feedback` | 1 | 11 | 11 | 11 |
+| `/api/chrono/triggers/patient/139` | 2 | 18 | 28 | 28 |
+| `/api/doctor/login` | 1 | 215 | 215 | 215 |
+| `/api/evidence/RIPPLE_DERIVATION-20260919014648-bde38c0d/fhir` | 1 | 25 | 25 | 25 |
+| `/api/evidence/ledger` | 1 | 38 | 38 | 38 |
+| `/api/evidence/verify` | 1 | 56 | 56 | 56 |
+| `/api/health-event/guard-queue` | 2 | 6 | 212 | 212 |
+| `/api/health-event/ripple` | 49 | 30 | 37 | 40 |
+| `/api/health-event/ripple/feedback-ledger` | 1 | 19 | 19 | 19 |
+| `/api/health-event/ripple/forecast` | 3 | 29 | 33 | 33 |
+| `/api/health-event/ripple/resolution` | 2 | 8 | 10 | 10 |
+| `/api/health-weather/daily` | 6 | 26 | 29 | 29 |
+| `/api/mdt/consult` | 1 | 36 | 36 | 36 |
+| `/api/patient/login` | 1 | 196 | 196 | 196 |
+| `/api/patient/register` | 1 | 239 | 239 | 239 |
+| `/api/triage/consult` | 24 | 37 | 47 | 49 |
 
 ## 五、逐用例明细
 
@@ -137,7 +137,7 @@
 - [✅] **W03** 2型糖尿病 → weather=STORM index=31.5 今日13项 TimingCard=✓
 - [✅] **W04** 高血压 → weather=STORM index=32.2 今日14项 TimingCard=✓
 - [✅] **W05** RESOLVED回执 → 消解率=2.7% 强度和=1062.7
-- [✅] **W06** UNRESOLVED → 加强触达至2026-09-18T04:09
+- [✅] **W06** UNRESOLVED → 加强触达至2026-09-19T03:46
 - [✅] **W07** 回执明细账本61条，字段完整=True
 - [✅] **W08** ESCALATED → escalatedCount=1, status=有升级就医项，需医生跟进
 - [✅] **W09** 升级后气象合法 weather=STORM headline=有1项已升级就医，请家属重点关注医生反馈

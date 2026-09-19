@@ -574,6 +574,72 @@ def main():
     except AssertionError as e:
         record("16b.未鉴权访问负例", False, str(e), 0)
 
+    # ---------- 16c. 患者越权审定负例（医生终审权角色守卫） ----------
+    try:
+        triggers, ms = api.call("GET", f"/api/chrono/triggers/patient/{patient_id}")
+        target = next((t for t in triggers if t.get("status") == "ACTIVE"), None)
+        assert target, "无 ACTIVE 触达可测越权审定"
+        api.auth(patient_token)
+        try:
+            api.call("POST", f"/api/chrono/trigger/{target['triggerId']}/review?decision=VETO&note="
+                     + urllib.parse.quote("患者试图自行否决"))
+            violated = True
+        except AssertionError as e:
+            violated = False
+            assert "403" in str(e) or "forbidden" in str(e).lower(), f"应为403拒绝，实际: {e}"
+        assert not violated, "患者越权审定未被拦截"
+        api.auth(doctor_token)
+        record("16c.患者越权审定负例", True,
+               "患者调用医生审定端点被拒（403）：AI守护计划的终审权只属于医生角色", ms)
+    except AssertionError as e:
+        api.auth(doctor_token)
+        record("16c.患者越权审定负例", False, str(e), 0)
+
+    # ---------- 17. 医生审定守护计划（人机共驾终审闭环：否决→预报消失→印鉴链存证→沙盘） ----------
+    try:
+        triggers, ms = api.call("GET", f"/api/chrono/triggers/patient/{patient_id}")
+        candidates = [t for t in triggers if t.get("status") == "ACTIVE" and t.get("nextTriggerAt")]
+        assert len(candidates) >= 1, f"无 ACTIVE 触达可审定: {len(triggers)}条"
+
+        before, _ = api.call("GET", f"/api/health-event/ripple/forecast?patientId={patient_id}")
+        before_active = int(before.get("activeTriggers", 0))
+
+        # 17a. 否决第一条：守护计划终止 + 从预报中剔除
+        vetoed, vms = api.call("POST", f"/api/chrono/trigger/{candidates[0]['triggerId']}/review?decision=VETO&note="
+                               + urllib.parse.quote("e2e审定：患者住院监测，暂停自动触达"))
+        assert vetoed.get("reviewStatus") == "VETOED" and vetoed.get("status") == "VETOED", f"否决未生效: {vetoed}"
+        assert vetoed.get("reviewer"), "否决未记录审定医生"
+        after, _ = api.call("GET", f"/api/health-event/ripple/forecast?patientId={patient_id}")
+        assert int(after.get("activeTriggers", 0)) == before_active - 1, \
+            f"否决后活跃触达应减一: {before_active}->{after.get('activeTriggers')}"
+        assert int(after.get("suppressedVetoed", 0)) >= 1, "预报未报告被否决剔除的触达数"
+
+        # 17b. 通过另一条（若有）
+        approved_note = "无剩余可通过项"
+        rest = [t for t in candidates[1:] if t.get("status") == "ACTIVE" and not t.get("reviewStatus")]
+        if rest:
+            approved, _ = api.call("POST", f"/api/chrono/trigger/{rest[0]['triggerId']}/review?decision=APPROVE&note="
+                                   + urllib.parse.quote("e2e审定：按指南执行"))
+            assert approved.get("reviewStatus") == "APPROVED" and approved.get("status") == "ACTIVE", f"通过未生效: {approved}"
+            approved_note = f"已通过「{str(rest[0].get('event'))[:16]}」"
+
+        # 17c. 依从性沙盘：adherence=1 全额执行重算，均值不得高于当前预报
+        sandboxed, _ = api.call("GET", f"/api/health-event/ripple/forecast?patientId={patient_id}&adherence=1.0")
+        sandbox = sandboxed.get("sandbox")
+        assert sandbox, "adherence=1 未返回沙盘"
+        assert float(sandbox.get("horizonAvg", 1)) <= float(after.get("horizonAvg", 0)) + 0.0001, \
+            f"沙盘均值高于当前预报（确定性重算被破坏）: {sandbox.get('horizonAvg')} vs {after.get('horizonAvg')}"
+
+        # 17d. 审定已入印鉴链且全链仍可验证
+        verify, _ = api.call("GET", "/api/evidence/verify")
+        assert verify.get("valid") is True, f"审定入链后哈希链校验失败: {verify}"
+        record("17.医生审定守护计划（人机共驾终审）", True,
+               f"否决「{str(candidates[0].get('event'))[:16]}」→预报activeTriggers {before_active}->{after.get('activeTriggers')}, "
+               f"suppressedVetoed={after.get('suppressedVetoed')}; {approved_note}; "
+               f"沙盘均值={sandbox.get('horizonAvg')}; 印鉴链含GUARD_PLAN_REVIEW且全链{verify.get('count')}条校验通过", vms)
+    except AssertionError as e:
+        record("17.医生审定守护计划（人机共驾终审）", False, str(e), 0)
+
     return summary()
 
 
