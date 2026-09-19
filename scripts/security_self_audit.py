@@ -25,6 +25,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 SCAN_SUFFIXES = {".java", ".py", ".ts", ".js", ".mjs", ".vue", ".yml", ".yaml", ".md", ".sql", ".properties", ".conf", ".sh", ".ps1"}
 SKIP_DIRS = {".git", "node_modules", "dist", "target", ".zcode", "__pycache__", "docs-assets"}
+# 自指排除：本报告记录的是"发现"本身，不参与扫描
+SKIP_FILES = {"docs/SECURITY-SELF-AUDIT.md"}
 
 ASSIGN_RE = re.compile(
     r"""(?i)(?P<key>(?:password|passwd|secret|token|apikey|api_key|access[_-]?key))\s*[:=]\s*["']?(?P<val>[^"'\s]{8,})["']?"""
@@ -59,6 +61,8 @@ def scan():
     for path in tracked_files():
         rel = path.relative_to(ROOT)
         if any(part in SKIP_DIRS for part in rel.parts):
+            continue
+        if str(rel).replace("\\", "/") in SKIP_FILES:
             continue
         if path.suffix.lower() == ".env" or path.name in {".env", ".env.local"}:
             env_tracked.append(str(rel))
