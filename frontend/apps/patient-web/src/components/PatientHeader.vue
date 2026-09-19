@@ -50,10 +50,10 @@ const NAV = [
   position: sticky;
   top: 0;
   z-index: 40;
-  padding: 12px 24px 10px;
-  background: rgba(242, 238, 225, 0.92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1.5px solid var(--line-strong);
+  padding: 12px 24px 0;
+  background: rgba(243, 239, 226, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .ink-header-bar {
@@ -63,6 +63,7 @@ const NAV = [
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
+  padding-bottom: 10px;
 }
 
 .ink-brand {
@@ -95,41 +96,53 @@ const NAV = [
 
 .ink-nav {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex-wrap: wrap;
   margin-left: 6px;
 }
 
+/* 导航：墨线落点而非盒子——悬停晕染，选中朱砂压墨线 */
 .ink-nav-link {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-  padding: 6px 11px 5px;
-  border-radius: 8px;
+  padding: 8px 12px 9px;
+  border-radius: 8px 8px 0 0;
   text-decoration: none;
   color: var(--ink-soft);
-  border: 1px solid transparent;
-  transition: all 0.18s ease;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.ink-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2.5px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.2s ease;
 }
 
 .ink-nav-link span:first-child { font-size: 13px; font-weight: 600; }
 .nav-en { font-size: 7.5px; letter-spacing: 1.4px; color: var(--subtle); }
 
-.ink-nav-link:hover { background: var(--surface-alt); border-color: var(--line); }
+.ink-nav-link:hover { color: var(--ink); background: rgba(38, 35, 27, 0.045); }
 
-.ink-nav-link.router-link-active {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: var(--primary-soft);
-}
-.ink-nav-link.router-link-active .nav-en { color: var(--primary); opacity: 0.7; }
+.ink-nav-link.router-link-active { color: var(--primary); }
+.ink-nav-link.router-link-active .nav-en { color: var(--primary); opacity: 0.72; }
+.ink-nav-link.router-link-active::after { transform: scaleX(1); }
 
 .ink-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding-bottom: 10px;
 }
 
 .user-chip {

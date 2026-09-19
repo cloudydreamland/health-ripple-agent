@@ -7,15 +7,16 @@
    ============================================================ */
 
 .theme-patient {
-  /* 宣纸与墨 */
-  --bg: #f2eee1;
-  --surface: #faf7ec;
-  --surface-alt: #f4f0e2;
-  --surface-warm: #f4f0e2;
+  /* 宣纸与墨（晨纸版：比大屏亮一档，供近读与适老） */
+  --bg: #f3efe2;
+  --surface: #fbf8ee;
+  --surface-alt: #f1ecdc;
+  --surface-warm: #f1ecdc;
   --ink: #26231b;
-  --muted: #8f8a75;
-  --subtle: #bab49c;
-  --line: #e5dfcb;
+  --ink-soft: #4f4a39;
+  --muted: #857f68;
+  --subtle: #a89f83;
+  --line: #e3dcbc;
   --line-strong: #cdc5a9;
 
   /* 国画色：朱砂为主色 */
@@ -33,21 +34,28 @@
   --info: #33628f;
   --info-soft: rgba(51, 98, 143, 0.09);
 
-  --shadow: 0 1px 2px rgba(48, 42, 24, 0.06), 0 12px 30px rgba(48, 42, 24, 0.07);
+  --shadow: 0 1px 2px rgba(48, 42, 24, 0.05), 0 14px 34px rgba(48, 42, 24, 0.08);
   --radius: 10px;
-  --focus: 0 0 0 3px rgba(189, 64, 51, 0.16);
+  --focus: 0 0 0 3px rgba(189, 64, 51, 0.18);
 
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "Songti SC", serif;
   --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "IBM Plex Mono", Consolas, monospace;
 }
 
-/* 宣纸底 + 顶部淡墨晕（水汽） */
+/* 宣纸底 + 顶部淡墨晕（水汽）+ 极淡纸纹 */
 .patient-page.theme-patient {
   background:
     radial-gradient(1100px 300px at 18% -60px, rgba(51, 98, 143, 0.05), transparent 70%),
-    radial-gradient(900px 260px at 85% -50px, rgba(189, 64, 51, 0.04), transparent 70%),
+    radial-gradient(900px 260px at 85% -50px, rgba(189, 64, 51, 0.045), transparent 70%),
     var(--bg);
   min-height: 100vh;
+}
+
+/* 衬线标题：墨色大字，让"纸上有字"而不是"卡片有标题" */
+.patient-page.theme-patient h1,
+.patient-page.theme-patient h2 {
+  font-family: var(--font-serif);
+  letter-spacing: 0.5px;
 }
 
 /* ---------- 通用组件的墨线化 ---------- */

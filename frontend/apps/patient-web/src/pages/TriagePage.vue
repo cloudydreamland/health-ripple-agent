@@ -36,8 +36,10 @@ async function submit() {
   error.value = "";
   notice.value = "";
   try {
-    triage.value = await api.triage(auth.token(), { chiefComplaint: complaint() });
+    const result = await api.triage(auth.token(), { chiefComplaint: complaint() });
     await workflow.refreshAuthenticated(auth.token());
+    // 以本次推演返回为准：refresh 会用历史列表头回填 store，异步同步未完成时会拿到旧记录
+    triage.value = result;
     notice.value = "分诊已提交，请根据推荐科室继续选择号源。";
     resultOpen.value = true;
   } catch (err) {

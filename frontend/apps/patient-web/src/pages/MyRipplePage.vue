@@ -99,6 +99,9 @@ const history = ref<RippleHistoryItem[]>([]);
 const forecast = ref<Forecast | null>(null);
 const feedbackBusy = ref<number | null>(null);
 const shared = ref(false);
+const nlInputId = ref<number | null>(null);
+const nlText = ref("");
+const nlHint = ref("");
 
 const patientId = computed(() => auth.session?.userId ?? 0);
 
@@ -181,7 +184,7 @@ async function loadAll() {
   }
 }
 
-async function sendFeedback(item: LedgerItem, outcome: string) {
+async function sendFeedback(item: LedgerItem, outcome: string, noteOverride?: string) {
   // 已就医不可撤销（会计入气象警报与家属提示），必须二次确认防误触
   if (outcome === "ESCALATED"
     && !window.confirm("确认已完成就医、需要医生跟进吗？\n确认后该事项将终结并通知家属重点关注，不可撤销。")) {
@@ -189,8 +192,9 @@ async function sendFeedback(item: LedgerItem, outcome: string) {
   }
   feedbackBusy.value = item.triggerId;
   try {
+    const note = noteOverride ?? (outcome === "RESOLVED" ? "已缓解" : outcome === "UNRESOLVED" ? "未缓解，需要加强关注" : "症状加重，已升级就医");
     await request(
-      `/api/chrono/trigger/${item.triggerId}/feedback?outcome=${outcome}&note=${encodeURIComponent(outcome === "RESOLVED" ? "已缓解" : outcome === "UNRESOLVED" ? "未缓解，需要加强关注" : "症状加重，已升级就医")}`,
+      `/api/chrono/trigger/${item.triggerId}/feedback?outcome=${outcome}&note=${encodeURIComponent(note)}`,
       { method: "POST" },
       auth.token(),
     );
@@ -198,6 +202,56 @@ async function sendFeedback(item: LedgerItem, outcome: string) {
   } finally {
     feedbackBusy.value = null;
   }
+}
+
+/**
+ * 对话式回执（第七轮）：患者用自己的话说情况，本地关键词规则解析为三态。
+ * 解析完全在本地、确定性执行——解析不了就明确说"没听懂"，绝不臆造回执。
+ */
+function parseOutcome(text: string): "RESOLVED" | "UNRESOLVED" | "ESCALATED" | null {
+  const t = text.trim();
+  if (!t) {
+    return null;
+  }
+  if (/(去医院|到医院|在医[院院]|住院|急诊|挂了?急|就[医疹]|看医生|120)/.test(t)) {
+    return "ESCALATED";
+  }
+  if (/(没[有好]转|不见[好坏]|加重|严重|还是|依旧|仍然|反复|更[疼肿重]|老样子)/.test(t)) {
+    return "UNRESOLVED";
+  }
+  if (/(好转|好[多了很]|缓解|消失|不[疼肿咳]|恢复|没事|正常)/.test(t)) {
+    return "RESOLVED";
+  }
+  return null;
+}
+
+const OUTCOME_LABEL: Record<string, string> = {
+  RESOLVED: "已缓解",
+  UNRESOLVED: "未缓解，将加强守护",
+  ESCALATED: "已升级就医",
+};
+
+async function submitNlFeedback(item: LedgerItem) {
+  const text = nlText.value.trim();
+  if (!text) {
+    nlHint.value = "请先说说情况，或直接点下面的按钮。";
+    return;
+  }
+  const outcome = parseOutcome(text);
+  if (!outcome) {
+    nlHint.value = "没听懂这句话——可以点「好转了 / 没好转 / 去了医院」快捷按钮，或换个说法。";
+    return;
+  }
+  nlHint.value = "";
+  await sendFeedback(item, outcome, `患者自述："${text.slice(0, 120)}"（解析为${OUTCOME_LABEL[outcome]}）`);
+  nlText.value = "";
+  nlInputId.value = null;
+}
+
+function toggleNl(item: LedgerItem) {
+  nlInputId.value = nlInputId.value === item.triggerId ? null : item.triggerId;
+  nlText.value = "";
+  nlHint.value = "";
 }
 
 function toggleElder() {
@@ -439,6 +493,26 @@ onMounted(loadAll);
               </div>
               <span v-else-if="item.feedbackStatus === 'ESCALATED'" class="rp-hint">已升级就医，等待医生跟进</span>
             </div>
+            <!-- 对话式回执：用自己的话说情况，本地确定性解析（不联网、不臆造） -->
+            <div v-if="item.feedbackStatus !== 'RESOLVED' && item.feedbackStatus !== 'ESCALATED'" class="rp-nl">
+              <button v-if="nlInputId !== item.triggerId" type="button" class="nl-toggle" @click="toggleNl(item)">✎ 说说情况（文字回执）</button>
+              <div v-else class="nl-box">
+                <input
+                  v-model="nlText"
+                  class="nl-input"
+                  type="text"
+                  :placeholder="'例如：好多了 / 还是没好转 / 已经去医院'"
+                  @keyup.enter="submitNlFeedback(item)"
+                />
+                <div class="nl-chips">
+                  <button type="button" @click='nlText = "好多了"; submitNlFeedback(item)'>好转了</button>
+                  <button type="button" @click='nlText = "还是没好转"; submitNlFeedback(item)'>没好转</button>
+                  <button type="button" class="danger" @click='nlText = "已经去医院"; submitNlFeedback(item)'>去了医院</button>
+                </div>
+                <button type="button" class="nl-send" :disabled="feedbackBusy === item.triggerId" @click="submitNlFeedback(item)">提交</button>
+              </div>
+              <p v-if="nlInputId === item.triggerId && nlHint" class="nl-hint" role="status">{{ nlHint }}</p>
+            </div>
           </li>
         </ul>
       </div>
@@ -551,14 +625,28 @@ onMounted(loadAll);
 .panel-body { padding: 13px 16px; display: flex; flex-direction: column; gap: 10px; }
 .mono { font-family: var(--font-mono); }
 
-/* ---------- FIG.P1 气象 ---------- */
-.rp-weather-main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.weather-label { margin: 0; font-family: var(--font-serif); font-size: 20px; }
-.rp-headline { margin: 4px 0 0; font-size: 14px; color: var(--ink-soft); }
+/* ---------- FIG.P1 气象：一块晕开的天空 ---------- */
+.rp-weather-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: relative;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    radial-gradient(460px 150px at 14% 0%, rgba(51, 98, 143, 0.075), transparent 72%),
+    radial-gradient(340px 130px at 88% 4%, rgba(189, 64, 51, 0.055), transparent 70%),
+    var(--surface-alt);
+  overflow: hidden;
+}
+.weather-label { margin: 0; font-family: var(--font-serif); font-size: 24px; letter-spacing: 1px; }
+.rp-headline { margin: 5px 0 0; font-size: 14px; color: var(--ink-soft); line-height: 1.6; max-width: 560px; }
 
 .rp-index { margin-left: auto; text-align: center; }
-.rp-index b { display: block; font-size: 32px; color: var(--ink); }
-.rp-index span { font-size: 11px; color: var(--muted); }
+.rp-index b { display: block; font-size: 38px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rp-index span { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
 
 .rp-items {
   list-style: none;
@@ -597,13 +685,18 @@ onMounted(loadAll);
   display: flex;
   align-items: flex-end;
   gap: 3px;
-  height: 92px;
+  height: 104px;
   padding: 8px 4px 0;
   border-bottom: 2px solid var(--ink);
 }
 
 .rp-fc-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
-.rp-fc-bar { width: 100%; border-radius: 3px 3px 0 0; }
+.rp-fc-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.rp-fc-col:hover .rp-fc-bar { filter: brightness(1.08) saturate(1.1); transform: translateY(-1px); }
 .rp-fc-t { font-size: 9px; color: var(--muted); margin-top: 3px; }
 .rp-fc-peak { margin: 0; font-size: 13.5px; color: var(--primary); font-weight: 700; font-family: var(--font-serif); }
 
@@ -664,6 +757,57 @@ onMounted(loadAll);
 .rp-btns button:hover { background: var(--surface); }
 .rp-btns button:disabled { opacity: 0.5; }
 
+/* 对话式回执（文字） */
+.rp-nl { margin-top: 8px; }
+.nl-toggle {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.nl-toggle:hover { color: var(--primary); border-color: var(--primary); }
+.nl-box { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.nl-input {
+  flex: 1;
+  min-width: 200px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--ink);
+}
+.nl-input:focus { border-color: var(--primary); outline: var(--focus); }
+.nl-chips { display: flex; gap: 6px; }
+.nl-chips button {
+  border: 1.5px solid var(--success);
+  background: transparent;
+  color: var(--success);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nl-chips button.danger { border-color: var(--danger); color: var(--danger); }
+.nl-chips button:hover { background: var(--surface); }
+.nl-send {
+  border: none;
+  background: var(--primary);
+  color: #f6f3e8;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nl-send:disabled { opacity: 0.5; }
+.nl-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+
 .rp-share-text {
   width: 100%;
   border: 1px dashed var(--info);
@@ -683,6 +827,8 @@ onMounted(loadAll);
 .elder-mode .weather-label { font-size: 24px; }
 .elder-mode .rp-hint, .elder-mode .rp-ledger-card, .elder-mode .rp-time { font-size: 15px; color: #3a362a; }
 .elder-mode .rp-btns button, .elder-mode .ghost-btn { font-size: 17px; padding: 12px 18px; }
+.elder-mode .nl-input { font-size: 17px; padding: 12px 14px; }
+.elder-mode .nl-chips button, .elder-mode .nl-toggle, .elder-mode .nl-send { font-size: 16px; padding: 10px 16px; }
 .elder-mode .rp-type { font-size: 14px; }
 .elder-mode .rp-head p, .elder-mode .rp-index span, .elder-mode .rp-fb { color: #3a362a; }
 .elder-mode .sec-head h3 { font-size: 19px; }
