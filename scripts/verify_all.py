@@ -5,7 +5,7 @@ verify_all — 一键复现全部质量验证（提交前/答辩前跑一遍，�
 
 依次执行：
   1. 后端单元/集成测试（mvn test，全模块）
-  2. 端到端测试（24步，需 docker 全栈已启动）
+  2. 端到端测试（27步，需 docker 全栈已启动）
   3. RippleBench v3 量化评测（60开发例+10盲测例+系统级检查，需全栈）
   4. Skill 安全冒烟（5用例，离线可跑）
 
@@ -41,7 +41,7 @@ def main():
     all_ok = True
     if not args.skip_backend:
         all_ok &= run_step("1/4 后端单元测试（全模块）", "mvn -q test", cwd=ROOT / "backend")
-    all_ok &= run_step("2/4 端到端测试（24步，需全栈）", "py -3 scripts/e2e_test.py")
+    all_ok &= run_step("2/4 端到端测试（27步，需全栈）", "py -3 scripts/e2e_test.py")
     all_ok &= run_step("3/4 RippleBench v3 量化评测", "py -3 evaluation/ripplebench/run_eval.py")
     all_ok &= run_step("4/4 Skill 安全冒烟", "py -3 scripts/test_security_smoke.py",
                        cwd=ROOT / "dumate-skills" / "health-ripple")

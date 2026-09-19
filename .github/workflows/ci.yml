@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend-unit:
+    name: 后端单元测试（ripple-service / ai-service）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: mvn test（H2内存库，无需外部依赖）
+        run: mvn -B -pl ripple-service,ai-service -am test
+
+  frontend-build:
+    name: 前端生产构建（双端）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: pnpm install（frozen lockfile）
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Build ripple-console
+        working-directory: frontend/apps/ripple-console
+        run: npx vite build
+      - name: Build patient-web
+        working-directory: frontend/apps/patient-web
+        run: npx vite build
+
+  mcp-server-smoke:
+    name: MCP Server 协议自检（无后端）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JSON-RPC 工具清单自检（不起后端，验证协议实现）
+        working-directory: mcp
+        run: |
+          node - <<'EOF'
+          import { spawn } from "node:child_process";
+          import { createInterface } from "node:readline";
+          const child = spawn(process.execPath, ["ripple-mcp-server.mjs"], { stdio: ["pipe", "pipe", "pipe"] });
+          const rl = createInterface({ input: child.stdout });
+          const pending = new Map();
+          let nextId = 1;
+          rl.on("line", (line) => {
+            try {
+              const msg = JSON.parse(line);
+              if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg); pending.delete(msg.id); }
+            } catch {}
+          });
+          const rpc = (method, params) => new Promise((resolve, reject) => {
+            const id = nextId++;
+            pending.set(id, (msg) => msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result));
+            child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+            setTimeout(() => pending.has(id) && (pending.delete(id), reject(new Error("timeout"))), 5000);
+          });
+          const init = await rpc("initialize", { protocolVersion: "2024-11-05" });
+          if (init.serverInfo.name !== "health-ripple-agent") throw new Error("bad server");
+          const tools = await rpc("tools/list", {});
+          const names = tools.tools.map(t => t.name);
+          for (const expected of ["ripple_weather", "ripple_forecast", "ripple_derive", "ripple_guard_queue", "ripple_community_radar", "evidence_verify"]) {
+            if (!names.includes(expected)) throw new Error("missing tool: " + expected);
+          }
+          console.log("MCP 协议自检通过：6 工具齐全");
+          child.kill();
+          process.exit(0);
+          EOF
+
+  security-self-audit:
+    name: 安全自审（硬编码凭据扫描）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 扫描硬编码密钥/令牌（脚本与文档同源规则）
+        run: python3 scripts/security_self_audit.py --write

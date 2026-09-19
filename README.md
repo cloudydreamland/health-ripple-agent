@@ -38,7 +38,7 @@ frontend/
   ripple-console/                涟漪守护指挥中心（夜航墨·水墨涟漪大屏：图谱/护栏/时辰/印鉴/预报/队列）
   patient-web/ doctor-web/ admin-web/
 evaluation/ripplebench/        RippleBench v3 量化评测（60 开发病例 + 10 盲测病例 + 系统级检查）
-scripts/e2e_test.py            26 步端到端测试（完整患者旅程 + 越权/未鉴权/患者越权审定安全负例）
+scripts/e2e_test.py            27 步端到端测试（完整患者旅程 + 越权/未鉴权/患者越权审定安全负例）
 scripts/verify_all.py          一键复现全部验证（单测+e2e+评测+冒烟）
 docs/SYSTEM_CARD.md            系统卡：预期用途/评测结果/已知局限（Model Cards 规范）
 sql/ postman/ deploy/
@@ -52,7 +52,7 @@ docker compose -f deploy/docker-compose.yml up -d   # 全栈 21 常驻容器
 # 医生指挥大屏：http://localhost:5176
 # 患者健康涟漪页：http://localhost:5173/ripple
 
-py -3 scripts/e2e_test.py                           # 端到端 26 步
+py -3 scripts/e2e_test.py                           # 端到端 27 步
 py -3 evaluation/ripplebench/run_eval.py            # RippleBench v3 量化评测
 py -3 scripts/verify_all.py                         # 一键复现全部验证（提交前必跑）
 ```
