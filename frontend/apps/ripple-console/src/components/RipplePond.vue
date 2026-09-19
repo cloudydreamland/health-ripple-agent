@@ -116,9 +116,18 @@ function draw() {
   const now = performance.now();
   const t = now / 1000;
   const maxR = ringRadius(5) + 26;
-  const ink = "38,35,27";
+  const ink = "236,231,214"; // 夜航墨：纸白墨线在深底上发光
 
   ctx.clearRect(0, 0, W, H);
+
+  // 池心水光：极淡的青瓷辉光随呼吸起伏（夜水微光）
+  const glow = 0.035 + 0.02 * Math.sin(t * 0.7);
+  const water = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.9);
+  water.addColorStop(0, `rgba(85,174,185,${glow.toFixed(3)})`);
+  water.addColorStop(0.55, `rgba(85,174,185,${(glow * 0.4).toFixed(3)})`);
+  water.addColorStop(1, "rgba(85,174,185,0)");
+  ctx.fillStyle = water;
+  ctx.fillRect(0, 0, W, H);
 
   // 环层导轨
   for (let ring = 1; ring <= 5; ring++) {
@@ -126,7 +135,7 @@ function draw() {
     const active = ring <= (props.intensity?.radius ?? 0);
     ctx.beginPath();
     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-    ctx.strokeStyle = active ? `rgba(${ink},0.28)` : `rgba(${ink},0.10)`;
+    ctx.strokeStyle = active ? `rgba(${ink},0.3)` : `rgba(${ink},0.1)`;
     ctx.lineWidth = 1;
     ctx.setLineDash(active ? [] : [2, 7]);
     ctx.stroke();
@@ -136,10 +145,10 @@ function draw() {
     const lx = cx + rad * 0.7071 + 4;
     const ly = cy - rad * 0.7071 - 4;
     ctx.lineWidth = 3.5;
-    ctx.strokeStyle = "rgba(250,247,236,0.9)";
+    ctx.strokeStyle = "rgba(20,17,11,0.92)";
     const label = `R${ring} ${RING_NAMES[ring]}`;
     ctx.strokeText(label, lx, ly);
-    ctx.fillStyle = active ? "rgba(85,80,63,0.95)" : "rgba(186,180,156,0.9)";
+    ctx.fillStyle = active ? "rgba(213,206,184,0.98)" : "rgba(124,118,98,0.95)";
     ctx.fillText(label, lx, ly);
   }
 
@@ -195,10 +204,10 @@ function draw() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-    // 墨滴：外圈墨线 + 纸色留白 + 色芯
+    // 墨滴：外圈色环 + 夜色留底 + 发光色芯
     ctx.beginPath();
     ctx.arc(x, y, rr, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(250,247,236,0.95)";
+    ctx.fillStyle = "rgba(23,20,14,0.94)";
     ctx.fill();
     ctx.strokeStyle = hexA(n.color, 0.95);
     ctx.lineWidth = 1.8;
@@ -220,7 +229,7 @@ function draw() {
         chipCx = cx + (dx >= 0 ? 1 : -1) * (stoneEdge + chipW / 2 + 4);
       }
       const chipY = y + rr + 8;
-      ctx.fillStyle = "rgba(250,247,236,0.92)";
+      ctx.fillStyle = "rgba(23,20,14,0.95)";
       ctx.strokeStyle = n.color;
       ctx.lineWidth = 1;
       roundRect(chipCx - chipW / 2, chipY, chipW, 16, 4);
@@ -231,9 +240,9 @@ function draw() {
     }
   }
 
-  // 健康事件墨石（中心，有机圆缘）
+  // 健康事件墨石（中心，有机圆缘：比夜更深的墨，纸白描边）
   const stoneR = Math.min(W, H) * 0.082;
-  ctx.fillStyle = `rgba(${ink},0.96)`;
+  ctx.fillStyle = "rgba(7,6,3,0.97)";
   ctx.beginPath();
   ctx.arc(cx, cy, stoneR, 0, Math.PI * 2);
   ctx.fill();
@@ -243,6 +252,11 @@ function draw() {
   ctx.beginPath();
   ctx.arc(cx + stoneR * 0.42, cy - stoneR * 0.2, stoneR * 0.5, 0, Math.PI * 2);
   ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, stoneR + 1.6, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(${ink},0.34)`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.fillStyle = "rgba(246,243,232,0.6)";
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";

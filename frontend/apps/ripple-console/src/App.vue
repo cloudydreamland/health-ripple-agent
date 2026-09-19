@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, type SourceMode } from "./api";
+import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, fetchForecastWithAdherence, type SourceMode } from "./api";
 import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } from "./types";
 import RiiSummary from "./components/RiiSummary.vue";
 import RidgePlot from "./components/RidgePlot.vue";
@@ -49,6 +49,26 @@ const selectedNode = ref<RippleNode | null>(null);
 const clock = ref("");
 const forecast = ref<ForecastData | null>(null);
 const guardQueue = ref<QueueRow[]>([]);
+const sandbox = ref<SandboxData | null>(null);
+const adherence = ref(0);
+const extraEvents = ref<LogEvent[]>([]);
+
+/** 直播 ticker：最新 6 条事件串成实况条（活动日志的镜像，广播感） */
+const tickerText = computed(() => {
+  const events = [...extraEvents.value, ...activityEvents.value].slice(0, 6);
+  if (!events.length) {
+    return "等待落石 · 点击右上「落石 · 推演涟漪」开始 ";
+  }
+  return events.map((e) => `${e.time} ${e.code}｜${e.text}`).join("  ◆  ");
+});
+
+interface SandboxData {
+  adherence: number;
+  buckets: { hourOffset: number; intensity: number }[];
+  peakHourOffset: number;
+  peakIntensity: number;
+  horizonAvg: number;
+}
 
 // 数据源模式实时联动：任何一次实时调用失败，api 层立即把徽章切到 SNAPSHOT 并说明原因
 // （绝不出现"徽章 LIVE、屏幕是旧快照"的失真状态）
@@ -82,6 +102,9 @@ async function run(caseOverride?: CasePreset) {
   running.value = true;
   mdt.value = null;
   selectedNode.value = null;
+  extraEvents.value = [];
+  sandbox.value = null;
+  adherence.value = 0;
   const started = performance.now();
   const diagnosis = preset.id === "custom" ? customDiagnosis.value.trim() : preset.diagnosis;
   const drugs = preset.id === "custom"
@@ -99,6 +122,120 @@ async function run(caseOverride?: CasePreset) {
   const f = await fetchForecast(patientId.value);
   forecast.value = (f as ForecastData) ?? null;
   guardQueue.value = (await fetchGuardQueue()) as QueueRow[] | null ?? [];
+}
+
+/** 医生审定完成：本地状态即时上丁 + 刷新预报（被否决的触达从预报/天气消失）。 */
+async function onReviewed(info: { triggerId: number; decision: string; reviewStatus: string; event: string; note: string }) {
+  const t = ripple.value?.chronoTriggers?.find((x) => x.triggerId === info.triggerId);
+  if (t) {
+    t.reviewStatus = info.reviewStatus;
+    t.reviewer = "当前医生";
+  }
+  const verdict = info.decision === "APPROVE" ? "通过" : info.decision === "ADJUST" ? "改期" : "否决";
+  extraEvents.value = [{
+    time: new Date().toTimeString().slice(0, 8),
+    code: "审定",
+    color: "#d9b84c",
+    text: `医生${verdict}守护计划「${info.event}」${info.note ? " · " + info.note : ""} · 已入印鉴链`,
+  }, ...extraEvents.value];
+  await loadSandbox(adherence.value);
+}
+
+/** 依从性沙盘：拖动滑杆即时重算（服务端同一引擎确定性重算，可复算）。 */
+async function loadSandbox(a: number) {
+  adherence.value = a;
+  if (a <= 0) {
+    sandbox.value = null;
+    await refreshForecast();
+    return;
+  }
+  const f = await fetchForecastWithAdherence(patientId.value, a);
+  if (f) {
+    forecast.value = f as ForecastData;
+    sandbox.value = ((f as Record<string, unknown>).sandbox as SandboxData) ?? null;
+  }
+}
+
+async function refreshForecast() {
+  const f = await fetchForecast(patientId.value);
+  forecast.value = (f as ForecastData) ?? null;
+}
+
+/** 守护报告：一键生成可打印的诊后守护摘要（基层落地最后一公里——打印随病历交给患者）。
+ *  全部取自当前推演/预报/审定/印鉴链的真实数据，不新增任何臆造内容。 */
+function generateReport() {
+  const r = ripple.value;
+  if (!r) {
+    return;
+  }
+  const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const ri = intensity.value;
+  const he = r.healthEvent;
+  const plans = (r.chronoTriggers ?? []).map((t) => {
+    const review = t.reviewStatus === "APPROVED" ? "医生已通过"
+      : t.reviewStatus === "ADJUSTED" ? "医生已改期"
+      : t.reviewStatus === "VETOED" ? "医生已否决" : "待医生审定";
+    return `<tr>
+      <td>${esc(t.chronoType === "WINDOW" ? "窗口期" : t.chronoType === "RHYTHM" ? "节律" : t.chronoType === "PERIODIC" ? "周期" : t.chronoType === "SEASONAL" ? "季节" : t.chronoType)}</td>
+      <td><b>${esc(t.event)}</b><br><span class="muted">${esc(t.action)}</span></td>
+      <td>${esc(t.triggerTime)}</td>
+      <td>${esc((t as { timingCard?: { evidenceBasis?: string } }).timingCard?.evidenceBasis ?? "—")}</td>
+      <td><span class="pill">${esc(review)}</span></td>
+    </tr>`;
+  }).join("");
+  const risks = (ri?.topRisks ?? []).map((risk, i) =>
+    `<tr><td>#${i + 1}</td><td>${esc(risk.label)}</td><td>${esc(risk.ringName)}（R${risk.ring}）</td><td class="num">${risk.intensity.toFixed(1)}</td></tr>`
+  ).join("");
+  const ev = r.evidenceChain;
+  const flagged = r.counterfactualTree?.guardrailSummary;
+  const html = `<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8" />
+<title>守护报告 · 患者${patientId.value} · ${esc(he.diagnosis)}</title>
+<style>
+  body { font-family: "Noto Serif SC","Source Han Serif SC","SimSun",serif; color: #26231b; margin: 36px auto; max-width: 780px; padding: 0 24px; line-height: 1.7; }
+  h1 { font-size: 22px; letter-spacing: 2px; border-bottom: 2.5px solid #26231b; padding-bottom: 10px; }
+  h2 { font-size: 15px; margin: 22px 0 8px; }
+  .seal { display: inline-block; background: #bd4033; color: #f6f3e8; padding: 4px 12px; border-radius: 6px; transform: rotate(-2deg); font-size: 13px; }
+  .meta { color: #55503f; font-size: 12.5px; margin: 6px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+  th, td { border: 1px solid #cdc5a9; padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #f2eee1; font-size: 11.5px; letter-spacing: 1px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .muted { color: #8f8a75; font-size: 11px; }
+  .pill { border: 1px solid #cdc5a9; border-radius: 999px; padding: 1px 9px; font-size: 11px; }
+  .box { border: 1.5px solid #bd4033; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 8px 0; }
+  .rii { font-size: 34px; font-weight: 800; color: #bd4033; }
+  .foot { margin-top: 26px; border-top: 1px dashed #cdc5a9; padding-top: 10px; color: #8f8a75; font-size: 11px; }
+  .hash { font-family: Consolas, monospace; font-size: 10.5px; word-break: break-all; }
+  @media print { body { margin: 10mm auto; } }
+</style></head><body>
+<h1><span class="seal">守</span> 诊后守护报告 <span style="font-size:12px;color:#8f8a75;letter-spacing:1px;">GUARDIAN REPORT</span></h1>
+<p class="meta">患者 PID ${patientId.value} · 诊断「${esc(he.diagnosis)}」${he.drugs.length ? " · 用药 " + esc(he.drugs.join("/")) : ""}${he.pastHistory ? " · 既往史 " + esc(he.pastHistory) : ""}<br/>生成时间 ${new Date().toLocaleString("zh-CN")} · 数据来源：${mode.value === "live" ? "实时后端推演" : "内置真实快照（" + esc(snapshotMeta().capturedAt) + "捕获）"}</p>
+
+<h2>一、涟漪强度总览</h2>
+<div class="box"><span class="rii">${ri ? ri.index.toFixed(1) : "—"}</span>
+  <b>${esc(ri?.levelLabel ?? "等待推演")}</b> · 有效扩散半径 ${ri?.radius ?? 0}/5 环<br/>
+  <span class="muted">RII = 100 × 严重度 × 紧迫度 × 可干预度 × e^(−0.22×(环数−1))，事件指数取 Top5 节点均值，逐项可复算</span></div>
+
+<h2>二、TOP 风险节点</h2>
+<table><tr><th>#</th><th>风险</th><th>所在环</th><th>强度</th></tr>${risks || '<tr><td colspan="4">本次事件无优先处置节点</td></tr>'}</table>
+
+<h2>三、守护计划与医生审定</h2>
+<table><tr><th>类型</th><th>守护事项 / 行动</th><th>触达时机</th><th>循证依据</th><th>审定</th></tr>${plans || '<tr><td colspan="5">无</td></tr>'}</table>
+
+<h2>四、安全与证据</h2>
+<p>反事实路径 ${r.counterfactualTree?.counterfactualCount ?? 0} 条，护栏锁定高危 <b>${flagged?.flaggedPaths ?? 0}</b> 条（禁止下发）。
+${ev ? `本报告对应决策已入印鉴链：<br/><span class="hash">DECISION ${esc(ev.decisionId)}<br/>HASH ${esc(ev.hash)}</span>` : ""}</p>
+<p class="foot">本报告由健康事件涟漪守护智能体生成，仅用于诊后守护参考；智能体不开方、不下诊断、不改治疗方案——终审权在医生。证据链可验印/导出 HL7 FHIR R4 Provenance。</p>
+<script>window.onload = function () { window.print(); }<\/script>
+</body></html>`;
+  const win = window.open("", "_blank", "width=860,height=980");
+  if (!win) {
+    window.alert("浏览器拦截了报告窗口，请允许弹窗后重试。");
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
 }
 
 async function runMdt() {
@@ -128,33 +265,33 @@ const activityEvents = computed<LogEvent[]>(() => {
   const at = () => new Date(base - offset++ * 900).toTimeString().slice(0, 8);
 
   const he = r.healthEvent;
-  evts.push({ time: at(), code: "事件", color: "#33628f", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
+  evts.push({ time: at(), code: "事件", color: "#739fcc", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
   if (r.proactiveAssessment?.isProactive) {
-    evts.push({ time: at(), code: "主动", color: "#41795f", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
+    evts.push({ time: at(), code: "主动", color: "#5cad85", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
   }
   const ri = intensity.value;
-  evts.push({ time: at(), code: "强度", color: "#bd4033", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${ri.levelLabel}）· 半径 ${ri.radius}/5 环` : ""}` });
+  evts.push({ time: at(), code: "强度", color: "#e05a47", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${ri.levelLabel}）· 半径 ${ri.radius}/5 环` : ""}` });
   const gs = r.counterfactualTree?.guardrailSummary;
   if (gs) {
-    evts.push({ time: at(), code: "护栏", color: "#bd4033", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
+    evts.push({ time: at(), code: "护栏", color: "#e05a47", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
   }
   if (r.chronoTriggers?.length) {
-    const byType: Record<string, string> = { WINDOW: "#bd4033", RHYTHM: "#7a63a8", PERIODIC: "#37808a", SEASONAL: "#41795f" };
+    const byType: Record<string, string> = { WINDOW: "#e05a47", RHYTHM: "#a48cd4", PERIODIC: "#55aeb9", SEASONAL: "#5cad85" };
     for (const t of r.chronoTriggers) {
-      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "#8f8a75", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
+      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "#958d74", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
     }
   }
   const ev = r.evidenceChain;
   if (ev) {
-    evts.push({ time: at(), code: "存证", color: "#41795f", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
+    evts.push({ time: at(), code: "存证", color: "#5cad85", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
   }
   if (r.degraded) {
-    evts.push({ time: at(), code: "降级", color: "#c07a1d", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
+    evts.push({ time: at(), code: "降级", color: "#e59d3c", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
   }
   if (mdt.value) {
-    evts.push({ time: at(), code: "会诊", color: "#7a63a8", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
+    evts.push({ time: at(), code: "会诊", color: "#a48cd4", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
   }
-  return evts;
+  return [...extraEvents.value, ...evts];
 });
 
 onMounted(async () => {
@@ -172,7 +309,7 @@ onMounted(async () => {
         <div class="brand-seal">守</div>
         <div>
           <h1>涟漪守护指挥中心<span class="en">INKP RIPPLE GUARDIAN</span></h1>
-          <p>数字宣纸 · 水墨涟漪 —— 健康事件涟漪守护智能体</p>
+          <p>夜航墨 · 水墨涟漪 —— 健康事件涟漪守护智能体</p>
         </div>
       </div>
       <div class="topbar-spacer" />
@@ -187,8 +324,17 @@ onMounted(async () => {
       <select v-model="caseId" @change="run()">
         <option v-for="c in CASES" :key="c.id" :value="c.id">{{ c.label }}</option>
       </select>
+      <button class="ghost big" :disabled="!ripple" @click="generateReport()">守护报告</button>
       <button class="big" :disabled="running" @click="run()">{{ running ? "推演中 …" : "落石 · 推演涟漪" }}</button>
     </header>
+
+    <!-- 直播 ticker：守护实况（滚动，hover 暂停） -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track">
+        <span class="ticker-group"><b>LIVE 守护实况</b><span class="sep">◆</span>{{ tickerText }}<span class="sep">◆</span></span>
+        <span class="ticker-group"><b>LIVE 守护实况</b><span class="sep">◆</span>{{ tickerText }}<span class="sep">◆</span></span>
+      </div>
+    </div>
 
     <!-- 快照模式诚实横幅：屏幕内容是何时捕获的真实响应，一眼可查 -->
     <div v-if="mode !== 'live'" class="panel snapshot-banner">
@@ -211,42 +357,42 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 指标条 -->
-    <div class="stat-strip">
-      <div class="stat-card accent-red">
+    <!-- 指标长条：一块墨板五格数据（巨型数字分级，RII 为英雄数字） -->
+    <div class="stat-strip corner-ticks">
+      <div class="stat-cell accent-red hero">
         <span class="label"><span>RII 涟漪强度指数</span><span class="idx">壹</span></span>
         <span class="value" :style="{ color: intensity?.level === 'RED' ? 'var(--red)' : intensity?.level === 'ORANGE' ? 'var(--orange)' : 'var(--yellow)' }">
           {{ intensity ? intensity.index.toFixed(1) : "—" }}
         </span>
         <span class="sub">{{ intensity?.levelLabel ?? "等待推演" }}</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-cell">
         <span class="label"><span>涟漪节点 / NODES</span><span class="idx">贰</span></span>
         <span class="value">{{ ripple?.summary?.totalNodes ?? "—" }}</span>
         <span class="sub">高风险 <b class="down">{{ ripple?.summary?.highRiskCount ?? 0 }}</b> · 五环全展开</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-cell">
         <span class="label"><span>反事实路径 / COUNTERFACTUAL</span><span class="idx">叁</span></span>
         <span class="value">{{ ripple?.counterfactualTree?.counterfactualCount ?? "—" }}</span>
         <span class="sub">FLAGGED 锁定 <b class="down">{{ flaggedCount }}</b> · 禁止下发</span>
       </div>
-      <div class="stat-card accent-green">
+      <div class="stat-cell accent-green">
         <span class="label"><span>有效扩散半径 / RADIUS</span><span class="idx">肆</span></span>
         <span class="value">{{ intensity?.radius ?? 0 }}<small> / 5 环</small></span>
         <div class="seg-meter">
           <i v-for="n in 5" :key="n" :class="{ on: n <= (intensity?.radius ?? 0) }" />
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-cell">
         <span class="label"><span>推演耗时 / LATENCY</span><span class="idx">伍</span></span>
         <span class="value">{{ latencyMs == null ? "—" : latencyMs }}<small> ms</small></span>
         <span class="sub">{{ mode === "live" ? "在线推演 · 后端网关" : "演示快照 · 断网兜底" }}</span>
       </div>
     </div>
 
-    <!-- 主视觉：RII 山脊剖面 -->
+    <!-- 主视觉：RII 山脊剖面（技术图纸角标） -->
     <div class="grid-hero">
-      <section class="panel">
+      <section class="panel corner-ticks">
         <header class="sec-head">
           <span class="dot" style="background: var(--red)" />
           <h2>涟漪强度山脊剖面</h2>
@@ -263,7 +409,7 @@ onMounted(async () => {
 
     <!-- 活水涟漪池 + 活动日志 -->
     <div class="grid-a">
-      <section class="panel">
+      <section class="panel corner-ticks">
         <header class="sec-head">
           <span class="dot" style="background: var(--violet)" />
           <h2>活水涟漪池 · 五维图谱</h2>
@@ -341,7 +487,7 @@ onMounted(async () => {
         </header>
         <div class="panel-body chrono-layout">
           <ChronoDial :triggers="ripple?.chronoTriggers ?? []" />
-          <ChronoTimeline :triggers="ripple?.chronoTriggers ?? []" />
+          <ChronoTimeline :triggers="ripple?.chronoTriggers ?? []" :live="mode === 'live'" @reviewed="onReviewed" />
         </div>
       </section>
 
@@ -364,14 +510,14 @@ onMounted(async () => {
       <section class="panel">
         <header class="sec-head">
           <span class="dot" style="background: var(--red)" />
-          <h2>未来72小时涟漪预报</h2>
+          <h2>未来72小时涟漪预报 · 依从性沙盘</h2>
           <span class="en">RIPPLE FORECAST / DETERMINISTIC SUPERPOSITION</span>
           <span class="spacer" />
           <span v-if="forecast" class="tag RED">峰 +{{ forecast.peak.hourOffset }}h · {{ forecast.peak.intensity }}</span>
           <span class="fig">FIG.05</span>
         </header>
         <div class="panel-body">
-          <ForecastChart :forecast="forecast" />
+          <ForecastChart :forecast="forecast" :sandbox="sandbox" @adherence="loadSandbox($event)" />
         </div>
       </section>
 
@@ -417,8 +563,8 @@ onMounted(async () => {
 .custom-bar { display: flex; gap: 10px; flex-wrap: wrap; }
 .custom-bar input { flex: 1; min-width: 200px; }
 
-.snapshot-banner { margin: 0 22px 12px; border-color: #c07a1d; }
-.snapshot-banner-body { display: flex; gap: 12px; align-items: baseline; font-size: 12px; color: #c07a1d; }
+.snapshot-banner { margin: 0; border-color: rgba(229, 157, 60, 0.55); }
+.snapshot-banner-body { display: flex; gap: 12px; align-items: baseline; font-size: 12px; color: var(--orange); }
 .snapshot-banner-body b { font-family: var(--font-serif); letter-spacing: 2px; flex: none; }
 
 .pid-box {
@@ -437,9 +583,6 @@ onMounted(async () => {
 
 .chrono-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1400px) { .chrono-layout { grid-template-columns: 1fr; } }
-
-.grid-d { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-top: 14px; padding: 0 22px; }
-@media (max-width: 1280px) { .grid-d { grid-template-columns: 1fr; } }
 
 .agent-card {
   border: 1.5px solid var(--line-strong);

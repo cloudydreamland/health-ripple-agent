@@ -17,14 +17,14 @@ export interface QueueRow {
   latestDiagnosis: string;
 }
 
-defineProps<{ rows: QueueRow[] }>();
-
 const WEATHER_COLOR: Record<string, string> = {
   SUNNY: "#3ee6a4",
   CLOUDY: "#ffd94a",
   RAIN: "#ffab4a",
   STORM: "#ff5d6c",
 };
+
+defineProps<{ rows: QueueRow[] }>();
 </script>
 
 <template>
@@ -32,7 +32,7 @@ const WEATHER_COLOR: Record<string, string> = {
     <template v-if="rows.length">
       <div v-for="(row, i) in rows" :key="row.patientId" class="q-row">
         <span class="q-rank" :class="{ top: i === 0 }">{{ i + 1 }}</span>
-        <span class="q-dot" :style="{ background: WEATHER_COLOR[row.weather] ?? '#8f8a75' }" />
+        <span class="q-dot" :style="{ background: WEATHER_COLOR[row.weather] ?? '#958d74' }" />
         <div class="q-main">
           <b>患者 #{{ row.patientId }}</b>
           <span v-if="row.latestDiagnosis" class="q-dx">{{ row.latestDiagnosis }}</span>

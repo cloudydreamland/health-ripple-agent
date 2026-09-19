@@ -177,3 +177,34 @@ export async function fetchGuardQueue(): Promise<Record<string, unknown>[] | nul
     return null;
   }
 }
+
+/** 医生审定守护计划（人机共驾终审）：APPROVE通过 / ADJUST改期 / VETO否决。审定入印鉴链。 */
+export async function reviewTrigger(
+  triggerId: number,
+  decision: "APPROVE" | "ADJUST" | "VETO",
+  note = "",
+  nextAt?: string,
+): Promise<Record<string, unknown> | null> {
+  if (!token) {
+    throw new Error("离线快照模式：审定需连接后端（审定将入印鉴链，不接受演示写操作）");
+  }
+  const params = new URLSearchParams({ decision, note });
+  if (nextAt) {
+    params.set("nextAt", nextAt);
+  }
+  return call<Record<string, unknown>>("POST", "/chrono/trigger/" + triggerId + "/review?" + params.toString());
+}
+
+/** 依从性沙盘：带守护执行度折减的确定性预报重算（同一引擎，可复算）。 */
+export async function fetchForecastWithAdherence(patientId: number, adherence: number): Promise<Record<string, unknown> | null> {
+  if (!token) {
+    return null;
+  }
+  try {
+    return await call<Record<string, unknown>>(
+      "GET", "/health-event/ripple/forecast?patientId=" + patientId + "&adherence=" + adherence);
+  } catch (e) {
+    setMode("snapshot", "沙盘重算失败：" + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}

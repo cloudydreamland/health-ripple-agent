@@ -56,7 +56,7 @@ async function exportFhirJson() {
       </div>
       <div class="chain-link">
         <svg width="52" height="12" viewBox="0 0 52 12">
-          <line x1="0" y1="6" x2="52" y2="6" stroke="#8f8a75" stroke-width="1.2" stroke-dasharray="3 4" />
+          <line x1="0" y1="6" x2="52" y2="6" stroke="#958d74" stroke-width="1.2" stroke-dasharray="3 4" />
         </svg>
         <span class="mono link-label">SHA-256 链式相扣</span>
       </div>
@@ -160,7 +160,7 @@ async function exportFhirJson() {
 .stamp span { font-size: 9.5px; letter-spacing: 0.8px; font-family: var(--font-mono); }
 .stamp.ok { color: var(--red); border-color: var(--red); }
 .stamp.bad { color: var(--ink); border-color: var(--ink); }
-.stamp.offline { color: #8f8a75; border-color: #8f8a75; animation: none; transform: rotate(-2deg); }
+.stamp.offline { color: #958d74; border-color: #958d74; animation: none; transform: rotate(-2deg); }
 .offline-note { font-size: 10px; max-width: 280px; white-space: normal; letter-spacing: 0; }
 .fhir-pre {
   max-height: 240px;

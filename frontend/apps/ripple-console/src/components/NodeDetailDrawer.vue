@@ -44,15 +44,15 @@ const breakdownRows = computed(() => {
 });
 
 function barColor(value: number): string {
-  if (value >= 0.9) return "#bd4033";
-  if (value >= 0.7) return "#c07a1d";
-  return "#37808a";
+  if (value >= 0.9) return "#e05a47";
+  if (value >= 0.7) return "#e59d3c";
+  return "#55aeb9";
 }
 
 const spineColor = computed(() => {
   const n = props.node;
-  if (!n) return "#26231b";
-  return n.intensity >= 70 ? "#bd4033" : n.intensity >= 40 ? "#c07a1d" : "#a8871a";
+  if (!n) return "#ece7d6";
+  return n.intensity >= 70 ? "#e05a47" : n.intensity >= 40 ? "#e59d3c" : "#d9b84c";
 });
 </script>
 
@@ -103,10 +103,11 @@ const spineColor = computed(() => {
   bottom: 14px;
   width: 372px;
   max-width: 92vw;
-  background: var(--card);
-  border: 1.5px solid var(--ink);
+  background: rgba(29, 25, 18, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--line-strong);
   border-radius: 14px;
-  box-shadow: -10px 0 40px rgba(38, 33, 18, 0.18);
+  box-shadow: -18px 0 60px rgba(0, 0, 0, 0.55);
   padding: 14px 17px;
   overflow-y: auto;
   z-index: 50;
