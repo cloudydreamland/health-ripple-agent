@@ -234,11 +234,14 @@ button.big:hover::after { transform: translateX(130%); }
 
 /* ---------- 编辑式指标长条：数字即设计（巨型数字分级 + 印字水印，参照 F1 Racing Hub 数字层级） ---------- */
 .stat-strip {
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--card-glass);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-card);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(rgba(29, 25, 18, 0.88), rgba(24, 20, 13, 0.92)) padding-box,
+    linear-gradient(180deg, rgba(240, 235, 219, 0.32), rgba(240, 235, 219, 0.06) 42%, rgba(240, 235, 219, 0.12)) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(240, 235, 219, 0.08),
+    0 26px 64px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   position: relative;
 }
@@ -290,9 +293,14 @@ button.big:hover::after { transform: translateX(130%); }
   line-height: 1.05;
   letter-spacing: -1.5px;
   font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff 8%, #d9d2ba 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(240, 235, 219, 0.10));
 }
-/* 英雄数字：RII 用最大号——数字分级是 F1 Racing Hub 的核心语言 */
-.stat-cell.hero .value { font-size: 58px; letter-spacing: -2px; }
+/* 英雄格：更大 + 等级色暖光晕（等级色是语义，不可被装饰覆盖） */
+.stat-cell.hero .value { font-size: 58px; letter-spacing: -2px; filter: drop-shadow(0 0 22px rgba(240, 235, 219, 0.22)); }
 .stat-cell .value small { font-size: 14px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
 .stat-cell .sub { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
 .stat-cell .sub .up { color: var(--green); font-weight: 700; }
