@@ -5,6 +5,16 @@ import { storeToRefs } from "pinia";
 import { api, fieldText, formatApiError, statusClass, statusText, useAuthStore, usePatientWorkflowStore } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, FormField, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
 import TriageResultModal from "../components/TriageResultModal.vue";
+import { useSpeechRecognition } from "../composables/useSpeech";
+
+const { supported: speechSupported, listening: speechListening, start: speechStart, stop: speechStop } = useSpeechRecognition();
+function dictateSymptoms() {
+  const ta = document.querySelector<HTMLTextAreaElement>(".panel textarea");
+  if (speechListening.value) { speechStop(); return; }
+  speechStart((text) => {
+    form.symptoms = (form.symptoms ? form.symptoms + "，" : "") + text;
+  });
+}
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -57,7 +67,12 @@ async function submit() {
       <div class="panel-body stack">
         <ErrorState v-if="error" :message="error" />
         <div v-if="notice" class="notice success">{{ notice }}</div>
-        <FormField label="主要症状"><textarea v-model.trim="form.symptoms" rows="5" /></FormField>
+        <FormField label="主要症状">
+          <textarea v-model.trim="form.symptoms" rows="5" />
+          <button v-if="speechSupported" type="button" class="mic-btn" :class="{ on: speechListening }"
+                  :title="speechListening ? '正在听，说完自动停止' : '语音说症状'"
+                  @click="dictateSymptoms">{{ speechListening ? "● 正在听…" : "🎤 说症状" }}</button>
+        </FormField>
         <div class="form-grid">
           <FormField label="持续时间"><input v-model.trim="form.duration" placeholder="例如：2 天" /></FormField>
           <FormField label="严重程度">

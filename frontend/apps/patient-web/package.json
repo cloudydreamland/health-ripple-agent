@@ -8,6 +8,7 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
+    "@fontsource/noto-serif-sc": "^5.3.0",
     "@smart-cloud-brain/shared-api": "workspace:*",
     "@smart-cloud-brain/shared-ui": "workspace:*"
   }

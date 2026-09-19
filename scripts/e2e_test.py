@@ -640,6 +640,54 @@ def main():
     except AssertionError as e:
         record("17.医生审定守护计划（人机共驾终审）", False, str(e), 0)
 
+    # ---------- 18. 家属守护圈 + 社区涟漪雷达（第九轮创新） ----------
+    try:
+        # 18a. 患者生成守护圈链接（HMAC令牌，7天有效）
+        link, ms = api.call("POST", f"/api/health-event/share/link?patientId={patient_id}&days=7")
+        share_token = link.get("token")
+        assert share_token and str(link.get("path", "")).startswith("/share/"), f"分享链接生成失败: {link}"
+        assert link.get("expiresAt"), "缺过期时间"
+
+        # 18b. 免登录访问公开只读视图（无 Authorization 头，令牌即凭证）
+        anon = E2EClient(api.base_url)
+        view, _ = anon.call("GET", f"/api/health-event/share/public/{share_token}")
+        assert view.get("weather") in ("SUNNY", "CLOUDY", "RAIN", "STORM"), f"家属视图气象非法: {view.get('weather')}"
+        assert view.get("familyTip"), "家属视图缺家属须知"
+        assert isinstance(view.get("trend"), list) and len(view.get("trend")) == 72, "家属视图缺72h趋势"
+        # 最小披露断言：绝不出现敏感字段
+        blob = json.dumps(view, ensure_ascii=False)
+        for forbidden in ("patientId", "diagnosis", "hash", "decisionId", "chiefComplaint"):
+            assert forbidden not in blob, f"家属视图泄漏敏感字段: {forbidden}"
+
+        # 18c. 篡改令牌必须被拒
+        tampered_ok = True
+        try:
+            anon.call("GET", "/api/health-event/share/public/" + share_token[:-2] + "xx")
+        except AssertionError:
+            tampered_ok = False
+        assert not tampered_ok, "篡改令牌未被拒绝"
+
+        # 18d. 社区涟漪雷达：医生可读 + 患者403
+        radar, _ = api.call("GET", "/api/health-event/community-radar")
+        assert "tideIndex" in radar and "signals" in radar, f"雷达响应缺字段: {list(radar.keys())}"
+        assert int(radar.get("patientsMonitored", 0)) >= 1, "雷达在管患者数为0"
+        api.auth(patient_token)
+        radar_violated = True
+        try:
+            api.call("GET", "/api/health-event/community-radar")
+        except AssertionError as e:
+            radar_violated = False
+            assert "403" in str(e) or "forbidden" in str(e).lower(), f"应为403，实际: {e}"
+        assert not radar_violated, "患者访问社区雷达未被拦截"
+        api.auth(doctor_token)
+        record("18.家属守护圈+社区涟漪雷达", True,
+               f"HMAC令牌7天有效；免登录只读视图={view.get('weather')}（无PHI字段泄漏）；篡改令牌被拒；"
+               f"雷达潮汐={radar.get('tideIndex')}({radar.get('tideLevel')})，{len(radar.get('signals') or [])}个信号，"
+               f"在管患者{radar.get('patientsMonitored')}；患者访问雷达403", ms)
+    except AssertionError as e:
+        api.auth(doctor_token)
+        record("18.家属守护圈+社区涟漪雷达", False, str(e), 0)
+
     return summary()
 
 

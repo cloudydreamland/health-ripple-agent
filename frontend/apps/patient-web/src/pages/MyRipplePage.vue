@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { request, useAuthStore } from "@smart-cloud-brain/shared-api";
+import { useSpeechRecognition } from "../composables/useSpeech";
 
 /**
  * 我的安全涟漪 —— 患者端守护页（数字宣纸 · 水墨涟漪主题）
@@ -102,6 +103,14 @@ const shared = ref(false);
 const nlInputId = ref<number | null>(null);
 const nlText = ref("");
 const nlHint = ref("");
+const familyLink = ref("");
+const familyExpires = ref("");
+const familyBusy = ref(false);
+const { supported: speechSupported, listening: speechListening, start: speechStart, stop: speechStop } = useSpeechRecognition();
+function dictateFeedback(item: { triggerId: number }) {
+  if (speechListening.value) { speechStop(); return; }
+  speechStart((text) => { nlText.value = text; });
+}
 
 const patientId = computed(() => auth.session?.userId ?? 0);
 
@@ -259,6 +268,28 @@ function toggleElder() {
   localStorage.setItem("scb-elder-mode", elderMode.value ? "1" : "0");
 }
 
+/** 家属守护圈：生成 HMAC 签名的只读分享链接（7天有效）。
+ *  最小披露：家属只见天气/趋势/家属须知/消解率，不含姓名/诊断/决策记录。 */
+async function createFamilyLink() {
+  if (familyBusy.value) {
+    return;
+  }
+  familyBusy.value = true;
+  try {
+    const res = await request<{ path: string; expiresAt: string }>(
+      `/api/health-event/share/link?patientId=${patientId.value}&days=7`,
+      { method: "POST" },
+      auth.token(),
+    );
+    familyLink.value = location.origin + res.path;
+    familyExpires.value = res.expiresAt.replace("T", " ").slice(0, 16);
+  } catch {
+    errorMsg.value = "守护圈链接生成失败，请稍后再试。";
+  } finally {
+    familyBusy.value = false;
+  }
+}
+
 /** 剪贴板写入：优先 Clipboard API（需 HTTPS/localhost），失败回退 execCommand，
  * 再失败把文本展示出来供手动复制——演示环境常为 http 局域网地址，必须有兜底。 */
 async function copyText(text: string): Promise<boolean> {
@@ -318,12 +349,36 @@ onMounted(loadAll);
         </div>
       </div>
       <div class="rp-actions">
+        <button class="ghost-btn" type="button" @click="createFamilyLink" :disabled="familyBusy">
+          {{ familyBusy ? "生成中…" : "家属守护圈" }}
+        </button>
         <button class="ghost-btn" type="button" @click="shareToFamily">
-          {{ shared ? "✓ 已复制给家属" : "分享给家属" }}
+          {{ shared ? "✓ 已复制给家属" : "分享文字摘要" }}
         </button>
         <button class="ghost-btn" type="button" @click="toggleElder">{{ elderMode ? "标准字号" : "适老化大字" }}</button>
       </div>
     </header>
+
+    <!-- 家属守护圈链接（生成后展示 + 复制） -->
+    <section v-if="familyLink" class="rp-panel" role="region" aria-label="家属守护圈链接">
+      <header class="sec-head">
+        <span class="dot" style="background: #41795f" />
+        <h3>家属守护圈链接已生成</h3>
+        <span class="en mono">FAMILY GUARDIAN CIRCLE</span>
+        <span class="spacer" />
+        <span class="fig mono">READ-ONLY · 7天有效</span>
+      </header>
+      <div class="panel-body">
+        <p class="rp-hint">把下面的链接发给家属（微信/短信均可）。家属打开后可以看到你的守护态势和"家属须知"，
+          <b>看不到姓名、诊断和病历记录</b>——过期自动失效（{{ familyExpires }}）。</p>
+        <div class="rp-family-link">
+          <input class="rp-link-input" readonly :value="familyLink" @focus="($event.target as HTMLInputElement).select()" />
+          <button class="ghost-btn" type="button" @click="copyText(familyLink).then(ok => { if (ok) { shared = true; setTimeout(() => (shared = false), 2500); } })">
+            {{ shared ? "✓ 已复制" : "复制链接" }}
+          </button>
+        </div>
+      </div>
+    </section>
 
     <p v-if="errorMsg" class="rp-error" role="status" aria-live="polite">守护数据暂时加载不出来，请稍后下拉重试；如持续失败请联系您的医生或社区工作人员。</p>
     <p v-if="loading" class="rp-loading" role="status">正在加载守护数据…</p>
@@ -504,6 +559,9 @@ onMounted(loadAll);
                   :placeholder="'例如：好多了 / 还是没好转 / 已经去医院'"
                   @keyup.enter="submitNlFeedback(item)"
                 />
+                <button v-if="speechSupported" type="button" class="nl-mic" :class="{ on: speechListening }"
+                        :title="speechListening ? '正在听…' : '语音说情况'"
+                        @click="dictateFeedback(item)">{{ speechListening ? "● 听中" : "🎤" }}</button>
                 <div class="nl-chips">
                   <button type="button" @click='nlText = "好多了"; submitNlFeedback(item)'>好转了</button>
                   <button type="button" @click='nlText = "还是没好转"; submitNlFeedback(item)'>没好转</button>
@@ -575,6 +633,19 @@ onMounted(loadAll);
 .rp-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 
 .rp-actions { display: flex; gap: 8px; }
+
+.rp-family-link { display: flex; gap: 8px; align-items: center; }
+.rp-link-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px dashed var(--info);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--info);
+  background: rgba(51, 98, 143, 0.05);
+}
 
 .ghost-btn {
   border: 1.5px solid var(--ink);
@@ -806,6 +877,18 @@ onMounted(loadAll);
   cursor: pointer;
 }
 .nl-send:disabled { opacity: 0.5; }
+.nl-mic {
+  border: 1.5px dashed var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.nl-mic.on { color: var(--primary); border-color: var(--primary); animation: mic-pulse 1.2s ease-in-out infinite; }
+@keyframes mic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .nl-mic.on { animation: none; } }
 .nl-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
 
 .rp-share-text {

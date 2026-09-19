@@ -1,22 +1,26 @@
 /* ============================================================
-   涟漪守护指挥中心 — 「夜航墨」主题 Night-Voyage Ink
-   深暖墨夜作纸 / 发光水墨作线 / 一点朱砂作印
-   唯一识别母题：水（涟漪）+ 墨（记录）+ 印（责任）
-   —— 大屏是夜里指挥室：远看一幅会动的墨，近读一份可审计的账
+   涟漪守护指挥中心 — 「墨玉鎏金」主题（夜航墨 2.0）
+   漆器近黑作底 / 鎏金标注洞察 / 朱砂只作印与险 / 发光水墨作线
+   融合参照：Bio-Age Dashboard（暗+暖金健康数据）× Systema（纯黑克制）
+   × F1 Racing Hub（数字分级）× 国画色系（朱砂/雌黄鎏金/青瓷）
    ============================================================ */
 :root {
-  /* 墨夜与灯下纸 */
-  --paper: #14110b;
-  --card: #1d1912;
-  --card-glass: rgba(29, 25, 18, 0.82);
-  --card-inset: #171410;
-  --raised: #241f16;
-  --ink: #ece7d6;
-  --ink-soft: #c4bca4;
-  --muted: #958d74;
-  --faint: #6b6551;
-  --line: rgba(236, 231, 214, 0.09);
-  --line-strong: rgba(236, 231, 214, 0.2);
+  /* 墨玉与灯下纸 */
+  --paper: #0f0d08;
+  --card: #1b1710;
+  --card-glass: rgba(27, 23, 16, 0.82);
+  --card-inset: #14110c;
+  --raised: #221d14;
+  --ink: #f0ebdb;
+  --ink-soft: #c9c1a8;
+  --muted: #9a9178;
+  --faint: #6e674f;
+  --line: rgba(240, 235, 219, 0.1);
+  --line-strong: rgba(240, 235, 219, 0.22);
+
+  /* 鎏金：洞察/编号/高亮的专属色（朱砂从此只属于印章与风险） */
+  --gold: #e3c26d;
+  --gold-bg: rgba(227, 194, 109, 0.1);
 
   /* 国画色·夜航版：朱砂 / 藤黄 / 雌黄 / 竹青 / 黛蓝 / 紫藤 / 青瓷（为暗底提亮） */
   --red: #e05a47;
@@ -34,11 +38,11 @@
   --cyan: #55aeb9;
   --cyan-bg: rgba(85, 174, 185, 0.13);
 
-  --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "IBM Plex Mono", Consolas, "Liberation Mono", monospace;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", "IBM Plex Mono", Consolas, "Liberation Mono", monospace;
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "Songti SC", serif;
   --font-sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
 
-  --shadow-card: 0 1px 0 rgba(236, 231, 214, 0.04) inset, 0 18px 44px rgba(0, 0, 0, 0.34);
+  --shadow-card: 0 1px 0 rgba(240, 235, 219, 0.04) inset, 0 18px 44px rgba(0, 0, 0, 0.38);
 }
 
 * { box-sizing: border-box; }
@@ -58,7 +62,7 @@ html, body {
 /* 墨夜底：朱砂与青瓷的两盏远灯 + 极淡纸纹颗粒 */
 body {
   background:
-    radial-gradient(1100px 480px at 10% -6%, rgba(224, 90, 71, 0.05), transparent 62%),
+    radial-gradient(1100px 480px at 10% -6%, rgba(227, 194, 109, 0.04), transparent 62%),
     radial-gradient(1000px 560px at 92% -4%, rgba(85, 174, 185, 0.045), transparent 58%),
     radial-gradient(1500px 800px at 50% 118%, rgba(164, 140, 212, 0.028), transparent 60%),
     var(--paper);
@@ -70,7 +74,7 @@ body::before {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.06;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 #app { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
@@ -118,7 +122,7 @@ body::before {
   gap: 14px;
   padding: 14px 18px;
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--card-glass);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-card);
@@ -231,7 +235,7 @@ button.big:hover::after { transform: translateX(130%); }
 /* ---------- 编辑式指标长条：数字即设计（巨型数字分级 + 印字水印，参照 F1 Racing Hub 数字层级） ---------- */
 .stat-strip {
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--card-glass);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-card);
@@ -306,7 +310,7 @@ button.big:hover::after { transform: translateX(130%); }
 /* ---------- 面板头：编辑部风——FIG 号前置朱砂、衬线标题、右侧微注（去掉装饰性引号/圆点） ---------- */
 .panel {
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--card-glass);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-card);
@@ -330,7 +334,7 @@ button.big:hover::after { transform: translateX(130%); }
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 2.4px;
-  color: var(--red);
+  color: var(--gold);
   border: none;
   padding: 0;
   flex: none;
@@ -358,8 +362,8 @@ button.big:hover::after { transform: translateX(130%); }
   z-index: 3;
   transition: width 0.25s ease, height 0.25s ease;
 }
-.panel.corner-ticks::before { top: -1px; left: -1px; border-top: 2px solid var(--red); border-left: 2px solid var(--red); }
-.panel.corner-ticks::after { bottom: -1px; right: -1px; border-bottom: 2px solid var(--red); border-right: 2px solid var(--red); }
+.panel.corner-ticks::before { top: -1px; left: -1px; border-top: 2px solid var(--gold); border-left: 2px solid var(--gold); }
+.panel.corner-ticks::after { bottom: -1px; right: -1px; border-bottom: 2px solid var(--gold); border-right: 2px solid var(--gold); }
 .panel.corner-ticks:hover::before, .panel.corner-ticks:hover::after { width: 34px; height: 34px; }
 
 .panel-body { padding: 14px 16px; flex: 1; min-height: 0; }
@@ -392,8 +396,8 @@ button.big:hover::after { transform: translateX(130%); }
   .ticker:hover .ticker-track { animation-play-state: paused; }
 }
 .ticker-group { padding: 7px 0; font-size: 10.5px; letter-spacing: 1px; color: var(--muted); }
-.ticker-group b { color: var(--ink-soft); font-weight: 600; }
-.ticker-group .sep { color: var(--red); margin: 0 14px; }
+.ticker-group b { color: var(--gold); font-weight: 700; letter-spacing: 2px; }
+.ticker-group .sep { color: var(--gold); margin: 0 14px; }
 @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 /* ---------- 通用 ---------- */

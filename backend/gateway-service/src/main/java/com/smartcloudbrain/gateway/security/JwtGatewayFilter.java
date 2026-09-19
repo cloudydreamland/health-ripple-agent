@@ -30,6 +30,11 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
       "/actuator/health"
   );
 
+  /** 前缀公开路径：家属守护圈只读分享——HMAC 签名令牌本身即凭证（带过期、常量时间校验），无需 JWT。 */
+  private static final List<String> PUBLIC_PATH_PREFIXES = List.of(
+      "/api/health-event/share/public/"
+  );
+
   private final JwtService jwtService;
 
   public JwtGatewayFilter(JwtService jwtService) {
@@ -72,7 +77,15 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
   }
 
   private boolean isPublic(String path) {
-    return PUBLIC_PATHS.contains(path);
+    if (PUBLIC_PATHS.contains(path)) {
+      return true;
+    }
+    for (String prefix : PUBLIC_PATH_PREFIXES) {
+      if (path.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private String resolveToken(ServerHttpRequest request) {

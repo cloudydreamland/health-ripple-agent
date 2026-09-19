@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, fetchForecastWithAdherence, type SourceMode } from "./api";
+import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, fetchForecastWithAdherence, fetchCommunityRadar, fetchPatientEvidence, type SourceMode } from "./api";
 import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } from "./types";
 import RiiSummary from "./components/RiiSummary.vue";
 import RidgePlot from "./components/RidgePlot.vue";
@@ -11,6 +11,7 @@ import ChronoTimeline from "./components/ChronoTimeline.vue";
 import ChronoDial from "./components/ChronoDial.vue";
 import EvidencePanel from "./components/EvidencePanel.vue";
 import MdtChord from "./components/MdtChord.vue";
+import CommunityRadar, { type RadarData } from "./components/CommunityRadar.vue";
 import NodeDetailDrawer from "./components/NodeDetailDrawer.vue";
 import ForecastChart, { type ForecastData } from "./components/ForecastChart.vue";
 import GuardQueuePanel, { type QueueRow } from "./components/GuardQueuePanel.vue";
@@ -52,6 +53,8 @@ const guardQueue = ref<QueueRow[]>([]);
 const sandbox = ref<SandboxData | null>(null);
 const adherence = ref(0);
 const extraEvents = ref<LogEvent[]>([]);
+const radar = ref<RadarData | null>(null);
+const reviewRecords = ref<{ decisionId: string; timestamp: string; inputs: Record<string, unknown>; agentId: string }[]>([]);
 
 /** 直播 ticker：最新 6 条事件串成实况条（活动日志的镜像，广播感） */
 const tickerText = computed(() => {
@@ -122,6 +125,21 @@ async function run(caseOverride?: CasePreset) {
   const f = await fetchForecast(patientId.value);
   forecast.value = (f as ForecastData) ?? null;
   guardQueue.value = (await fetchGuardQueue()) as QueueRow[] | null ?? [];
+  radar.value = (await fetchCommunityRadar()) as RadarData | null;
+  await loadReviewRecords();
+}
+
+/** 医生审定记录（印鉴链在案的 GUARD_PLAN_REVIEW，按患者维度可视化"谁改了守护计划"）。 */
+async function loadReviewRecords() {
+  const all = (await fetchPatientEvidence(patientId.value)) ?? [];
+  reviewRecords.value = all
+    .filter((e) => e.decisionType === "GUARD_PLAN_REVIEW")
+    .map((e) => ({
+      decisionId: String(e.decisionId ?? ""),
+      timestamp: String(e.timestamp ?? ""),
+      inputs: (e.inputs ?? {}) as Record<string, unknown>,
+      agentId: String(e.agentId ?? ""),
+    }));
 }
 
 /** 医生审定完成：本地状态即时上丁 + 刷新预报（被否决的触达从预报/天气消失）。 */
@@ -139,6 +157,8 @@ async function onReviewed(info: { triggerId: number; decision: string; reviewSta
     text: `医生${verdict}守护计划「${info.event}」${info.note ? " · " + info.note : ""} · 已入印鉴链`,
   }, ...extraEvents.value];
   await loadSandbox(adherence.value);
+  radar.value = (await fetchCommunityRadar()) as RadarData | null;
+  await loadReviewRecords();
 }
 
 /** 依从性沙盘：拖动滑杆即时重算（服务端同一引擎确定性重算，可复算）。 */
@@ -487,7 +507,19 @@ onMounted(async () => {
         </header>
         <div class="panel-body chrono-layout">
           <ChronoDial :triggers="ripple?.chronoTriggers ?? []" />
-          <ChronoTimeline :triggers="ripple?.chronoTriggers ?? []" :live="mode === 'live'" @reviewed="onReviewed" />
+          <div class="chrono-col">
+            <ChronoTimeline :triggers="ripple?.chronoTriggers ?? []" :live="mode === 'live'" @reviewed="onReviewed" />
+            <!-- 医生审定记录：谁在何时以什么理由改了守护计划（印鉴链在案） -->
+            <div v-if="reviewRecords.length" class="review-log">
+              <p class="mono review-title">DOCTOR REVIEW · 医生审定记录（印鉴链在案 {{ reviewRecords.length }} 条）</p>
+              <div v-for="rec in [...reviewRecords].reverse().slice(0, 4)" :key="rec.decisionId" class="review-line">
+                <span class="mono rv-time">{{ rec.timestamp.replace("T", " ").slice(5, 16) }}</span>
+                <span class="rv-text">{{ rec.inputs.event }} —
+                  <b :class="rec.inputs.decision === 'VETO' ? 'rv-v' : rec.inputs.decision === 'APPROVE' ? 'rv-a' : 'rv-m'">{{ rec.inputs.decision === "VETO" ? "否决" : rec.inputs.decision === "APPROVE" ? "通过" : "改期" }}</b>
+                  · {{ rec.inputs.note || "无备注" }}（{{ rec.agentId }}）</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -531,6 +563,23 @@ onMounted(async () => {
         </header>
         <div class="panel-body">
           <GuardQueuePanel :rows="guardQueue" />
+        </div>
+      </section>
+    </div>
+
+    <!-- 社区涟漪雷达：个体涟漪汇成社区潮汐 -->
+    <div class="grid-e">
+      <section class="panel corner-ticks">
+        <header class="sec-head">
+          <span class="dot" style="background: var(--gold)" />
+          <h2>社区涟漪雷达</h2>
+          <span class="en">COMMUNITY RIPPLE RADAR / CROSS-PATIENT SIGNALS · 7D</span>
+          <span class="spacer" />
+          <span v-if="radar" class="tag" :class="radar.tideLevel === 'HIGH' ? 'RED' : radar.tideLevel === 'MID' ? 'ORANGE' : 'YELLOW'">潮汐 {{ radar.tideIndex }} · {{ radar.tideLevel }}</span>
+          <span class="fig">FIG.07</span>
+        </header>
+        <div class="panel-body">
+          <CommunityRadar :radar="radar" />
         </div>
       </section>
     </div>
@@ -583,6 +632,18 @@ onMounted(async () => {
 
 .chrono-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1400px) { .chrono-layout { grid-template-columns: 1fr; } }
+
+.chrono-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.review-log { border: 1px dashed var(--gold); border-radius: 9px; padding: 9px 12px; background: var(--gold-bg); }
+.review-title { margin: 0 0 6px; font-size: 9.5px; letter-spacing: 1.6px; color: var(--gold); font-weight: 700; }
+.review-line { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; }
+.rv-time { color: var(--faint); flex: none; font-size: 10px; }
+.rv-text b { font-family: var(--font-mono); }
+.rv-text .rv-v { color: var(--red); }
+.rv-text .rv-a { color: var(--green); }
+.rv-text .rv-m { color: var(--yellow); }
+
+.grid-e { display: grid; grid-template-columns: 1fr; gap: 14px; }
 
 .agent-card {
   border: 1.5px solid var(--line-strong);

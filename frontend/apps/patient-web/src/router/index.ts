@@ -12,6 +12,7 @@ import MedicalRecordsPage from "../pages/MedicalRecordsPage.vue";
 import PrescriptionsPage from "../pages/PrescriptionsPage.vue";
 import MyRipplePage from "../pages/MyRipplePage.vue";
 import ProfilePage from "../pages/ProfilePage.vue";
+import FamilySharePage from "../pages/FamilySharePage.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,6 +38,8 @@ const router = createRouter({
       children: [
         { path: "login", name: "patient-login", component: LoginPage },
         { path: "register", name: "patient-register", component: RegisterPage },
+        // 家属守护圈：HMAC 令牌即凭证（免登录只读视图，最小披露口径）
+        { path: "share/:token", name: "family-share", component: FamilySharePage },
       ],
     },
   ],

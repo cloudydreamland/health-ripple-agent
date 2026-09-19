@@ -208,3 +208,29 @@ export async function fetchForecastWithAdherence(patientId: number, adherence: n
     return null;
   }
 }
+
+/** 社区涟漪雷达：跨患者守护信号聚合（个体涟漪汇成社区潮汐；仅医生可读）。 */
+export async function fetchCommunityRadar(): Promise<Record<string, unknown> | null> {
+  if (!token) {
+    return null;
+  }
+  try {
+    return await call<Record<string, unknown>>("GET", "/health-event/community-radar");
+  } catch (e) {
+    setMode("snapshot", "社区雷达获取失败：" + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}
+
+/** 患者全部证据记录（用于医生审定记录可视化）。 */
+export async function fetchPatientEvidence(patientId: number): Promise<Record<string, unknown>[] | null> {
+  if (!token) {
+    return null;
+  }
+  try {
+    return await call<Record<string, unknown>[]>("GET", "/evidence/patient/" + patientId);
+  } catch (e) {
+    setMode("snapshot", "审定记录获取失败：" + (e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}

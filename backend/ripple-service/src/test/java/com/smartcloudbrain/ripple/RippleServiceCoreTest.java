@@ -10,6 +10,7 @@ import com.smartcloudbrain.ripple.dto.DrugItem;
 import com.smartcloudbrain.ripple.dto.MdtConsultRequest;
 import com.smartcloudbrain.ripple.dto.RippleDeriveRequest;
 import com.smartcloudbrain.ripple.entity.EvidenceChain;
+import com.smartcloudbrain.ripple.entity.ChronoTrigger;
 import com.smartcloudbrain.ripple.repository.ChronoTriggerRepository;
 import com.smartcloudbrain.ripple.repository.EvidenceChainRepository;
 import com.smartcloudbrain.ripple.service.ChronoEngine;
@@ -292,7 +293,19 @@ class RippleServiceCoreTest {
     rippleDeriveService.derive(new RippleDeriveRequest(
         9L, "2型糖尿病", List.of(new DrugItem("二甲双胍")), "高血压"));
 
+    // 时间脆弱免疫：深夜推演时 RHYTHM(次日0点)/PERIODIC(+14天) 都不在"今天"，
+    // 与 e2e 14d / ForecastLedgerTest 同一规避手法——把首条触达拨到今天再算气象
     Map<String, Object> weather = healthWeatherService.daily(9L);
+    if (((Number) weather.get("dueTodayCount")).intValue() == 0) {
+      for (ChronoTrigger trigger : triggerRepository.findByPatientIdOrderByNextTriggerAtAsc(9L)) {
+        if ("ACTIVE".equals(trigger.getStatus()) && trigger.getNextTriggerAt() != null) {
+          trigger.setNextTriggerAt(java.time.LocalDateTime.now().minusMinutes(1));
+          triggerRepository.save(trigger);
+          break;
+        }
+      }
+      weather = healthWeatherService.daily(9L);
+    }
     assertTrue(weather.get("weather") instanceof String
         && java.util.List.of("SUNNY", "CLOUDY", "RAIN", "STORM").contains(weather.get("weather")),
         "气象等级非法: " + weather.get("weather"));
