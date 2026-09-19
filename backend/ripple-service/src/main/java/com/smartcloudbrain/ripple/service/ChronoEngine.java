@@ -119,6 +119,48 @@ public class ChronoEngine {
     return triggerRepository.findByPatientIdOrderByNextTriggerAtAsc(patientId);
   }
 
+  /**
+   * 医生审定（人机共驾终审，第七轮创新）：智能体提出的守护计划，医生保留最终裁定权。
+   * - APPROVE 通过：计划照常执行（reviewStatus=APPROVED，触达保持 ACTIVE）；
+   * - ADJUST 调整：医生改期（adjustTo 为新触达时点，reviewStatus=ADJUSTED）；
+   * - VETO 否决：计划终止（status=VETOED、nextTriggerAt 清空）——不再触达、不再计入
+   *   预报/天气/队列；医学依据仍在档（Timing Card 保留），审计可追溯"为什么不提醒"。
+   *
+   * 每次审定由控制器写入印鉴链（GUARD_PLAN_REVIEW），"谁在何时以什么理由改了守护计划"防篡改。
+   */
+  public ChronoTrigger review(Long triggerId, String decision, String note, String reviewer, LocalDateTime adjustTo) {
+    ChronoTrigger trigger = triggerRepository.findById(triggerId)
+        .orElseThrow(() -> new IllegalArgumentException("触达计划不存在: " + triggerId));
+    if ("VETOED".equals(trigger.getStatus())) {
+      return trigger; // 已否决的计划不可复活，重审需重新推演生成
+    }
+    LocalDateTime now = LocalDateTime.now();
+    trigger.setReviewer(reviewer == null ? "" : reviewer);
+    trigger.setReviewNote(note == null ? "" : note);
+    trigger.setReviewAt(now);
+    switch (decision) {
+      case "APPROVE" -> trigger.setReviewStatus("APPROVED");
+      case "ADJUST" -> {
+        if (adjustTo == null) {
+          throw new IllegalArgumentException("ADJUST 需要新触达时间 nextAt");
+        }
+        trigger.setReviewStatus("ADJUSTED");
+        trigger.setNextTriggerAt(adjustTo);
+        if (!"ACTIVE".equals(trigger.getStatus())) {
+          trigger.setStatus("ACTIVE"); // 调整即恢复调度（如 FIRED 的窗口类改期重派）
+        }
+      }
+      case "VETO" -> {
+        trigger.setReviewStatus("VETOED");
+        trigger.setStatus("VETOED");
+        trigger.setNextTriggerAt(null);
+      }
+      default -> throw new IllegalArgumentException(
+          "非法审定决策: " + decision + "（允许 APPROVE/ADJUST/VETO）");
+    }
+    return triggerRepository.save(trigger);
+  }
+
   /** 按 ID 读取触达计划（供控制器做归属校验）。 */
   public ChronoTrigger get(Long triggerId) {
     return triggerRepository.findById(triggerId)

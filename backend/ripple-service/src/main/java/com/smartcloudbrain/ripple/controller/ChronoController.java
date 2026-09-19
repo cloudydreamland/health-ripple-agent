@@ -1,8 +1,11 @@
 package com.smartcloudbrain.ripple.controller;
 
 import com.smartcloudbrain.common.result.Result;
+import com.smartcloudbrain.common.security.CurrentUserService;
+import com.smartcloudbrain.common.security.RoleType;
 import com.smartcloudbrain.ripple.security.PatientOwnershipGuard;
 import com.smartcloudbrain.ripple.service.ChronoEngine;
+import com.smartcloudbrain.ripple.service.EvidenceChainService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,10 +33,15 @@ public class ChronoController {
 
   private final ChronoEngine chronoEngine;
   private final PatientOwnershipGuard ownershipGuard;
+  private final CurrentUserService currentUserService;
+  private final EvidenceChainService evidenceChainService;
 
-  public ChronoController(ChronoEngine chronoEngine, PatientOwnershipGuard ownershipGuard) {
+  public ChronoController(ChronoEngine chronoEngine, PatientOwnershipGuard ownershipGuard,
+      CurrentUserService currentUserService, EvidenceChainService evidenceChainService) {
     this.chronoEngine = chronoEngine;
     this.ownershipGuard = ownershipGuard;
+    this.currentUserService = currentUserService;
+    this.evidenceChainService = evidenceChainService;
   }
 
   /** GET /api/chrono/due — 到期触达查询（DuMate 定时任务轮询入口）。 */
@@ -70,6 +78,48 @@ public class ChronoController {
   }
 
   /**
+   * POST /api/chrono/trigger/{id}/review — 医生审定守护计划（人机共驾终审，仅 DOCTOR 角色）。
+   *
+   * @param decision APPROVE通过 / ADJUST调整改期 / VETO否决终止
+   * @param note     医生备注（否决理由/调整说明，随印鉴链存证）
+   * @param nextAt   ADJUST 时的ISO新触达时点（如 2026-09-20T09:00:00）
+   */
+  @PostMapping("/trigger/{id}/review")
+  public Result<?> review(@PathVariable Long id,
+      @RequestParam String decision,
+      @RequestParam(required = false, defaultValue = "") String note,
+      @RequestParam(required = false, name = "nextAt") String nextAt) {
+    var user = currentUserService.require(RoleType.DOCTOR);
+    var trigger = chronoEngine.get(id);
+    LocalDateTime adjustTo = null;
+    if ("ADJUST".equals(decision)) {
+      if (nextAt == null || nextAt.isBlank()) {
+        throw new IllegalArgumentException("ADJUST 需要新触达时间 nextAt");
+      }
+      adjustTo = LocalDateTime.parse(nextAt);
+    }
+    var reviewed = chronoEngine.review(id, decision, note, user.name(), adjustTo);
+    // 医生终审入印鉴链：谁在何时以什么理由批准/改期/否决了哪条守护计划，防篡改可审计
+    evidenceChainService.append(
+        "GUARD_PLAN_REVIEW",
+        trigger.getPatientId(),
+        Map.of("triggerId", id, "event", String.valueOf(trigger.getEvent()),
+            "chronoType", String.valueOf(trigger.getChronoType()),
+            "triggerTime", String.valueOf(trigger.getTriggerTime()),
+            "decision", decision, "note", note == null ? "" : note,
+            "adjustedNextTriggerAt", adjustTo == null ? "" : adjustTo.toString()),
+        List.of(String.valueOf(trigger.getEvidenceBasis()),
+            "医生终审权：AI建议不等于执行指令"),
+        Map.of("reviewStatus", reviewed.getReviewStatus(),
+            "status", String.valueOf(reviewed.getStatus())),
+        null,
+        1.0,
+        "GUARD_PLAN_" + reviewed.getReviewStatus(),
+        "doctor:" + user.name());
+    return Result.success(view(reviewed));
+  }
+
+  /**
    * POST /api/chrono/trigger/{id}/feedback — 干预回执（涟漪消解闭环）。
    *
    * @param outcome RESOLVED已缓解 / UNRESOLVED未缓解（2小时后加强触达）/ ESCALATED已升级就医
@@ -98,6 +148,10 @@ public class ChronoController {
     view.put("feedbackStatus", trigger.getFeedbackStatus() == null ? "" : trigger.getFeedbackStatus());
     view.put("feedbackNote", trigger.getFeedbackNote() == null ? "" : trigger.getFeedbackNote());
     view.put("feedbackAt", trigger.getFeedbackAt() == null ? "" : trigger.getFeedbackAt().toString());
+    view.put("reviewStatus", trigger.getReviewStatus() == null ? "" : trigger.getReviewStatus());
+    view.put("reviewNote", trigger.getReviewNote() == null ? "" : trigger.getReviewNote());
+    view.put("reviewer", trigger.getReviewer() == null ? "" : trigger.getReviewer());
+    view.put("reviewAt", trigger.getReviewAt() == null ? "" : trigger.getReviewAt().toString());
     return view;
   }
 }

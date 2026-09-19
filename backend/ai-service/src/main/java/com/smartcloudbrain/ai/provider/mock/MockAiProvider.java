@@ -89,7 +89,7 @@ public class MockAiProvider implements AiProvider {
     if (SymptomMatcher.mentions(text, PEDIATRIC)) {
       boolean childEmergency = SymptomMatcher.mentions(text,
           List.of("高热", "抽搐", "呼吸困难", "意识不清", "喘息", "脱水"));
-      return triage("Pediatrics", "PEDIATRICS", "儿科方向", childEmergency ? "EMERGENCY" : "ROUTINE",
+      return triage("儿科", "PEDIATRICS", "儿科方向", childEmergency ? "EMERGENCY" : "ROUTINE",
           0.80, GENERAL_REFERRAL,
           childEmergency
               ? "规则引擎：患儿伴危重表现，紧急度EMERGENCY，立即儿科/急诊处置"
@@ -98,32 +98,32 @@ public class MockAiProvider implements AiProvider {
     }
     // 优先级1：神经急症红色指征（卒中/昏迷）→ 急诊分流（成人）
     if (SymptomMatcher.mentions(text, NEURO_RED_FLAGS)) {
-      return triage("General Practice", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
+      return triage("全科门诊", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
           "规则引擎：识别卒中/意识急症红色指征，紧急度EMERGENCY，建议立即急诊医学科就诊（卒中黄金3小时），勿等待普通门诊",
           false);
     }
     // 优先级2：消化道急症（呕血/黑便提示上消化道大出血）
     if (SymptomMatcher.mentions(text, GI_RED_FLAGS)) {
-      return triage("General Practice", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
+      return triage("全科门诊", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
           "规则引擎：呕血/黑便提示上消化道出血，紧急度EMERGENCY，立即急诊并建立静脉通路",
           false);
     }
     // 优先级3：哮喘持续状态（哮喘/喘息 + 呼吸困难）→ 呼吸急症，避免被心血管规则误路由
     if (SymptomMatcher.mentions(text, ASTHMA_MARKERS) && SymptomMatcher.mentions(text, BREATHLESS)) {
-      return triage("Respiratory Medicine", "RESPIRATORY", "呼吸急症方向", "EMERGENCY", 0.85,
+      return triage("呼吸内科", "RESPIRATORY", "呼吸急症方向", "EMERGENCY", 0.85,
           SEED_DOCTORS.get("RESPIRATORY"),
           "规则引擎：哮喘伴呼吸困难提示哮喘持续状态风险，紧急度EMERGENCY，立即呼吸内科/急诊处置",
           false);
     }
     // 优先级4：颅压危象组合（头痛伴呕吐/视物模糊）
     if (SymptomMatcher.mentions(text, HEADACHE) && SymptomMatcher.mentions(text, HEADACHE_ACCOMPANIED)) {
-      return triage("General Practice", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
+      return triage("全科门诊", "GENERAL", "急诊方向", "EMERGENCY", 0.85, GENERAL_REFERRAL,
           "规则引擎：头痛伴呕吐/视物模糊提示颅内压升高，紧急度EMERGENCY，立即急诊排除脑血管意外",
           false);
     }
     // 优先级5：妊娠相关 → 产科
     if (SymptomMatcher.mentions(text, PREGNANCY)) {
-      return triage("Obstetrics", "OBSTETRICS", "产科方向", "ROUTINE", 0.80, GENERAL_REFERRAL,
+      return triage("产科", "OBSTETRICS", "产科方向", "ROUTINE", 0.80, GENERAL_REFERRAL,
           "规则引擎：妊娠相关主诉，推荐产科就诊（种子环境建议全科首诊转诊）",
           false);
     }
@@ -132,7 +132,7 @@ public class MockAiProvider implements AiProvider {
       boolean emergency = SymptomMatcher.mentions(text, CARDIO_SOLO_EMERGENCY)
           || (SymptomMatcher.mentions(text, List.of("胸闷", "心悸"))
               && SymptomMatcher.mentions(text, CARDIO_EMERGENCY_ACCOMPANIED));
-      return triage("Cardiology", "CARDIOLOGY", "心血管方向", emergency ? "EMERGENCY" : "ROUTINE", 0.80,
+      return triage("心内科", "CARDIOLOGY", "心血管方向", emergency ? "EMERGENCY" : "ROUTINE", 0.80,
           SEED_DOCTORS.get("CARDIOLOGY"),
           emergency
               ? "规则引擎：主诉含危险心血管症状，紧急度EMERGENCY，需立即排除急性冠脉综合征"
@@ -141,27 +141,27 @@ public class MockAiProvider implements AiProvider {
     }
     // 优先级7：代谢症状 → 全科初诊（糖尿病方向）
     if (SymptomMatcher.mentions(text, METABOLIC)) {
-      return triage("General Practice", "GENERAL", "全科/内分泌方向", "ROUTINE", 0.80,
+      return triage("全科门诊", "GENERAL", "全科/内分泌方向", "ROUTINE", 0.80,
           SEED_DOCTORS.get("GENERAL"),
           "规则引擎：主诉含多饮/多尿/血糖升高等代谢症状，推荐全科门诊完善血糖评估",
           false);
     }
     // 优先级8：呼吸症状 → 呼吸内科
     if (SymptomMatcher.mentions(text, RESPIRATORY)) {
-      return triage("Respiratory Medicine", "RESPIRATORY", "呼吸方向", "ROUTINE", 0.80,
+      return triage("呼吸内科", "RESPIRATORY", "呼吸方向", "ROUTINE", 0.80,
           SEED_DOCTORS.get("RESPIRATORY"),
           "规则引擎：主诉含咳嗽/发热等呼吸道症状，推荐呼吸内科",
           false);
     }
     // 优先级9：消化症状 → 消化内科方向（全科首诊转诊）
     if (SymptomMatcher.mentions(text, DIGESTIVE)) {
-      return triage("Gastroenterology", "GASTROENTEROLOGY", "消化方向", "ROUTINE", 0.80, GENERAL_REFERRAL,
+      return triage("消化内科", "GASTROENTEROLOGY", "消化方向", "ROUTINE", 0.80, GENERAL_REFERRAL,
           "规则引擎：主诉含腹痛/腹泻等消化症状，推荐消化内科（种子环境建议全科首诊转诊）",
           false);
     }
     // 兜底：无法识别 → 真实降级语义（需人工分诊）。头晕/乏力/失眠等非特异主诉
     // 保留在降级层——诚实标注"需要人工"，好过硬猜一个科室（真实降级语义用例）。
-    return triage("General Practice", "GENERAL", "", "ROUTINE", 0.50, GENERAL_REFERRAL,
+    return triage("全科门诊", "GENERAL", "", "ROUTINE", 0.50, GENERAL_REFERRAL,
         "规则引擎无法识别症状特征，降级为全科人工分诊",
         true);
   }

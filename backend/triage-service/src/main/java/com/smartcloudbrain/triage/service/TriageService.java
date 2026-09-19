@@ -79,9 +79,10 @@ public class TriageService {
 
   public List<Map<String, Object>> list() {
     AuthenticatedUser user = currentUserService.get();
+    // 最新在前：分诊历史与"最新结果"面板都默认取列表头，乱序会让旧记录冒充最新
     List<TriageRecord> records = user.role() == RoleType.PATIENT
-        ? triageRecordRepository.findByPatientId(user.userId())
-        : triageRecordRepository.findAll();
+        ? triageRecordRepository.findByPatientIdOrderByIdDesc(user.userId())
+        : triageRecordRepository.findAllByOrderByIdDesc();
     return records.stream().map(record -> triageView(record, null)).toList();
   }
 

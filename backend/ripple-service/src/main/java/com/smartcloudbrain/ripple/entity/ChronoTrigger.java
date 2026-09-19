@@ -82,6 +82,22 @@ public class ChronoTrigger {
   @Column(name = "feedback_at")
   private LocalDateTime feedbackAt;
 
+  /** 医生审定状态（人机共驾终审）：APPROVED通过 / ADJUSTED已调整 / VETOED已否决，空=待审定。 */
+  @Column(name = "review_status", length = 20)
+  private String reviewStatus;
+
+  /** 医生审定备注（否决理由/调整说明）。 */
+  @Column(name = "review_note", length = 300)
+  private String reviewNote;
+
+  /** 审定医生（姓名，随审定动作写入印鉴链）。 */
+  @Column(name = "reviewer", length = 100)
+  private String reviewer;
+
+  /** 审定时间。 */
+  @Column(name = "review_at")
+  private LocalDateTime reviewAt;
+
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 
@@ -127,6 +143,14 @@ public class ChronoTrigger {
   public void setFeedbackNote(String feedbackNote) { this.feedbackNote = feedbackNote; }
   public LocalDateTime getFeedbackAt() { return feedbackAt; }
   public void setFeedbackAt(LocalDateTime feedbackAt) { this.feedbackAt = feedbackAt; }
+  public String getReviewStatus() { return reviewStatus; }
+  public void setReviewStatus(String reviewStatus) { this.reviewStatus = reviewStatus; }
+  public String getReviewNote() { return reviewNote; }
+  public void setReviewNote(String reviewNote) { this.reviewNote = reviewNote; }
+  public String getReviewer() { return reviewer; }
+  public void setReviewer(String reviewer) { this.reviewer = reviewer; }
+  public LocalDateTime getReviewAt() { return reviewAt; }
+  public void setReviewAt(LocalDateTime reviewAt) { this.reviewAt = reviewAt; }
   public LocalDateTime getCreatedAt() { return createdAt; }
   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -74,11 +74,13 @@ public class RippleController {
     return Result.success(closureService.feedbackLedger(patientId));
   }
 
-  /** GET /api/health-event/ripple/forecast — 未来72小时涟漪强度预报（逐小时桶+峰值+驱动事件）。 */
+  /** GET /api/health-event/ripple/forecast — 未来72小时涟漪强度预报（逐小时桶+峰值+驱动事件）。
+   *  可选 adherence（0~1）：同时返回依从性沙盘曲线（守护执行度折减的确定性重算）。 */
   @GetMapping("/ripple/forecast")
-  public Result<?> forecast(@RequestParam Long patientId) {
+  public Result<?> forecast(@RequestParam Long patientId,
+      @RequestParam(required = false, defaultValue = "0") double adherence) {
     ownershipGuard.checkAccess(patientId);
-    return Result.success(forecastService.forecast(patientId));
+    return Result.success(forecastService.forecast(patientId, adherence));
   }
 
   /** GET /api/health-event/guard-queue — 今日守护队列（跨患者优先级排序，仅医生/管理员）。 */
