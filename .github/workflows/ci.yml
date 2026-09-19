@@ -18,7 +18,8 @@ jobs:
           java-version: '17'
           cache: maven
       - name: mvn test（H2内存库，无需外部依赖）
-        run: mvn -B -pl ripple-service,ai-service -am test
+        working-directory: backend
+        run: mvn -B -pl ripple-service,ai-service -am -Dsurefire.failIfNoSpecifiedTests=false test
 
   frontend-build:
     name: 前端生产构建（双端）
