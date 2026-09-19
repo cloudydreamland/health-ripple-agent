@@ -1,5 +1,7 @@
 # 智慧云脑 · 健康事件涟漪守护智能体
 
+![CI](https://github.com/cloudydreamland/health-ripple-agent/actions/workflows/ci.yml/badge.svg)
+
 > 当新诊断、新处方、异常指标发生时，智能体主动推演这个事件会在患者生活里激起哪些连锁影响——而不是等用户来问。
 
 2026 年 iCAN 大学生创新创业大赛 · AI 无代码智能体挑战赛（DuMate 智能体应用创新赛题 · 医疗健康场景）
