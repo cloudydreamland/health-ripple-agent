@@ -109,6 +109,15 @@ function easeOutCubic(p: number): number {
 }
 
 function draw() {
+  try {
+    drawFrame();
+  } catch (e) {
+    (window as any).__pondErr = String((e as Error)?.stack ?? e);
+  }
+  if (!STATIC_MODE) raf = requestAnimationFrame(draw);
+}
+
+function drawFrame() {
   const c = canvasRef.value;
   if (!c || !ctx) return;
   const cx = W / 2;
@@ -300,7 +309,6 @@ function draw() {
     }
   }
 
-  if (!STATIC_MODE) raf = requestAnimationFrame(draw);
 }
 
 function roundRect(x: number, y: number, w: number, h: number, r: number) {
@@ -383,14 +391,25 @@ watch(
 onMounted(() => {
   if (STATIC_MODE) burstAt = performance.now() - 10_000;
   resize();
+  // 防节流加固：挂载后先同步画一帧（后台标签 rAF 冻结时也有内容），回到可见时重绘
+  if (ctx) drawFrame();
+  document.addEventListener("visibilitychange", onVisibility);
   ro = new ResizeObserver(() => resize());
   if (wrapRef.value) ro.observe(wrapRef.value);
   raf = requestAnimationFrame(draw);
 });
 
+function onVisibility() {
+  if (!document.hidden) {
+    resize();
+    if (ctx) drawFrame();
+  }
+}
+
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
   ro?.disconnect();
+  document.removeEventListener("visibilitychange", onVisibility);
 });
 </script>
 
