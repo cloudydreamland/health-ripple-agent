@@ -5,6 +5,7 @@ import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } fr
 import RiiSummary from "./components/RiiSummary.vue";
 import RidgePlot from "./components/RidgePlot.vue";
 import RipplePond from "./components/RipplePond.vue";
+import OrganMap from "./components/OrganMap.vue";
 import ActivityLog, { type LogEvent } from "./components/ActivityLog.vue";
 import CounterfactualLattice from "./components/CounterfactualLattice.vue";
 import ChronoTimeline from "./components/ChronoTimeline.vue";
@@ -456,14 +457,14 @@ onMounted(async () => {
       <section class="panel corner-ticks pond-hero">
         <header class="sec-head">
           <span class="dot" style="background: var(--violet)" />
-          <h2>活水涟漪池 · 五维图谱</h2>
-          <span class="en">RIPPLE POND · LIVE</span>
+          <h2>器官涟漪图 · 人体映射</h2>
+          <span class="en">ORGAN RIPPLE MAP · LIVE</span>
           <span class="spacer" />
           <span v-if="ripple?.proactiveAssessment" class="tag GREEN">{{ ripple.proactiveAssessment.proactiveAction }}</span>
           <span class="fig">FIG.01</span>
         </header>
         <div class="panel-body pond-body">
-          <RipplePond
+          <OrganMap
             :dimensions="dimensions"
             :health-event="ripple?.healthEvent ?? { diagnosis: '', drugs: [], pastHistory: '' }"
             :intensity="intensity"
@@ -523,10 +524,32 @@ onMounted(async () => {
           <h2>涟漪强度山脊剖面</h2>
           <span class="en">RII RIDGE PROFILE / RING DECAY e^(&minus;0.22·(r&minus;1))</span>
           <span class="spacer" />
-          <span class="fig">FIG.03</span>
+          <span class="fig">FIG.02</span>
         </header>
         <div class="panel-body ridge-layout">
           <RidgePlot :dimensions="dimensions" :intensity="intensity" />
+        </div>
+      </section>
+    </div>
+
+    <!-- 活水涟漪池（五维图谱，降级为全景视图） -->
+    <div class="grid-path">
+      <section class="panel">
+        <header class="sec-head">
+          <span class="dot" style="background: var(--violet)" />
+          <h2>活水涟漪池 · 五维图谱</h2>
+          <span class="en">RIPPLE POND / {{ ripple?.healthEvent?.diagnosis ?? "&mdash;" }}</span>
+          <span class="spacer" />
+          <span class="fig">FIG.03</span>
+        </header>
+        <div class="panel-body">
+          <RipplePond
+            :dimensions="dimensions"
+            :health-event="ripple?.healthEvent ?? { diagnosis: '', drugs: [], pastHistory: '' }"
+            :intensity="intensity"
+            :selected="selectedNode"
+            @select="selectedNode = $event"
+          />
         </div>
       </section>
     </div>
