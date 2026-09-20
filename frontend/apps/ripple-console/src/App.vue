@@ -321,10 +321,54 @@ const activityEvents = computed<LogEvent[]>(() => {
   return [...extraEvents.value, ...evts];
 });
 
+/* ============ 自动演示模式（?demo=1）：90 秒讲完整个故事线，供录屏使用 ============ */
+const demoActive = ref(false);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function scrollToSel(sel: string, ms = 5000) {
+  document.querySelector(sel)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  await sleep(ms);
+}
+
+async function startDemoTour() {
+  if (demoActive.value) return;
+  demoActive.value = true;
+  await sleep(8000);
+  await scrollToSel(".grid-path", 6000);
+  await scrollToSel(".grid-b", 7000);
+  [...document.querySelectorAll("button")].find((b) => b.textContent?.includes("发起会诊"))?.click();
+  await sleep(7000);
+  const approveBtn = [...document.querySelectorAll("button")].find((b) => b.textContent?.includes("✓ 通过"));
+  if (approveBtn) {
+    approveBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+    await sleep(1500);
+    approveBtn.click();
+    await sleep(3000);
+  }
+  const verifyBtn = [...document.querySelectorAll("button")].find((b) => b.textContent?.includes("逐枚验印"));
+  if (verifyBtn) {
+    verifyBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+    await sleep(1200);
+    verifyBtn.click();
+    await sleep(3500);
+  }
+  document.querySelector(".pond-hero")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  await sleep(1500);
+  await loadSandbox(0.8);
+  await sleep(6000);
+  await scrollToSel(".grid-e", 6000);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  await sleep(5000);
+  demoActive.value = false;
+}
+
 onMounted(async () => {
   clock.value = new Date().toTimeString().slice(0, 8);
   mode.value = await probeBackend();
   await run();
+  if (new URLSearchParams(window.location.search).has("demo")) {
+    startDemoTour();
+  }
 });
 </script>
 
@@ -355,6 +399,7 @@ onMounted(async () => {
       <button class="big" :disabled="running" @click="run()">{{ running ? "推演中 …" : "落石 · 推演涟漪" }}</button>
     </header>
 
+    <div v-if="demoActive" class="demo-badge mono">● 自动演示中 · DEMO TOUR</div>
     <!-- 直播 ticker：守护实况（滚动，hover 暂停） -->
     <div class="ticker" aria-hidden="true">
       <div class="ticker-track">
@@ -717,6 +762,19 @@ onMounted(async () => {
   font-family: var(--font-mono); font-size: 12px;
 }
 
+.demo-badge {
+  position: fixed;
+  right: 24px; bottom: 22px;
+  z-index: 60;
+  background: rgba(56, 191, 248, 0.14);
+  border: 1px solid rgba(56, 191, 248, 0.5);
+  color: #7dd3fc;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  backdrop-filter: blur(6px);
+}
 .hero-row { display: grid; grid-template-columns: 300px 1fr 320px; gap: 14px; align-items: stretch; }
 @media (max-width: 1500px) { .hero-row { grid-template-columns: 280px 1fr; }
   .hero-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } }
