@@ -116,16 +116,16 @@ function draw() {
   const now = performance.now();
   const t = now / 1000;
   const maxR = ringRadius(5) + 26;
-  const ink = "236,231,214"; // 夜航墨：纸白墨线在深底上发光
+  const ink = "200,224,250"; // 夜航墨：纸白墨线在深底上发光
 
   ctx.clearRect(0, 0, W, H);
 
   // 池心水光：极淡的青瓷辉光随呼吸起伏（夜水微光）
   const glow = 0.035 + 0.02 * Math.sin(t * 0.7);
   const water = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.9);
-  water.addColorStop(0, `rgba(85,174,185,${glow.toFixed(3)})`);
-  water.addColorStop(0.55, `rgba(85,174,185,${(glow * 0.4).toFixed(3)})`);
-  water.addColorStop(1, "rgba(85,174,185,0)");
+  water.addColorStop(0, `rgba(56,207,232,${glow.toFixed(3)})`);
+  water.addColorStop(0.55, `rgba(56,207,232,${(glow * 0.4).toFixed(3)})`);
+  water.addColorStop(1, "rgba(56,207,232,0)");
   ctx.fillStyle = water;
   ctx.fillRect(0, 0, W, H);
 
@@ -207,7 +207,7 @@ function draw() {
     // 墨滴：外圈色环 + 夜色留底 + 发光色芯
     ctx.beginPath();
     ctx.arc(x, y, rr, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(23,20,14,0.94)";
+    ctx.fillStyle = "rgba(10,22,40,0.94)";
     ctx.fill();
     ctx.strokeStyle = hexA(n.color, 0.95);
     ctx.lineWidth = 1.8;
@@ -229,7 +229,7 @@ function draw() {
         chipCx = cx + (dx >= 0 ? 1 : -1) * (stoneEdge + chipW / 2 + 4);
       }
       const chipY = y + rr + 8;
-      ctx.fillStyle = "rgba(23,20,14,0.95)";
+      ctx.fillStyle = "rgba(10,22,40,0.95)";
       ctx.strokeStyle = n.color;
       ctx.lineWidth = 1;
       roundRect(chipCx - chipW / 2, chipY, chipW, 16, 4);
@@ -242,7 +242,7 @@ function draw() {
 
   // 健康事件墨石（中心，有机圆缘：比夜更深的墨，纸白描边）
   const stoneR = Math.min(W, H) * 0.082;
-  ctx.fillStyle = "rgba(7,6,3,0.97)";
+  ctx.fillStyle = "rgba(4,10,20,0.97)";
   ctx.beginPath();
   ctx.arc(cx, cy, stoneR, 0, Math.PI * 2);
   ctx.fill();
@@ -261,7 +261,7 @@ function draw() {
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("健康事件", cx, cy - 9);
-  ctx.fillStyle = "#f6f3e8";
+  ctx.fillStyle = "#dbe9f9";
   ctx.font = `700 ${Math.max(12, stoneR * 0.34)}px 'Noto Serif SC', SimSun, serif`;
   const diag = props.healthEvent.diagnosis || "—";
   ctx.fillText(diag.length > 7 ? diag.slice(0, 6) + "…" : diag, cx, cy + 12);
@@ -328,7 +328,7 @@ function resize() {
   if (!c || !wrap) return;
   dpr = window.devicePixelRatio || 1;
   W = wrap.clientWidth;
-  H = Math.max(430, Math.min(560, W * 0.72));
+  H = Math.max(500, Math.min(660, W * 0.62));
   c.width = Math.round(W * dpr);
   c.height = Math.round(H * dpr);
   c.style.height = H + "px";

@@ -59,7 +59,7 @@ const views = computed(() => {
   if (!props.mdt?.consultation) return [];
   return Object.entries(props.mdt.consultation).map(([key, value]) => ({
     key,
-    meta: AGENT_META[key] ?? { label: key, en: key, char: "?", color: "#958d74" },
+    meta: AGENT_META[key] ?? { label: key, en: key, char: "?", color: "#7e93ab" },
     value,
   }));
 });
@@ -79,9 +79,9 @@ const consensusNotes = computed(() => props.mdt?.consensusNotes ?? []);
         </g>
         <!-- Agent 圆点 + 标签 -->
         <g v-for="a in agentDots" :key="'d' + a.key">
-          <circle :cx="a.x" :cy="a.y" r="12" fill="#1d1912" :stroke="a.meta.color" stroke-width="2" />
+          <circle :cx="a.x" :cy="a.y" r="12" fill="#101f33" :stroke="a.meta.color" stroke-width="2" />
           <text :x="a.x" :y="a.y + 4" text-anchor="middle" class="agent-char" :fill="a.meta.color">{{ a.meta.char }}</text>
-          <text :x="a.lx" :y="a.ly" :text-anchor="a.anchor" class="agent-label" :fill="mdt ? a.meta.color : '#958d74'">{{ a.meta.label.replace(" Agent", "") }}</text>
+          <text :x="a.lx" :y="a.ly" :text-anchor="a.anchor" class="agent-label" :fill="mdt ? a.meta.color : '#7e93ab'">{{ a.meta.label.replace(" Agent", "") }}</text>
         </g>
         <!-- 中心 -->
         <text :x="CX" :y="CY - 6" text-anchor="middle" class="center-num">{{ mdt ? (mdt.consensusNotes?.length ?? 0) : "—" }}</text>
@@ -126,16 +126,16 @@ const consensusNotes = computed(() => props.mdt?.consensusNotes ?? []);
 @media (max-width: 1400px) { .mdt-chord { grid-template-columns: 1fr; } }
 .chord-side { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .chord-svg { width: 100%; max-width: 330px; display: block; }
-.chord { fill: none; stroke: rgba(236, 231, 214, 0.09); stroke-width: 1.1; }
-.chord.active { stroke: rgba(236, 231, 214, 0.17); }
+.chord { fill: none; stroke: rgba(200, 224, 250, 0.09); stroke-width: 1.1; }
+.chord.active { stroke: rgba(200, 224, 250, 0.17); }
 .agent-char { font-size: 11px; font-weight: 800; font-family: var(--font-sans); }
 .agent-label { font-size: 10.5px; font-weight: 600; }
-.center-num { font-size: 30px; font-weight: 700; font-family: var(--font-mono); fill: #ece7d6; }
-.center-cap { font-size: 9px; letter-spacing: 2px; fill: #958d74; font-family: var(--font-mono); }
-.center-sub { font-size: 8.5px; letter-spacing: 1.4px; fill: #7d7660; font-family: var(--font-mono); }
-.chord-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; width: 100%; max-width: 300px; font-size: 10px; letter-spacing: 1px; color: #958d74; }
+.center-num { font-size: 30px; font-weight: 700; font-family: var(--font-mono); fill: #dbe9f9; }
+.center-cap { font-size: 9px; letter-spacing: 2px; fill: #7e93ab; font-family: var(--font-mono); }
+.center-sub { font-size: 8.5px; letter-spacing: 1.4px; fill: #5a708c; font-family: var(--font-mono); }
+.chord-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; width: 100%; max-width: 300px; font-size: 10px; letter-spacing: 1px; color: #7e93ab; }
 .chord-stats div { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line); padding: 3px 0; }
-.chord-stats b { color: #ece7d6; font-size: 12px; }
+.chord-stats b { color: #dbe9f9; font-size: 12px; }
 .chord-stats .green { color: var(--green); }
 
 .mdt-detail { min-width: 0; display: flex; flex-direction: column; gap: 7px; max-height: 460px; overflow-y: auto; padding-right: 4px; }

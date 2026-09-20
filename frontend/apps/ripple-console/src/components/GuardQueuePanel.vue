@@ -32,7 +32,7 @@ defineProps<{ rows: QueueRow[] }>();
     <template v-if="rows.length">
       <div v-for="(row, i) in rows" :key="row.patientId" class="q-row">
         <span class="q-rank" :class="{ top: i === 0 }">{{ i + 1 }}</span>
-        <span class="q-dot" :style="{ background: WEATHER_COLOR[row.weather] ?? '#958d74' }" />
+        <span class="q-dot" :style="{ background: WEATHER_COLOR[row.weather] ?? '#7e93ab' }" />
         <div class="q-main">
           <b>患者 #{{ row.patientId }}</b>
           <span v-if="row.latestDiagnosis" class="q-dx">{{ row.latestDiagnosis }}</span>

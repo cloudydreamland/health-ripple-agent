@@ -12,6 +12,9 @@ import ChronoDial from "./components/ChronoDial.vue";
 import EvidencePanel from "./components/EvidencePanel.vue";
 import MdtChord from "./components/MdtChord.vue";
 import CommunityRadar, { type RadarData } from "./components/CommunityRadar.vue";
+import PatientOverviewCard from "./components/PatientOverviewCard.vue";
+import AIInsightsPanel from "./components/AIInsightsPanel.vue";
+import CarePathway from "./components/CarePathway.vue";
 import NodeDetailDrawer from "./components/NodeDetailDrawer.vue";
 import ForecastChart, { type ForecastData } from "./components/ForecastChart.vue";
 import GuardQueuePanel, { type QueueRow } from "./components/GuardQueuePanel.vue";
@@ -54,6 +57,9 @@ const sandbox = ref<SandboxData | null>(null);
 const adherence = ref(0);
 const extraEvents = ref<LogEvent[]>([]);
 const radar = ref<RadarData | null>(null);
+const hasReviewAny = computed(() => (ripple.value?.chronoTriggers ?? []).some((t) => t.reviewStatus));
+const activeTriggerCount = computed(() => (ripple.value?.chronoTriggers ?? []).filter((t) => t.status === "ACTIVE").length);
+const resolvedTriggerCount = computed(() => (ripple.value?.chronoTriggers ?? []).filter((t) => t.feedbackStatus === "RESOLVED").length);
 const reviewRecords = ref<{ decisionId: string; timestamp: string; inputs: Record<string, unknown>; agentId: string }[]>([]);
 
 /** 直播 ticker：最新 6 条事件串成实况条（活动日志的镜像，广播感） */
@@ -153,7 +159,7 @@ async function onReviewed(info: { triggerId: number; decision: string; reviewSta
   extraEvents.value = [{
     time: new Date().toTimeString().slice(0, 8),
     code: "审定",
-    color: "#d9b84c",
+    color: "#e5c15c",
     text: `医生${verdict}守护计划「${info.event}」${info.note ? " · " + info.note : ""} · 已入印鉴链`,
   }, ...extraEvents.value];
   await loadSandbox(adherence.value);
@@ -215,7 +221,7 @@ function generateReport() {
   body { font-family: "Noto Serif SC","Source Han Serif SC","SimSun",serif; color: #26231b; margin: 36px auto; max-width: 780px; padding: 0 24px; line-height: 1.7; }
   h1 { font-size: 22px; letter-spacing: 2px; border-bottom: 2.5px solid #26231b; padding-bottom: 10px; }
   h2 { font-size: 15px; margin: 22px 0 8px; }
-  .seal { display: inline-block; background: #bd4033; color: #f6f3e8; padding: 4px 12px; border-radius: 6px; transform: rotate(-2deg); font-size: 13px; }
+  .seal { display: inline-block; background: #bd4033; color: #dbe9f9; padding: 4px 12px; border-radius: 6px; transform: rotate(-2deg); font-size: 13px; }
   .meta { color: #55503f; font-size: 12.5px; margin: 6px 0 0; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
   th, td { border: 1px solid #cdc5a9; padding: 6px 9px; text-align: left; vertical-align: top; }
@@ -285,31 +291,31 @@ const activityEvents = computed<LogEvent[]>(() => {
   const at = () => new Date(base - offset++ * 900).toTimeString().slice(0, 8);
 
   const he = r.healthEvent;
-  evts.push({ time: at(), code: "事件", color: "#739fcc", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
+  evts.push({ time: at(), code: "事件", color: "#5ba7f7", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
   if (r.proactiveAssessment?.isProactive) {
-    evts.push({ time: at(), code: "主动", color: "#5cad85", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
+    evts.push({ time: at(), code: "主动", color: "#4fd1a5", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
   }
   const ri = intensity.value;
-  evts.push({ time: at(), code: "强度", color: "#e05a47", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${ri.levelLabel}）· 半径 ${ri.radius}/5 环` : ""}` });
+  evts.push({ time: at(), code: "强度", color: "#f4695c", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${ri.levelLabel}）· 半径 ${ri.radius}/5 环` : ""}` });
   const gs = r.counterfactualTree?.guardrailSummary;
   if (gs) {
-    evts.push({ time: at(), code: "护栏", color: "#e05a47", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
+    evts.push({ time: at(), code: "护栏", color: "#f4695c", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
   }
   if (r.chronoTriggers?.length) {
-    const byType: Record<string, string> = { WINDOW: "#e05a47", RHYTHM: "#a48cd4", PERIODIC: "#55aeb9", SEASONAL: "#5cad85" };
+    const byType: Record<string, string> = { WINDOW: "#f4695c", RHYTHM: "#9d8cff", PERIODIC: "#38cfe8", SEASONAL: "#4fd1a5" };
     for (const t of r.chronoTriggers) {
-      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "#958d74", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
+      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "#7e93ab", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
     }
   }
   const ev = r.evidenceChain;
   if (ev) {
-    evts.push({ time: at(), code: "存证", color: "#5cad85", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
+    evts.push({ time: at(), code: "存证", color: "#4fd1a5", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
   }
   if (r.degraded) {
-    evts.push({ time: at(), code: "降级", color: "#e59d3c", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
+    evts.push({ time: at(), code: "降级", color: "#f0a45c", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
   }
   if (mdt.value) {
-    evts.push({ time: at(), code: "会诊", color: "#a48cd4", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
+    evts.push({ time: at(), code: "会诊", color: "#9d8cff", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
   }
   return [...extraEvents.value, ...evts];
 });
@@ -410,35 +416,53 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 主视觉：RII 山脊剖面（技术图纸角标） -->
-    <div class="grid-hero">
-      <section class="panel corner-ticks">
-        <header class="sec-head">
-          <span class="dot" style="background: var(--red)" />
-          <h2>涟漪强度山脊剖面</h2>
-          <span class="en">RII RIDGE PROFILE / RING DECAY e^(−0.22·(r−1))</span>
-          <span class="spacer" />
-          <span class="fig">FIG.01</span>
-        </header>
-        <div class="panel-body ridge-layout">
-          <RiiSummary :intensity="intensity" />
-          <RidgePlot :dimensions="dimensions" :intensity="intensity" />
-        </div>
-      </section>
-    </div>
+    <!-- 英雄三栏：左患者概览+AI洞察 ｜ 中·涟漪池主视觉 ｜ 右·RII+活动日志 -->
+    <div class="hero-row">
+      <div class="hero-left">
+        <section class="panel">
+          <header class="sec-head">
+            <span class="dot" style="background: var(--blue)" />
+            <h2>患者概览</h2>
+            <span class="spacer" />
+            <span class="fig">CASE</span>
+          </header>
+          <div class="panel-body">
+            <PatientOverviewCard
+              :patient-id="patientId"
+              :health-event="ripple?.healthEvent ?? null"
+              :mode="mode"
+              @run="run()"
+            />
+          </div>
+        </section>
+        <section class="panel">
+          <header class="sec-head">
+            <span class="dot" style="background: var(--cyan)" />
+            <h2>AI 洞察</h2>
+            <span class="spacer" />
+            <span class="fig">INSIGHTS</span>
+          </header>
+          <div class="panel-body">
+            <AIInsightsPanel
+              :proactive="ripple?.proactiveAssessment ?? null"
+              :top-risks="intensity?.topRisks ?? []"
+              :guardrail="ripple?.counterfactualTree?.guardrailSummary ?? null"
+              :forecast-peak="forecast?.peak ?? null"
+            />
+          </div>
+        </section>
+      </div>
 
-    <!-- 活水涟漪池 + 活动日志 -->
-    <div class="grid-a">
-      <section class="panel corner-ticks">
+      <section class="panel corner-ticks pond-hero">
         <header class="sec-head">
           <span class="dot" style="background: var(--violet)" />
           <h2>活水涟漪池 · 五维图谱</h2>
-          <span class="en">RIPPLE POND / {{ ripple?.healthEvent?.diagnosis ?? "—" }}</span>
+          <span class="en">RIPPLE POND · LIVE</span>
           <span class="spacer" />
           <span v-if="ripple?.proactiveAssessment" class="tag GREEN">{{ ripple.proactiveAssessment.proactiveAction }}</span>
-          <span class="fig">FIG.02</span>
+          <span class="fig">FIG.01</span>
         </header>
-        <div class="panel-body">
+        <div class="panel-body pond-body">
           <RipplePond
             :dimensions="dimensions"
             :health-event="ripple?.healthEvent ?? { diagnosis: '', drugs: [], pastHistory: '' }"
@@ -449,20 +473,63 @@ onMounted(async () => {
         </div>
       </section>
 
+      <div class="hero-right">
+        <section class="panel">
+          <header class="sec-head">
+            <span class="dot" style="background: var(--red)" />
+            <h2>涟漪强度</h2>
+            <span class="spacer" />
+            <span class="fig">FIG.02</span>
+          </header>
+          <div class="panel-body">
+            <RiiSummary :intensity="intensity" />
+          </div>
+        </section>
+        <section class="panel">
+          <header class="sec-head">
+            <span class="dot" style="background: var(--green)" />
+            <h2>守护活动日志</h2>
+            <span class="spacer" />
+            <span class="fig">{{ String(activityEvents.length).padStart(3, "0") }}</span>
+          </header>
+          <div class="panel-body">
+            <ActivityLog :events="activityEvents" />
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 护理路径 -->
+    <div class="grid-path">
       <section class="panel">
-        <header class="sec-head">
-          <span class="dot" style="background: var(--green)" />
-          <h2>守护活动日志</h2>
-          <span class="en">ACTIVITY LOG</span>
-          <span class="spacer" />
-          <span class="fig">{{ String(activityEvents.length).padStart(3, "0") }} EVENTS</span>
-        </header>
         <div class="panel-body">
-          <ActivityLog :events="activityEvents" />
+          <CarePathway
+            :has-ripple="!!ripple"
+            :has-guardrail="!!ripple?.counterfactualTree?.guardrailSummary"
+            :has-evidence="!!ripple?.evidenceChain"
+            :has-review="hasReviewAny"
+            :active-triggers="activeTriggerCount"
+            :resolved-count="resolvedTriggerCount"
+          />
         </div>
       </section>
     </div>
 
+    <!-- 主视觉：RII 山脊剖面（技术图纸角标） -->
+    <div class="grid-hero">
+      <section class="panel corner-ticks">
+        <header class="sec-head">
+          <span class="dot" style="background: var(--red)" />
+          <h2>涟漪强度山脊剖面</h2>
+          <span class="en">RII RIDGE PROFILE / RING DECAY e^(&minus;0.22·(r&minus;1))</span>
+          <span class="spacer" />
+          <span class="fig">FIG.03</span>
+        </header>
+        <div class="panel-body ridge-layout">
+          <RidgePlot :dimensions="dimensions" :intensity="intensity" />
+        </div>
+      </section>
+    </div>
     <!-- 反事实晶格 + MDT弦图 -->
     <div class="grid-b">
       <section class="panel">
@@ -471,7 +538,7 @@ onMounted(async () => {
           <h2>反事实决策晶格 × 护栏</h2>
           <span class="en">COUNTERFACTUAL LATTICE / GUARDRAIL GATE</span>
           <span class="spacer" />
-          <span class="fig">FIG.03</span>
+          <span class="fig">FIG.04</span>
         </header>
         <div class="panel-body">
           <CounterfactualLattice :tree="ripple?.counterfactualTree ?? null" />
@@ -487,7 +554,7 @@ onMounted(async () => {
           <button class="ghost" :disabled="mdtLoading" @click="runMdt()">
             {{ mdtLoading ? "会诊中 …" : "发起会诊" }}
           </button>
-          <span class="fig">FIG.04</span>
+          <span class="fig">FIG.05</span>
         </header>
         <div class="panel-body">
           <MdtChord :mdt="mdt" />
@@ -546,7 +613,7 @@ onMounted(async () => {
           <span class="en">RIPPLE FORECAST / DETERMINISTIC SUPERPOSITION</span>
           <span class="spacer" />
           <span v-if="forecast" class="tag RED">峰 +{{ forecast.peak.hourOffset }}h · {{ forecast.peak.intensity }}</span>
-          <span class="fig">FIG.05</span>
+          <span class="fig">FIG.06</span>
         </header>
         <div class="panel-body">
           <ForecastChart :forecast="forecast" :sandbox="sandbox" @adherence="loadSandbox($event)" />
@@ -559,7 +626,7 @@ onMounted(async () => {
           <h2>今日守护队列</h2>
           <span class="en">GUARD QUEUE / WHO TO GUARD FIRST</span>
           <span class="spacer" />
-          <span class="fig">FIG.06</span>
+          <span class="fig">FIG.07</span>
         </header>
         <div class="panel-body">
           <GuardQueuePanel :rows="guardQueue" />
@@ -576,7 +643,7 @@ onMounted(async () => {
           <span class="en">COMMUNITY RIPPLE RADAR / CROSS-PATIENT SIGNALS · 7D</span>
           <span class="spacer" />
           <span v-if="radar" class="tag" :class="radar.tideLevel === 'HIGH' ? 'RED' : radar.tideLevel === 'MID' ? 'ORANGE' : 'YELLOW'">潮汐 {{ radar.tideIndex }} · {{ radar.tideLevel }}</span>
-          <span class="fig">FIG.07</span>
+          <span class="fig">FIG.08</span>
         </header>
         <div class="panel-body">
           <CommunityRadar :radar="radar" />
@@ -592,7 +659,7 @@ onMounted(async () => {
         class="agent-card"
         :style="{ borderColor: mdt ? meta.color : 'var(--line-strong)' }"
       >
-        <div class="agent-avatar" :style="{ borderColor: meta.color, color: mdt ? '#f6f3e8' : meta.color, background: mdt ? meta.color : 'var(--card-inset)' }">{{ meta.char }}</div>
+        <div class="agent-avatar" :style="{ borderColor: meta.color, color: mdt ? '#dbe9f9' : meta.color, background: mdt ? meta.color : 'var(--card-inset)' }">{{ meta.char }}</div>
         <div class="agent-info">
           <b>{{ meta.label }}</b>
           <span class="mono">{{ meta.en }} VIEW</span>
@@ -627,7 +694,33 @@ onMounted(async () => {
   font-family: var(--font-mono); font-size: 12px;
 }
 
-.ridge-layout { display: grid; grid-template-columns: 250px 1fr; gap: 18px; }
+.hero-row { display: grid; grid-template-columns: 300px 1fr 320px; gap: 14px; align-items: stretch; }
+@media (max-width: 1500px) { .hero-row { grid-template-columns: 280px 1fr; }
+  .hero-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } }
+@media (max-width: 1100px) { .hero-row { grid-template-columns: 1fr; } .hero-right { grid-template-columns: 1fr; } }
+.hero-left, .hero-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.hero-right .panel-body { max-height: 320px; overflow-y: auto; }
+.pond-hero { position: relative; }
+.pond-hero::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 56%;
+  width: 560px; height: 560px;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from 0deg,
+    rgba(56, 191, 248, 0.07), transparent 25%,
+    rgba(157, 140, 255, 0.06) 40%, transparent 60%,
+    rgba(79, 209, 165, 0.05) 78%, transparent 90%);
+  border-radius: 50%;
+  filter: blur(6px);
+  pointer-events: none;
+  animation: pond-spin 36s linear infinite;
+}
+@keyframes pond-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pond-hero::before { animation: none; } }
+.pond-hero .pond-body { position: relative; display: flex; justify-content: center; }
+.grid-path { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.ridge-layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
 @media (max-width: 1180px) { .ridge-layout { grid-template-columns: 1fr; } }
 
 .chrono-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }

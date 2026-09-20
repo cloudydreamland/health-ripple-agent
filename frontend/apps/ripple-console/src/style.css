@@ -6,43 +6,43 @@
    ============================================================ */
 :root {
   /* 墨玉与灯下纸 */
-  --paper: #0f0d08;
-  --card: #1b1710;
-  --card-glass: rgba(27, 23, 16, 0.82);
+  --paper: #081120;
+  --card: #101f33;
+  --card-glass: rgba(16, 31, 51, 0.82);
   --card-inset: #14110c;
-  --raised: #221d14;
-  --ink: #f0ebdb;
-  --ink-soft: #c9c1a8;
-  --muted: #9a9178;
-  --faint: #6e674f;
-  --line: rgba(240, 235, 219, 0.1);
-  --line-strong: rgba(240, 235, 219, 0.22);
+  --raised: #16283f;
+  --ink: #e8f1fb;
+  --ink-soft: #a9c0dc;
+  --muted: #7e93ab;
+  --faint: #4d5f77;
+  --line: rgba(200, 224, 250, 0.1);
+  --line-strong: rgba(200, 224, 250, 0.22);
 
   /* 鎏金：洞察/编号/高亮的专属色（朱砂从此只属于印章与风险） */
-  --gold: #e3c26d;
-  --gold-bg: rgba(227, 194, 109, 0.1);
+  --gold: #38bdf8;
+  --gold-bg: rgba(56, 191, 248, 0.1);
 
   /* 国画色·夜航版：朱砂 / 藤黄 / 雌黄 / 竹青 / 黛蓝 / 紫藤 / 青瓷（为暗底提亮） */
-  --red: #e05a47;
-  --red-bg: rgba(224, 90, 71, 0.12);
-  --orange: #e59d3c;
+  --red: #f4695c;
+  --red-bg: rgba(244, 105, 92, 0.12);
+  --orange: #f0a45c;
   --orange-bg: rgba(229, 157, 60, 0.13);
-  --yellow: #d9b84c;
+  --yellow: #e5c15c;
   --yellow-bg: rgba(217, 184, 76, 0.13);
-  --green: #5cad85;
-  --green-bg: rgba(92, 173, 133, 0.12);
-  --blue: #739fcc;
-  --blue-bg: rgba(115, 159, 204, 0.12);
-  --violet: #a48cd4;
-  --violet-bg: rgba(164, 140, 212, 0.13);
-  --cyan: #55aeb9;
-  --cyan-bg: rgba(85, 174, 185, 0.13);
+  --green: #4fd1a5;
+  --green-bg: rgba(79, 209, 165, 0.12);
+  --blue: #5ba7f7;
+  --blue-bg: rgba(91, 167, 247, 0.12);
+  --violet: #9d8cff;
+  --violet-bg: rgba(157, 140, 255, 0.13);
+  --cyan: #38cfe8;
+  --cyan-bg: rgba(56, 207, 232, 0.13);
 
   --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", "IBM Plex Mono", Consolas, "Liberation Mono", monospace;
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "Songti SC", serif;
   --font-sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
 
-  --shadow-card: 0 1px 0 rgba(240, 235, 219, 0.04) inset, 0 18px 44px rgba(0, 0, 0, 0.38);
+  --shadow-card: 0 1px 0 rgba(200, 224, 250, 0.04) inset, 0 18px 44px rgba(0, 0, 0, 0.38);
 }
 
 * { box-sizing: border-box; }
@@ -62,9 +62,9 @@ html, body {
 /* 墨夜底：朱砂与青瓷的两盏远灯 + 极淡纸纹颗粒 */
 body {
   background:
-    radial-gradient(1100px 480px at 10% -6%, rgba(227, 194, 109, 0.04), transparent 62%),
-    radial-gradient(1000px 560px at 92% -4%, rgba(85, 174, 185, 0.045), transparent 58%),
-    radial-gradient(1500px 800px at 50% 118%, rgba(164, 140, 212, 0.028), transparent 60%),
+    radial-gradient(1100px 480px at 10% -6%, rgba(56, 191, 248, 0.04), transparent 62%),
+    radial-gradient(1000px 560px at 92% -4%, rgba(56, 207, 232, 0.045), transparent 58%),
+    radial-gradient(1500px 800px at 50% 118%, rgba(157, 140, 255, 0.028), transparent 60%),
     var(--paper);
   position: relative;
 }
@@ -135,7 +135,7 @@ body::before {
   position: absolute;
   right: -60px; top: -90px;
   width: 340px; height: 220px;
-  background: radial-gradient(closest-side, rgba(236, 231, 214, 0.05), transparent 70%);
+  background: radial-gradient(closest-side, rgba(200, 224, 250, 0.05), transparent 70%);
   pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -147,7 +147,7 @@ body::before {
   display: grid; place-items: center;
   font-family: var(--font-serif);
   font-size: 24px; font-weight: 700;
-  box-shadow: inset 0 0 0 1.5px rgba(20, 17, 11, 0.5), inset 0 0 0 3.5px var(--red), 0 0 22px rgba(224, 90, 71, 0.32);
+  box-shadow: inset 0 0 0 1.5px rgba(20, 17, 11, 0.5), inset 0 0 0 3.5px var(--red), 0 0 22px rgba(244, 105, 92, 0.32);
   transform: rotate(-2deg);
 }
 .brand h1 {
@@ -186,7 +186,7 @@ select, input[type="text"], button {
   outline: none;
 }
 select, input[type="text"] { font-family: var(--font-mono); }
-select:focus, input[type="text"]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(236, 231, 214, 0.08); }
+select:focus, input[type="text"]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(200, 224, 250, 0.08); }
 select option { background: var(--card); color: var(--ink); }
 button {
   cursor: pointer;
@@ -205,7 +205,7 @@ button.ghost {
   color: var(--ink-soft);
   font-weight: 500;
 }
-button.ghost:hover { border-color: var(--ink); color: var(--ink); background: rgba(236, 231, 214, 0.05); }
+button.ghost:hover { border-color: var(--ink); color: var(--ink); background: rgba(200, 224, 250, 0.05); }
 button.big { padding: 10px 24px; font-size: 14px; border-radius: 10px; letter-spacing: 1px; position: relative; overflow: hidden; }
 /* 主按钮扫光（F1/ Sentinel 式微交互：克制、只在 hover 时划过一次） */
 button.big::after {
@@ -237,10 +237,10 @@ button.big:hover::after { transform: translateX(130%); }
   border: 1px solid transparent;
   border-radius: 16px;
   background:
-    linear-gradient(rgba(29, 25, 18, 0.88), rgba(24, 20, 13, 0.92)) padding-box,
-    linear-gradient(180deg, rgba(240, 235, 219, 0.32), rgba(240, 235, 219, 0.06) 42%, rgba(240, 235, 219, 0.12)) border-box;
+    linear-gradient(rgba(16, 31, 51, 0.88), rgba(12, 26, 44, 0.92)) padding-box,
+    linear-gradient(180deg, rgba(200, 224, 250, 0.32), rgba(200, 224, 250, 0.06) 42%, rgba(200, 224, 250, 0.12)) border-box;
   box-shadow:
-    inset 0 1px 0 rgba(240, 235, 219, 0.08),
+    inset 0 1px 0 rgba(200, 224, 250, 0.08),
     0 26px 64px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   position: relative;
@@ -281,7 +281,7 @@ button.big:hover::after { transform: translateX(130%); }
   font-family: var(--font-serif);
   font-size: 64px;
   font-weight: 900;
-  color: rgba(236, 231, 214, 0.05);
+  color: rgba(200, 224, 250, 0.05);
   letter-spacing: 0;
   line-height: 1;
   pointer-events: none;
@@ -293,14 +293,14 @@ button.big:hover::after { transform: translateX(130%); }
   line-height: 1.05;
   letter-spacing: -1.5px;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(180deg, #ffffff 8%, #d9d2ba 92%);
+  background: linear-gradient(180deg, #ffffff 8%, #b9d4ee 92%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 10px rgba(240, 235, 219, 0.10));
+  filter: drop-shadow(0 0 10px rgba(200, 224, 250, 0.10));
 }
 /* 英雄格：更大 + 等级色暖光晕（等级色是语义，不可被装饰覆盖） */
-.stat-cell.hero .value { font-size: 58px; letter-spacing: -2px; filter: drop-shadow(0 0 22px rgba(240, 235, 219, 0.22)); }
+.stat-cell.hero .value { font-size: 58px; letter-spacing: -2px; filter: drop-shadow(0 0 22px rgba(200, 224, 250, 0.22)); }
 .stat-cell .value small { font-size: 14px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
 .stat-cell .sub { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
 .stat-cell .sub .up { color: var(--green); font-weight: 700; }
@@ -327,7 +327,7 @@ button.big:hover::after { transform: translateX(130%); }
   overflow: hidden;
   transition: border-color 0.25s ease;
 }
-.panel:hover { border-color: rgba(236, 231, 214, 0.3); }
+.panel:hover { border-color: rgba(200, 224, 250, 0.3); }
 .sec-head {
   display: flex;
   align-items: baseline;
@@ -381,7 +381,7 @@ button.big:hover::after { transform: translateX(130%); }
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(236, 231, 214, 0.02);
+  background: rgba(200, 224, 250, 0.02);
   position: relative;
 }
 .ticker::before, .ticker::after {
@@ -419,14 +419,14 @@ button.big:hover::after { transform: translateX(130%); }
   background: transparent;
   letter-spacing: 0.4px;
 }
-.tag.RED { color: var(--red); border-color: rgba(224, 90, 71, 0.5); background: var(--red-bg); }
+.tag.RED { color: var(--red); border-color: rgba(244, 105, 92, 0.5); background: var(--red-bg); }
 .tag.ORANGE { color: var(--orange); border-color: rgba(229, 157, 60, 0.5); background: var(--orange-bg); }
 .tag.YELLOW { color: var(--yellow); border-color: rgba(217, 184, 76, 0.5); background: var(--yellow-bg); }
-.tag.GREEN { color: var(--green); border-color: rgba(92, 173, 133, 0.5); background: var(--green-bg); }
-.tag.CYAN { color: var(--cyan); border-color: rgba(85, 174, 185, 0.5); background: var(--cyan-bg); }
-.tag.BLUE { color: var(--blue); border-color: rgba(115, 159, 204, 0.5); background: var(--blue-bg); }
-.tag.GUIDELINE { color: var(--green); border-color: rgba(92, 173, 133, 0.5); background: var(--green-bg); }
-.tag.RCT { color: var(--cyan); border-color: rgba(85, 174, 185, 0.5); background: var(--cyan-bg); }
+.tag.GREEN { color: var(--green); border-color: rgba(79, 209, 165, 0.5); background: var(--green-bg); }
+.tag.CYAN { color: var(--cyan); border-color: rgba(56, 207, 232, 0.5); background: var(--cyan-bg); }
+.tag.BLUE { color: var(--blue); border-color: rgba(91, 167, 247, 0.5); background: var(--blue-bg); }
+.tag.GUIDELINE { color: var(--green); border-color: rgba(79, 209, 165, 0.5); background: var(--green-bg); }
+.tag.RCT { color: var(--cyan); border-color: rgba(56, 207, 232, 0.5); background: var(--cyan-bg); }
 .tag.OBSERVATIONAL { color: var(--orange); border-color: rgba(229, 157, 60, 0.5); background: var(--orange-bg); }
 
 .mono { font-family: var(--font-mono); font-size: 12px; }
@@ -438,9 +438,9 @@ button.big:hover::after { transform: translateX(130%); }
 @media (max-width: 1180px) { .agent-strip { grid-template-columns: repeat(2, 1fr); } }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: rgba(236, 231, 214, 0.16); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(236, 231, 214, 0.28); }
+::-webkit-scrollbar-thumb { background: rgba(200, 224, 250, 0.16); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(200, 224, 250, 0.28); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
-::selection { background: rgba(224, 90, 71, 0.32); color: #fff; }
+::selection { background: rgba(244, 105, 92, 0.32); color: #fff; }

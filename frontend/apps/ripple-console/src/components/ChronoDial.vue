@@ -10,10 +10,10 @@ import type { ChronoTriggerView } from "../types";
 const props = defineProps<{ triggers: ChronoTriggerView[] }>();
 
 const TYPE_COLOR: Record<string, string> = {
-  WINDOW: "#e05a47",
-  RHYTHM: "#a48cd4",
-  PERIODIC: "#55aeb9",
-  SEASONAL: "#5cad85",
+  WINDOW: "#f4695c",
+  RHYTHM: "#9d8cff",
+  PERIODIC: "#38cfe8",
+  SEASONAL: "#4fd1a5",
 };
 
 const CX = 150;
@@ -67,7 +67,7 @@ const arcs = computed<Arc[]>(() =>
     return {
       id: t.triggerId,
       type: t.chronoType,
-      color: TYPE_COLOR[t.chronoType] ?? "#958d74",
+      color: TYPE_COLOR[t.chronoType] ?? "#7e93ab",
       d: arcPath(win.a, win.b),
       event: t.event,
     };
@@ -117,12 +117,12 @@ function hourLabel(h: number): { x: number; y: number; text: string } {
   <div class="dial-wrap">
     <svg viewBox="0 0 300 300" class="dial">
       <!-- 表盘 -->
-      <circle :cx="CX" :cy="CY" :r="R" fill="none" stroke="#ece7d6" stroke-opacity="0.28" stroke-width="1" />
-      <circle :cx="CX" :cy="CY" :r="R - 30" fill="none" stroke="#ece7d6" stroke-opacity="0.09" stroke-width="1" stroke-dasharray="2 6" />
+      <circle :cx="CX" :cy="CY" :r="R" fill="none" stroke="#dbe9f9" stroke-opacity="0.28" stroke-width="1" />
+      <circle :cx="CX" :cy="CY" :r="R - 30" fill="none" stroke="#dbe9f9" stroke-opacity="0.09" stroke-width="1" stroke-dasharray="2 6" />
       <line
         v-for="t in ticks" :key="t.h"
         :x1="t.p1.x" :y1="t.p1.y" :x2="t.p2.x" :y2="t.p2.y"
-        :stroke="t.major ? '#ece7d6' : '#958d74'"
+        :stroke="t.major ? '#dbe9f9' : '#7e93ab'"
         :stroke-opacity="t.major ? 0.65 : 0.4"
         :stroke-width="t.major ? 1.6 : 1"
       />
@@ -143,24 +143,24 @@ function hourLabel(h: number): { x: number; y: number; text: string } {
 
       <!-- 下一触达（朱砂点） -->
       <g v-if="nextPos">
-        <circle :cx="nextPos.x" :cy="nextPos.y" r="6" fill="#14110b" stroke="#e05a47" stroke-width="2" />
-        <circle :cx="nextPos.x" :cy="nextPos.y" r="2" fill="#e05a47" />
+        <circle :cx="nextPos.x" :cy="nextPos.y" r="6" fill="#0a1420" stroke="#f4695c" stroke-width="2" />
+        <circle :cx="nextPos.x" :cy="nextPos.y" r="2" fill="#f4695c" />
         <text :x="nextPos.x" :y="nextPos.y - 10" text-anchor="middle" class="dial-next">NEXT</text>
       </g>
 
       <!-- 此刻墨针 -->
-      <line :x1="CX" :y1="CY" :x2="nowPos.x" :y2="nowPos.y" stroke="#ece7d6" stroke-width="1.6" />
-      <circle :cx="nowPos.x" :cy="nowPos.y" r="3" fill="#ece7d6" />
+      <line :x1="CX" :y1="CY" :x2="nowPos.x" :y2="nowPos.y" stroke="#dbe9f9" stroke-width="1.6" />
+      <circle :cx="nowPos.x" :cy="nowPos.y" r="3" fill="#dbe9f9" />
 
       <!-- 盘心 -->
       <text :x="CX" :y="CY - 2" text-anchor="middle" class="dial-num">{{ triggers.length }}</text>
       <text :x="CX" :y="CY + 15" text-anchor="middle" class="dial-cap">触达时辰</text>
     </svg>
     <div class="dial-legend mono">
-      <span><i style="background:#e05a47" />窗口期</span>
-      <span><i style="background:#a48cd4" />节律</span>
-      <span><i style="background:#55aeb9" />周期</span>
-      <span><i style="background:#5cad85" />季节</span>
+      <span><i style="background:#f4695c" />窗口期</span>
+      <span><i style="background:#9d8cff" />节律</span>
+      <span><i style="background:#38cfe8" />周期</span>
+      <span><i style="background:#4fd1a5" />季节</span>
     </div>
   </div>
 </template>
@@ -168,11 +168,11 @@ function hourLabel(h: number): { x: number; y: number; text: string } {
 <style scoped>
 .dial-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .dial { width: 100%; max-width: 280px; display: block; }
-.dial-label { font-size: 10px; fill: #958d74; font-family: var(--font-mono); }
-.dial-next { font-size: 8.5px; fill: #e05a47; font-family: var(--font-mono); letter-spacing: 1px; font-weight: 700; }
-.dial-num { font-size: 26px; font-weight: 700; fill: #ece7d6; font-family: var(--font-mono); }
-.dial-cap { font-size: 9.5px; fill: #958d74; letter-spacing: 2px; }
-.dial-legend { display: flex; gap: 12px; font-size: 10px; color: #c4bca4; }
+.dial-label { font-size: 10px; fill: #7e93ab; font-family: var(--font-mono); }
+.dial-next { font-size: 8.5px; fill: #f4695c; font-family: var(--font-mono); letter-spacing: 1px; font-weight: 700; }
+.dial-num { font-size: 26px; font-weight: 700; fill: #dbe9f9; font-family: var(--font-mono); }
+.dial-cap { font-size: 9.5px; fill: #7e93ab; letter-spacing: 2px; }
+.dial-legend { display: flex; gap: 12px; font-size: 10px; color: #a9c0dc; }
 .dial-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .dial-legend i { width: 8px; height: 8px; border-radius: 50%; }
 </style>

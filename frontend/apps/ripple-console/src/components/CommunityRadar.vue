@@ -34,10 +34,10 @@ const TIDE_LABEL: Record<string, string> = {
   CALM: "静 · CALM",
 };
 const TIDE_COLOR: Record<string, string> = {
-  HIGH: "#e05a47",
-  MID: "#e59d3c",
-  LOW: "#d9b84c",
-  CALM: "#5cad85",
+  HIGH: "#f4695c",
+  MID: "#f0a45c",
+  LOW: "#e5c15c",
+  CALM: "#4fd1a5",
 };
 
 const maxScore = computed(() => Math.max(1, ...(props.radar?.signals ?? []).map((s) => s.signalScore)));

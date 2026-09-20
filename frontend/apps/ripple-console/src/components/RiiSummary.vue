@@ -5,13 +5,13 @@ import type { RippleIntensity } from "../types";
 const props = defineProps<{ intensity: RippleIntensity | null | undefined }>();
 
 const LEVEL_COLOR: Record<string, string> = {
-  RED: "#e05a47",
-  ORANGE: "#e59d3c",
-  YELLOW: "#d9b84c",
-  GREEN: "#5cad85",
+  RED: "#f4695c",
+  ORANGE: "#f0a45c",
+  YELLOW: "#e5c15c",
+  GREEN: "#4fd1a5",
 };
 
-const color = computed(() => LEVEL_COLOR[props.intensity?.level ?? "YELLOW"] ?? "#d9b84c");
+const color = computed(() => LEVEL_COLOR[props.intensity?.level ?? "YELLOW"] ?? "#e5c15c");
 
 // RII 数字滚动：新推演到达时从当前值缓动至目标值
 const display = ref(0);

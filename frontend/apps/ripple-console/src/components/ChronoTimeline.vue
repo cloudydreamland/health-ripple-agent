@@ -7,10 +7,10 @@ const props = defineProps<{ triggers: ChronoTriggerView[]; live?: boolean }>();
 const emit = defineEmits<{ reviewed: [info: { triggerId: number; decision: string; reviewStatus: string; event: string; note: string }] }>();
 
 const TYPE_META: Record<string, { label: string; color: string; en: string }> = {
-  WINDOW: { label: "窗口期", color: "#e05a47", en: "WINDOW" },
-  RHYTHM: { label: "节律", color: "#a48cd4", en: "RHYTHM" },
-  PERIODIC: { label: "周期", color: "#55aeb9", en: "PERIODIC" },
-  SEASONAL: { label: "季节", color: "#5cad85", en: "SEASONAL" },
+  WINDOW: { label: "窗口期", color: "#f4695c", en: "WINDOW" },
+  RHYTHM: { label: "节律", color: "#9d8cff", en: "RHYTHM" },
+  PERIODIC: { label: "周期", color: "#38cfe8", en: "PERIODIC" },
+  SEASONAL: { label: "季节", color: "#4fd1a5", en: "SEASONAL" },
 };
 
 const hovered = ref<number | null>(null);
@@ -25,7 +25,7 @@ const grouped = computed(() => {
 });
 
 function metaOf(type: string) {
-  return TYPE_META[type] ?? { label: type, color: "#958d74", en: type };
+  return TYPE_META[type] ?? { label: type, color: "#7e93ab", en: type };
 }
 
 /** 医生审定（人机共驾终审）：审定入印鉴链；否决需填理由。 */
@@ -156,9 +156,9 @@ async function doReview(item: ChronoTriggerView, decision: "APPROVE" | "ADJUST" 
   border: 1px solid var(--line-strong);
   color: var(--ink-soft);
 }
-.review-pill[data-review="APPROVED"] { color: var(--green); border-color: rgba(92, 173, 133, 0.5); background: var(--green-bg); }
+.review-pill[data-review="APPROVED"] { color: var(--green); border-color: rgba(79, 209, 165, 0.5); background: var(--green-bg); }
 .review-pill[data-review="ADJUSTED"] { color: var(--yellow); border-color: rgba(217, 184, 76, 0.5); background: var(--yellow-bg); }
-.review-pill[data-review="VETOED"] { color: var(--red); border-color: rgba(224, 90, 71, 0.5); background: var(--red-bg); }
+.review-pill[data-review="VETOED"] { color: var(--red); border-color: rgba(244, 105, 92, 0.5); background: var(--red-bg); }
 .review-row { display: flex; gap: 6px; margin-top: 7px; align-items: center; }
 .rv {
   font-size: 10.5px;
@@ -167,11 +167,11 @@ async function doReview(item: ChronoTriggerView, decision: "APPROVE" | "ADJUST" 
   border-radius: 6px;
   letter-spacing: 0.5px;
 }
-.rv.approve { background: transparent; border: 1px solid rgba(92, 173, 133, 0.55); color: var(--green); }
+.rv.approve { background: transparent; border: 1px solid rgba(79, 209, 165, 0.55); color: var(--green); }
 .rv.approve:hover { background: var(--green-bg); }
 .rv.adjust { background: transparent; border: 1px solid rgba(217, 184, 76, 0.55); color: var(--yellow); }
 .rv.adjust:hover { background: var(--yellow-bg); }
-.rv.veto { background: transparent; border: 1px solid rgba(224, 90, 71, 0.55); color: var(--red); }
+.rv.veto { background: transparent; border: 1px solid rgba(244, 105, 92, 0.55); color: var(--red); }
 .rv.veto:hover { background: var(--red-bg); }
 .rv-hint { font-size: 9.5px; color: var(--faint); letter-spacing: 0.5px; }
 .rv-error { margin: 4px 0 0; font-size: 11px; color: var(--red); }

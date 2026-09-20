@@ -131,26 +131,26 @@ const sandboxDelta = computed(() => {
       <svg :viewBox="`0 0 ${W} ${H}`" class="fc-svg">
         <defs>
           <linearGradient id="fc-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#e05a47" stop-opacity="0.4" />
-            <stop offset="100%" stop-color="#e05a47" stop-opacity="0.02" />
+            <stop offset="0%" stop-color="#f4695c" stop-opacity="0.4" />
+            <stop offset="100%" stop-color="#f4695c" stop-opacity="0.02" />
           </linearGradient>
         </defs>
         <!-- 日刻度线 -->
         <g v-for="t in dayTicks" :key="t.label">
-          <line :x1="t.x" :x2="t.x" :y1="PAD_T" :y2="H - PAD_B" stroke="rgba(236,231,214,0.14)" stroke-width="1" stroke-dasharray="2 5" />
+          <line :x1="t.x" :x2="t.x" :y1="PAD_T" :y2="H - PAD_B" stroke="rgba(200,224,250,0.14)" stroke-width="1" stroke-dasharray="2 5" />
           <text :x="t.x" :y="H - PAD_B + 15" text-anchor="middle" class="fc-tick">{{ t.label }}</text>
         </g>
         <!-- 强度基线 -->
-        <line :x1="PAD_L" :x2="W - 12" :y1="H - PAD_B" :y2="H - PAD_B" stroke="#958d74" stroke-width="1.2" />
+        <line :x1="PAD_L" :x2="W - 12" :y1="H - PAD_B" :y2="H - PAD_B" stroke="#7e93ab" stroke-width="1.2" />
         <text :x="PAD_L - 6" :y="PAD_T + 4" text-anchor="end" class="fc-tick">强</text>
         <text :x="PAD_L - 6" :y="H - PAD_B" text-anchor="end" class="fc-tick">0</text>
         <path :d="areaPath" fill="url(#fc-fill)" />
-        <path :d="linePath" fill="none" stroke="#e05a47" stroke-width="2" />
+        <path :d="linePath" fill="none" stroke="#f4695c" stroke-width="2" />
         <!-- 依从性沙盘曲线：守护被执行后的确定性重算（虚线） -->
-        <path v-if="sandboxLinePath" :d="sandboxLinePath" fill="none" stroke="#55aeb9" stroke-width="2" stroke-dasharray="5 4" />
-        <circle v-if="peakMark" :cx="points[forecast.peak.hourOffset].x" :cy="points[forecast.peak.hourOffset].y" r="4" fill="#e05a47" stroke="#14110b" stroke-width="1.5" />
+        <path v-if="sandboxLinePath" :d="sandboxLinePath" fill="none" stroke="#38cfe8" stroke-width="2" stroke-dasharray="5 4" />
+        <circle v-if="peakMark" :cx="points[forecast.peak.hourOffset].x" :cy="points[forecast.peak.hourOffset].y" r="4" fill="#f4695c" stroke="#0a1420" stroke-width="1.5" />
         <g v-if="peakMark">
-          <line :x1="peakMark.x" :x2="peakMark.x" :y1="peakMark.y - 4" :y2="peakMark.y + 4" stroke="#e05a47" stroke-width="1" />
+          <line :x1="peakMark.x" :x2="peakMark.x" :y1="peakMark.y - 4" :y2="peakMark.y + 4" stroke="#f4695c" stroke-width="1" />
           <text :x="peakMark.x + 8" :y="peakMark.y + 4" class="fc-peak">峰 +{{ peakMark.hour }}h · {{ peakMark.label }}</text>
         </g>
       </svg>
@@ -178,14 +178,14 @@ const sandboxDelta = computed(() => {
 <style scoped>
 .forecast { display: flex; flex-direction: column; gap: 8px; }
 .fc-svg { width: 100%; }
-.fc-tick { font-size: 10px; fill: #958d74; font-family: var(--font-mono); }
+.fc-tick { font-size: 10px; fill: #7e93ab; font-family: var(--font-mono); }
 .fc-peak { font-size: 12px; fill: var(--red); font-weight: 700; font-family: var(--font-serif); }
 .fc-note { margin: 0; font-size: 10.5px; color: var(--muted); line-height: 1.7; }
 .fc-empty { margin: 0; font-size: 11px; color: var(--faint); }
 
 .sandbox-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sb-label { font-size: 10px; letter-spacing: 1.2px; color: var(--cyan); font-weight: 700; flex: none; }
-.sb-slider { flex: 1; min-width: 160px; accent-color: #55aeb9; height: 4px; cursor: pointer; }
+.sb-slider { flex: 1; min-width: 160px; accent-color: #38cfe8; height: 4px; cursor: pointer; }
 .sb-value { font-size: 13px; font-weight: 700; color: var(--cyan); width: 42px; text-align: right; flex: none; }
 .sb-delta { font-size: 10.5px; color: var(--ink-soft); letter-spacing: 0.4px; }
 .sb-hint { font-size: 10.5px; color: var(--faint); letter-spacing: 0.4px; }
