@@ -1,29 +1,29 @@
 @import "../../../packages/shared-ui/src/styles/index.css";
 
 :root {
-  --bg: #eef2f4;
-  --surface: #ffffff;
-  --surface-alt: #f6f8f9;
-  --ink: #17212b;
-  --muted: #596777;
-  --subtle: #7d8792;
-  --line: #ccd4dc;
-  --line-strong: #9eaab6;
-  --primary: #0b5f78;
-  --primary-strong: #07485c;
-  --primary-soft: #e0eef3;
-  --success: #1f7a4d;
-  --success-soft: #e5f2eb;
-  --warning: #9b6716;
-  --warning-soft: #fff2d7;
-  --danger: #b3261e;
-  --danger-soft: #fbe5e2;
-  --info: #245ca8;
-  --info-soft: #e4edf8;
+  --bg: #ece4d0;
+  --surface: #f3edda;
+  --surface-alt: #e9e0cb;
+  --ink: #2f2a20;
+  --muted: #6e6858;
+  --subtle: #8f8471;
+  --line: #d5c9a8;
+  --line-strong: #b9ac86;
+  --primary: #8a1f14;
+  --primary-strong: #6e150c;
+  --primary-soft: rgba(176, 48, 36, 0.08);
+  --success: #4a6741;
+  --success-soft: rgba(74, 103, 65, 0.12);
+  --warning: #a8871a;
+  --warning-soft: rgba(168, 135, 26, 0.12);
+  --danger: #b03024;
+  --danger-soft: rgba(176, 48, 36, 0.08);
+  --info: #4a5a78;
+  --info-soft: rgba(74, 90, 120, 0.1);
   --shadow: none;
   --radius: 0;
   --radius-sm: 0;
-  --focus: 0 0 0 2px rgba(11, 95, 120, 0.22);
+  --focus: 0 0 0 2px rgba(138, 31, 20, 0.22);
 }
 
 * {
@@ -810,4 +810,154 @@ textarea {
   .encounter-actions button {
     width: 100%;
   }
+}
+
+/* ============================================================
+   朱批卷宗主题覆写（AI 建议如奏折，医生落朱批：准 / 驳 / 阅）
+   卷宗米 #ece4d0 · 朱批红 #8a1f14 · 墨字；档案方角。
+   家族：患者端「复古监护仪」与大屏「墨玉鎏金」同源设计系统，
+   一暗一亮（夜里看海图，白天坐堂批卷）。
+   ============================================================ */
+body {
+  background:
+    radial-gradient(1100px 300px at 18% -60px, rgba(138, 31, 20, 0.05), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120, 106, 70, 0.04) 0 1px, transparent 1px 4px),
+    var(--bg);
+}
+
+.doctor-nav {
+  background: #2b241a;
+  border-right-color: #4a3f2e;
+}
+
+.doctor-mark {
+  background: #8a1f14;
+  color: #f3edda;
+  border-bottom-color: #4a3f2e;
+  font-family: "Noto Serif SC", serif;
+}
+
+.doctor-nav-link {
+  border-bottom-color: #3d3428;
+  color: #cbbfa4;
+}
+
+.doctor-nav-link.active {
+  background: #8a1f14;
+  color: #f3edda;
+}
+
+.doctor-nav-link b {
+  border-color: rgba(243, 237, 218, 0.3);
+}
+
+.doctor-topline {
+  background: var(--surface);
+  border-bottom: 2px solid #8a1f14;
+}
+
+.doctor-session strong {
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 1px;
+}
+
+.clinical-section,
+.clinical-statusbar,
+.queue-toolbar,
+.patient-context-bar,
+.clinical-alert,
+.notice {
+  background: var(--surface);
+  border-color: #cfc3a2;
+}
+
+.section-toolbar {
+  background: #e9e0cb;
+  border-bottom-color: #cfc3a2;
+}
+
+.section-toolbar h2 {
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 1.5px;
+}
+
+.patient-name-block {
+  background: #e9e0cb;
+}
+
+.status-cell {
+  background: var(--surface);
+}
+
+.status-cell strong {
+  font-family: "JetBrains Mono", "Cascadia Code", monospace;
+}
+
+button,
+.button {
+  background: var(--surface);
+  border-color: #b9ac86;
+}
+
+button:hover,
+.button:hover {
+  background: #e9e0cb;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+button.primary,
+.button.primary {
+  background: #8a1f14;
+  border-color: #6e150c;
+  color: #f3edda;
+}
+
+button.primary:hover,
+.button.primary:hover {
+  background: #6e150c;
+  color: #f3edda;
+}
+
+input,
+textarea,
+select {
+  background: #f8f3e4;
+  border-color: #b9ac86;
+}
+
+.tag {
+  background: var(--surface);
+  border-color: #cfc3a2;
+}
+
+.clinical-table th {
+  background: #e4dbc2;
+  color: #4a3f2e;
+}
+
+.clinical-table td {
+  background: var(--surface);
+}
+
+.clinical-table tbody tr:hover td {
+  background: #ece2c8;
+}
+
+.bar-track {
+  background: #e4dbc2;
+}
+
+.bar-track i {
+  background: #8a1f14;
+}
+
+.stream-box {
+  background: #f3edda;
+  border-color: #cfc3a2;
+  color: #4a3f2e;
+}
+
+.segmented {
+  background: var(--surface);
 }

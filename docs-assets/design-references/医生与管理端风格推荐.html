@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医生工作站 × 管理端 风格推荐 v2 · 国风世界观四方向</title>
+<style>
+  :root { --studio:#131313; --panel:#1b1b1b; --line:#2c2c2c; --ink:#e9e5da; --soft:#a39d8e; --faint:#6b665b; }
+  * { box-sizing:border-box; }
+  body { background:var(--studio); color:var(--ink); font-family:"Microsoft YaHei",sans-serif; margin:0; padding:34px 26px 60px; }
+  .wrap { max-width:1240px; margin:0 auto; }
+  h1 { font-size:26px; letter-spacing:1px; margin:0 0 6px; }
+  h1 em { font-style:normal; color:#38bdf8; }
+  .lead { color:var(--soft); line-height:1.9; font-size:13.5px; max-width:1000px; }
+  .lead b { color:var(--ink); }
+
+  .opt { border:1px solid var(--line); border-radius:18px; overflow:hidden; margin:30px 0; background:var(--panel); }
+  .opt.recommended { border:1px solid rgba(56,191,248,.55); box-shadow:0 0 46px rgba(56,191,248,.10); }
+  .opt-head { display:flex; align-items:baseline; gap:14px; padding:16px 24px 0; flex-wrap:wrap; }
+  .num { font-weight:900; border-radius:8px; padding:2px 13px; font-size:17px; }
+  .opt-head h2 { margin:0; font-size:19px; letter-spacing:.5px; }
+  .opt-head .en { color:var(--faint); font-size:12px; letter-spacing:2px; }
+  .opt-body { padding:16px 24px 24px; }
+  .mock-tag { font-size:10.5px; letter-spacing:2px; color:var(--faint); margin:0 0 6px; }
+  .mocks { display:grid; grid-template-columns:1.45fr 1fr; gap:14px; }
+  @media (max-width:1000px){ .mocks { grid-template-columns:1fr; } }
+  .mock-frame { border-radius:14px; overflow:hidden; min-height:340px; display:flex; flex-direction:column; }
+
+  .desc { padding:14px 2px 0; font-size:13px; line-height:1.85; color:var(--soft); }
+  .desc .story b { color:var(--ink); }
+  .desc .refs { margin:10px 0; padding:10px 14px; border-left:2px solid var(--line); font-size:12.5px; }
+  .desc .refs div { margin:3px 0; }
+  .score { display:flex; gap:8px; margin:10px 0 6px; flex-wrap:wrap; }
+  .score span { background:#242424; border:1px solid var(--line); border-radius:999px; padding:2px 11px; font-size:12px; color:var(--ink); }
+  .score b { color:#e3c26d; }
+  .meta { color:var(--faint); font-size:12px; line-height:1.8; }
+  .verdict { margin-top:10px; font-size:12.5px; padding:9px 13px; border-radius:10px; background:#20242a; border:1px solid #32405050; color:#b8cfdf; }
+  .foot-note { color:var(--faint); font-size:12.5px; line-height:1.9; border-top:1px solid var(--line); padding-top:18px; margin-top:34px; }
+
+  /* =================================================================
+     ① 鎏金病案房 —— 大屏「墨玉鎏金」的直系坐姿版
+     ================================================================= */
+  .m1d { background:
+      radial-gradient(700px 300px at 12% -8%, rgba(56,191,248,.06), transparent 60%),
+      radial-gradient(600px 260px at 95% -6%, rgba(56,207,232,.05), transparent 55%),
+      #081120; color:#e8f1fb; position:relative; font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
+  .m1d::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.07;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .m1d > * { position:relative; }
+  .m1d .bar { display:flex; align-items:baseline; gap:12px; padding:12px 18px 10px; border-bottom:1px solid rgba(200,224,250,.14); }
+  .m1d .bar h4 { margin:0; font-family:"Noto Serif SC",serif; font-size:16px; letter-spacing:2px; font-weight:700; }
+  .m1d .bar h4 i { font-style:normal; color:#38bdf8; }
+  .m1d .bar small { color:#7e93ab; font-size:9.5px; letter-spacing:2px; }
+  .m1d .bar .tm { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:10px; color:#38bdf8; letter-spacing:1.5px; }
+  .m1d .pt { margin:12px 16px 0; display:flex; align-items:center; gap:12px; background:rgba(16,31,51,.85); border:1px solid rgba(200,224,250,.14); border-radius:10px; padding:9px 14px; }
+  .m1d .pt b { font-family:"Noto Serif SC",serif; font-size:13.5px; letter-spacing:1px; }
+  .m1d .pt span { font-size:11px; color:#a9c0dc; }
+  .m1d .pt .flag { margin-left:auto; background:rgba(244,105,92,.14); color:#f4695c; border:1px solid rgba(244,105,92,.5); border-radius:6px; padding:2px 9px; font-size:10px; font-weight:700; }
+  .m1d .cols { display:grid; grid-template-columns:1fr 1.9fr; gap:12px; padding:12px 16px 16px; flex:1; }
+  .m1d .panel { background:rgba(16,31,51,.8); border:1px solid rgba(200,224,250,.12); border-radius:10px; padding:10px 12px; box-shadow:0 1px 0 rgba(200,224,250,.05) inset, 0 14px 30px rgba(0,0,0,.35); }
+  .m1d h5 { margin:0 0 8px; font-size:9.5px; letter-spacing:2px; color:#7e93ab; font-weight:600; display:flex; justify-content:space-between; }
+  .m1d .qi { display:flex; justify-content:space-between; font-size:11px; padding:6px 9px; border-radius:7px; margin-bottom:6px; border:1px solid transparent; color:#a9c0dc; }
+  .m1d .qi.on { border-color:rgba(56,191,248,.45); background:rgba(56,191,248,.08); color:#e8f1fb; box-shadow:0 0 12px rgba(56,191,248,.12) inset; }
+  .m1d .qi i { font-style:normal; font-family:"JetBrains Mono",monospace; font-size:9.5px; color:#7e93ab; }
+  .m1d .vit { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
+  .m1d .vit .v { border:1px solid rgba(200,224,250,.12); border-radius:8px; padding:6px 9px; background:rgba(22,40,63,.7); }
+  .m1d .vit label { display:block; font-size:8.5px; letter-spacing:1.6px; color:#7e93ab; }
+  .m1d .vit b { font-family:"JetBrains Mono",monospace; font-size:14.5px; color:#e8f1fb; }
+  .m1d .vit b.warn { color:#f4695c; text-shadow:0 0 10px rgba(244,105,92,.4); }
+  .m1d .rxrow { display:flex; justify-content:space-between; font-size:11px; padding:5.5px 0; border-bottom:1px solid rgba(200,224,250,.08); }
+  .m1d .rxrow:last-of-type { border-bottom:0; }
+  .m1d .danger { color:#f4695c; font-weight:700; }
+  .m1d .okc { color:#4fd1a5; }
+  .m1d .seal { display:inline-grid; place-items:center; width:34px; height:34px; border:2px solid rgba(244,105,92,.75); color:#f4695c; border-radius:8px; font-family:"Noto Serif SC",serif; font-weight:900; font-size:15px; transform:rotate(-6deg); box-shadow:0 0 12px rgba(244,105,92,.25); }
+  .m1d .btn { display:inline-block; background:linear-gradient(180deg,rgba(56,191,248,.2),rgba(56,191,248,.08)); border:1px solid rgba(56,191,248,.55); color:#7dd3fc; border-radius:7px; padding:5px 13px; font-size:10.5px; font-weight:700; margin-right:6px; }
+  .m1d .btn.ghost { background:transparent; border-color:rgba(200,224,250,.25); color:#a9c0dc; }
+  .m1a { background:#081120; color:#e8f1fb; font-family:"PingFang SC",sans-serif; display:flex; position:relative; }
+  .m1a::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.07;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .m1a > * { position:relative; }
+  .m1a .side { width:40%; background:rgba(16,31,51,.6); border-right:1px solid rgba(200,224,250,.12); padding:12px 0; }
+  .m1a .side .brand { font-family:"Noto Serif SC",serif; font-weight:800; letter-spacing:2px; font-size:12.5px; padding:2px 15px 11px; color:#e8f1fb; }
+  .m1a .side .it { padding:6.5px 15px; font-size:11.5px; color:#a9c0dc; border-left:2px solid transparent; }
+  .m1a .side .it.on { color:#7dd3fc; border-left-color:#38bdf8; background:rgba(56,191,248,.07); }
+  .m1a .main { flex:1; padding:12px 14px; }
+  .m1a .main h5 { margin:0 0 9px; font-size:9.5px; letter-spacing:2px; color:#7e93ab; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .m1a table { width:100%; border-collapse:collapse; font-size:10.5px; }
+  .m1a th { text-align:left; color:#7e93ab; font-weight:600; font-size:9px; letter-spacing:1.6px; border-bottom:1px solid rgba(200,224,250,.16); padding:4px 6px; }
+  .m1a td { padding:6px; border-bottom:1px solid rgba(200,224,250,.06); color:#c9dcef; }
+  .m1a .dgr { color:#f4695c; font-weight:700; }
+  .m1a .newb { border:1px solid rgba(56,191,248,.55); color:#7dd3fc; border-radius:6px; padding:3px 10px; font-size:10px; font-weight:700; }
+
+  /* =================================================================
+     ② 铜人经纬 —— 针灸铜人 · 暗铜金线 · 穴位光点
+     ================================================================= */
+  .m2d { background:
+      radial-gradient(600px 280px at 80% -10%, rgba(201,162,94,.10), transparent 60%),
+      linear-gradient(160deg, #221a0f, #171008 70%);
+      color:#e8dcc3; font-family:"PingFang SC",sans-serif; position:relative; }
+  .m2d::before { content:""; position:absolute; left:0; right:0; top:52px; height:2px; pointer-events:none;
+    background:linear-gradient(90deg, transparent, #c9a25e 18%, rgba(201,162,94,.15) 50%, #c9a25e 82%, transparent); }
+  .m2d > * { position:relative; }
+  .m2d .bar { display:flex; align-items:baseline; gap:12px; padding:12px 18px 10px; }
+  .m2d .bar h4 { margin:0; font-family:"Noto Serif SC",serif; font-size:16px; letter-spacing:2px; color:#f0e2bd; }
+  .m2d .bar small { color:#9a8a66; font-size:9.5px; letter-spacing:2px; }
+  .m2d .bar .tm { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:10px; color:#c9a25e; letter-spacing:1.5px; }
+  .m2d .acupoints { display:flex; gap:22px; padding:8px 18px 4px; }
+  .m2d .acu { display:flex; align-items:center; gap:7px; font-size:10.5px; color:#cbb98d; }
+  .m2d .acu .dot { width:9px; height:9px; border-radius:50%; box-shadow:0 0 10px currentColor; background:currentColor; }
+  .m2d .acu.warn { color:#e0684f; } .m2d .acu.ok { color:#c9a25e; } .m2d .acu.calm { color:#7fa08a; }
+  .m2d .cols { display:grid; grid-template-columns:1fr 1.9fr; gap:12px; padding:10px 16px 16px; flex:1; }
+  .m2d .panel { background:rgba(201,162,94,.06); border:1px solid rgba(201,162,94,.35); border-radius:10px; padding:10px 12px; }
+  .m2d h5 { margin:0 0 8px; font-size:9.5px; letter-spacing:2px; color:#9a8a66; font-weight:600; display:flex; justify-content:space-between; }
+  .m2d .qi { display:flex; justify-content:space-between; font-size:11px; padding:6px 9px; border-radius:7px; margin-bottom:6px; border:1px solid rgba(201,162,94,.15); color:#cbb98d; }
+  .m2d .qi.on { border-color:rgba(201,162,94,.7); background:rgba(201,162,94,.1); color:#f0e2bd; }
+  .m2d .qi i { font-style:normal; font-family:"JetBrains Mono",monospace; font-size:9.5px; color:#9a8a66; }
+  .m2d .meridian { position:relative; padding:8px 0 4px 18px; margin:4px 0 10px; }
+  .m2d .meridian::before { content:""; position:absolute; left:2px; top:0; bottom:0; width:2px;
+    background:linear-gradient(180deg,#c9a25e, rgba(201,162,94,.12)); border-radius:2px; }
+  .m2d .meridian .node { position:absolute; left:-3px; width:9px; height:9px; border-radius:50%; background:#c9a25e; box-shadow:0 0 9px rgba(201,162,94,.8); }
+  .m2d .meridian .node.r { background:#e0684f; box-shadow:0 0 10px rgba(224,104,79,.9); }
+  .m2d .mrow { font-size:11px; padding:4px 0; color:#cbb98d; display:flex; justify-content:space-between; }
+  .m2d .mrow b { color:#f0e2bd; }
+  .m2d .mrow .danger { color:#e0684f; font-weight:700; }
+  .m2d .btn { display:inline-block; border:1px solid #c9a25e; color:#e8dcc3; border-radius:7px; padding:5px 13px; font-size:10.5px; font-weight:700; margin-right:6px; background:rgba(201,162,94,.08); }
+  .m2a { background:linear-gradient(160deg,#221a0f,#171008 70%); color:#e8dcc3; display:flex; font-family:"PingFang SC",sans-serif; }
+  .m2a .side { width:40%; border-right:1px solid rgba(201,162,94,.3); padding:12px 0; }
+  .m2a .side .brand { font-family:"Noto Serif SC",serif; font-weight:800; letter-spacing:2px; font-size:12.5px; padding:2px 15px 11px; color:#f0e2bd; }
+  .m2a .side .it { padding:6.5px 15px; font-size:11.5px; color:#cbb98d; border-left:2px solid transparent; }
+  .m2a .side .it.on { color:#f0e2bd; border-left-color:#c9a25e; background:rgba(201,162,94,.09); }
+  .m2a .main { flex:1; padding:12px 14px; }
+  .m2a .main h5 { margin:0 0 9px; font-size:9.5px; letter-spacing:2px; color:#9a8a66; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .m2a table { width:100%; border-collapse:collapse; font-size:10.5px; }
+  .m2a th { text-align:left; color:#9a8a66; font-weight:600; font-size:9px; letter-spacing:1.6px; border-bottom:1px solid rgba(201,162,94,.4); padding:4px 6px; }
+  .m2a td { padding:6px; border-bottom:1px solid rgba(201,162,94,.12); color:#d8cba8; }
+  .m2a .dgr { color:#e0684f; font-weight:700; }
+  .m2a .newb { border:1px solid #c9a25e; color:#f0e2bd; border-radius:6px; padding:3px 10px; font-size:10px; font-weight:700; }
+
+  /* =================================================================
+     ③ 青花瓷卷 —— 瓷白 · 钴蓝 · 回纹
+     ================================================================= */
+  .m3d { background:#f2f6f9; color:#17324f; font-family:"PingFang SC",sans-serif; position:relative; }
+  .m3d::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 118px, rgba(30,64,175,.10) 118px 120px),
+      radial-gradient(500px 200px at 85% -20%, rgba(30,64,175,.07), transparent 65%); }
+  .m3d > * { position:relative; }
+  .m3d .bar { display:flex; align-items:baseline; gap:12px; padding:12px 18px 10px; border-bottom:2px solid #1e40af; background:#fff; }
+  .m3d .bar h4 { margin:0; font-family:"Noto Serif SC",serif; font-size:16px; letter-spacing:2px; color:#1e40af; }
+  .m3d .bar small { color:#7c93b8; font-size:9.5px; letter-spacing:2px; }
+  .m3d .bar .tm { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:10px; color:#1e40af; letter-spacing:1.5px; }
+  .m3d .pt { margin:12px 16px 0; display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid #1e40af; border-radius:10px; padding:9px 14px; box-shadow:0 2px 8px rgba(30,64,175,.12); }
+  .m3d .pt b { font-family:"Noto Serif SC",serif; font-size:13.5px; color:#17324f; }
+  .m3d .pt span { font-size:11px; color:#5c78a3; }
+  .m3d .pt .flag { margin-left:auto; background:#fff; color:#1e40af; border:1.5px solid #1e40af; border-radius:6px; padding:2px 9px; font-size:10px; font-weight:700; }
+  .m3d .cols { display:grid; grid-template-columns:1fr 1.9fr; gap:12px; padding:12px 16px 16px; flex:1; }
+  .m3d .panel { background:#fff; border:1px solid rgba(30,64,175,.35); border-radius:10px; padding:10px 12px; }
+  .m3d h5 { margin:0 0 8px; font-size:9.5px; letter-spacing:2px; color:#5c78a3; font-weight:600; display:flex; justify-content:space-between; }
+  .m3d .qi { display:flex; justify-content:space-between; font-size:11px; padding:6px 9px; border-radius:7px; margin-bottom:6px; border:1px solid rgba(30,64,175,.18); color:#3d5a80; }
+  .m3d .qi.on { border:1.5px solid #1e40af; background:rgba(30,64,175,.06); color:#17324f; }
+  .m3d .qi i { font-style:normal; font-family:"JetBrains Mono",monospace; font-size:9.5px; color:#7c93b8; }
+  .m3d .rxrow { display:flex; justify-content:space-between; font-size:11px; padding:5.5px 0; border-bottom:1px solid #e3ebf5; }
+  .m3d .danger { color:#b91c1c; font-weight:700; }
+  .m3d .okc { color:#1d7a4a; }
+  .m3d .btn { display:inline-block; background:#1e40af; color:#fff; border-radius:7px; padding:5px 13px; font-size:10.5px; font-weight:700; margin-right:6px; }
+  .m3d .btn.ghost { background:#fff; border:1.5px solid #1e40af; color:#1e40af; }
+  .m3d .seal { display:inline-grid; place-items:center; width:34px; height:34px; border:2px solid #1e40af; color:#1e40af; border-radius:8px; font-family:"Noto Serif SC",serif; font-weight:900; font-size:15px; transform:rotate(-6deg); box-shadow:0 0 10px rgba(30,64,175,.25); background:#fff; }
+  .m3a { background:#f2f6f9; color:#17324f; display:flex; font-family:"PingFang SC",sans-serif; }
+  .m3a .side { width:40%; background:#1e40af; color:#dbe7fb; padding:12px 0; }
+  .m3a .side .brand { font-family:"Noto Serif SC",serif; font-weight:800; letter-spacing:2px; font-size:12.5px; padding:2px 15px 11px; color:#fff; }
+  .m3a .side .it { padding:6.5px 15px; font-size:11.5px; border-left:2px solid transparent; }
+  .m3a .side .it.on { color:#fff; border-left-color:#fff; background:rgba(255,255,255,.12); }
+  .m3a .main { flex:1; padding:12px 14px; }
+  .m3a .main h5 { margin:0 0 9px; font-size:9.5px; letter-spacing:2px; color:#5c78a3; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .m3a table { width:100%; border-collapse:collapse; font-size:10.5px; }
+  .m3a th { text-align:left; color:#5c78a3; font-weight:600; font-size:9px; letter-spacing:1.6px; border-bottom:1.5px solid #1e40af; padding:4px 6px; }
+  .m3a td { padding:6px; border-bottom:1px solid #dbe5f2; }
+  .m3a .dgr { color:#b91c1c; font-weight:700; }
+  .m3a .newb { background:#1e40af; color:#fff; border-radius:6px; padding:3px 10px; font-size:10px; font-weight:700; }
+
+  /* =================================================================
+     ④ 朱批卷宗 —— 清宫朱批 · 卷宗米 · 准/驳印章
+     ================================================================= */
+  .m4d { background:#ece4d0; color:#2f2a20; font-family:"Noto Serif SC",serif; position:relative; }
+  .m4d::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.08;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .m4d > * { position:relative; }
+  .m4d .bar { display:flex; align-items:baseline; gap:12px; padding:12px 18px 10px; border-bottom:3px double #8a1f14; background:#e4dbc2; }
+  .m4d .bar h4 { margin:0; font-size:16px; letter-spacing:3px; font-weight:900; color:#8a1f14; }
+  .m4d .bar small { color:#8f8471; font-size:9.5px; letter-spacing:2px; font-family:"PingFang SC",sans-serif; }
+  .m4d .bar .tm { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:10px; color:#8a1f14; letter-spacing:1.5px; }
+  .m4d .sheet { margin:12px 16px 0; background:#f3edda; border:1px solid #cfc3a2; border-left:4px solid #8a1f14; padding:10px 14px 12px; box-shadow:2px 3px 0 rgba(90,70,40,.18); }
+  .m4d .sheet h5 { margin:0 0 8px; font-size:12.5px; font-weight:900; letter-spacing:3px; display:flex; justify-content:space-between; align-items:center; }
+  .m4d .zb { display:inline-grid; place-items:center; width:30px; height:30px; border:2.5px solid #b03024; color:#b03024; border-radius:50%; font-weight:900; font-size:14px; transform:rotate(-8deg); box-shadow:0 0 10px rgba(176,48,36,.3); }
+  .m4d .row { display:flex; gap:9px; align-items:center; font-size:11.5px; padding:6px 0; border-bottom:1px dashed #cfc3a2; font-family:"PingFang SC",sans-serif; }
+  .m4d .row:last-child { border-bottom:0; }
+  .m4d .row .no { font-family:"JetBrains Mono",monospace; color:#8a1f14; font-weight:700; font-size:10px; }
+  .m4d .row b { font-weight:700; }
+  .m4d .seals { display:flex; gap:8px; padding:10px 16px; }
+  .m4d .seal { display:grid; place-items:center; width:44px; height:44px; border:2.5px solid #b03024; color:#b03024; border-radius:9px; font-weight:900; font-size:19px; transform:rotate(-5deg); box-shadow:0 0 12px rgba(176,48,36,.25); background:rgba(243,237,218,.6); }
+  .m4d .seal.gray { border-color:#8f8471; color:#8f8471; box-shadow:none; transform:rotate(4deg); }
+  .m4d .seals small { align-self:center; color:#8f8471; font-family:"PingFang SC",sans-serif; font-size:10.5px; }
+  .m4a { background:#ece4d0; color:#2f2a20; display:flex; font-family:"Noto Serif SC",serif; }
+  .m4a .side { width:40%; background:#e4dbc2; border-right:3px double #8a1f14; padding:12px 0; }
+  .m4a .side .brand { font-weight:900; letter-spacing:3px; font-size:12.5px; padding:2px 15px 11px; color:#8a1f14; }
+  .m4a .side .it { padding:6.5px 15px; font-size:11.5px; color:#6e6858; font-family:"PingFang SC",sans-serif; border-left:3px solid transparent; }
+  .m4a .side .it.on { color:#8a1f14; border-left-color:#b03024; background:#f3edda; font-weight:700; }
+  .m4a .main { flex:1; padding:12px 14px; }
+  .m4a .main h5 { margin:0 0 9px; font-size:12px; letter-spacing:3px; font-weight:900; display:flex; justify-content:space-between; align-items:center; }
+  .m4a table { width:100%; border-collapse:collapse; font-size:10.5px; font-family:"PingFang SC",sans-serif; }
+  .m4a th { text-align:left; color:#8f8471; font-weight:600; font-size:9px; letter-spacing:1.6px; border-bottom:1px solid #8a1f14; padding:4px 6px; }
+  .m4a td { padding:6px; border-bottom:1px dashed #cfc3a2; }
+  .m4a .dgr { color:#b03024; font-weight:700; }
+  .m4a .newb { border:2px solid #b03024; color:#b03024; border-radius:7px; padding:3px 10px; font-size:10px; font-weight:800; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>医生工作站 × 管理端 风格推荐 <em>v2</em> · 国风世界观四方向</h1>
+  <p class="lead">
+    v2 重做。上一版败在"企业模板味"——没有世界观。这一版全部从<b>大屏「墨玉鎏金」的文化基因</b>和<b>中医/院署文化意象</b>里长出来，
+    每个方向仍然同时给出<b>医生工作站 + 管理端</b>两块 mock。评判标准只有一个：<b>特色量级对齐大屏</b>，其次才是信息密度与长时使用的舒适度。
+    顺带说明：医生端走暗色在 2025-26 年已是临床界面主流基线（dark mode 成 EHR 标配），不必担心"工作台必须白色"。
+  </p>
+
+  <!-- ======== ① 鎏金病案房 ======== -->
+  <div class="opt recommended">
+    <div class="opt-head">
+      <span class="num" style="background:#38bdf8;color:#081120">①</span>
+      <h2>鎏金病案房 · 墨玉直系</h2>
+      <span class="en">GILT WARD — 墨玉鎏金 · 坐姿版</span>
+      <span class="num" style="background:rgba(56,191,248,.14);color:#7dd3fc;font-size:12px;padding:2px 10px">★ 主推 · 大屏同族</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-tag">医生工作站 MOCK（病案房：患者横幅 + 接诊队列 + 生命体征 + 处方审核）</div>
+      <div class="mocks">
+        <div class="mock-frame m1d">
+          <div class="bar"><h4>涟漪医疗 <i>·</i> 鎏金病案房</h4><small>GILT WARD · INTERNAL MED</small><span class="tm">DR.WANG · 14:20</span></div>
+          <div class="pt"><b>患者 #1 · 王建国</b><span>男 65 · 2型糖尿病 · 高血压</span><span class="flag">⚠ 过敏：青霉素</span></div>
+          <div class="cols">
+            <div class="panel">
+              <h5><span>接诊队列</span><span>3 人</span></h5>
+              <div class="qi on"><span>王建国</span><i>RII 74.3</i></div>
+              <div class="qi"><span>李秀兰</span><i>RII 31.0</i></div>
+              <div class="qi"><span>陈志强</span><i>RII 42.5</i></div>
+            </div>
+            <div class="panel">
+              <h5><span>生命体征 · 今日</span><span style="color:#f4695c">1 项预警</span></h5>
+              <div class="vit">
+                <div class="v"><label>BP 血压</label><b class="warn">152/96</b></div>
+                <div class="v"><label>GLU 血糖</label><b>7.8</b></div>
+                <div class="v"><label>HR 心率</label><b>88</b></div>
+                <div class="v"><label>SPO₂ 血氧</label><b>97</b></div>
+              </div>
+              <h5><span>处方审核 RX</span><span>二甲双胍 ×2</span></h5>
+              <div class="rxrow"><span>二甲双胍 0.5g · 早晚</span><span class="okc">✓ 通过</span></div>
+              <div class="rxrow"><span class="danger">造影剂检查（预约中）</span><span class="danger">乳酸酸中毒风险 · 禁止同日</span></div>
+              <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                <span class="btn">签发处方</span><span class="btn ghost">转 MDT</span>
+                <span style="margin-left:auto" class="seal">审</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-frame m1a">
+          <div class="side">
+            <div class="brand">鎏金档案库</div>
+            <div class="it">科室管理</div>
+            <div class="it">医生账号</div>
+            <div class="it on">药品库</div>
+            <div class="it">知识库</div>
+            <div class="it">提示词</div>
+            <div class="it">排班号源</div>
+          </div>
+          <div class="main">
+            <h5><span>药品库 · 交互矩阵</span><span class="newb">＋ 新建药品</span></h5>
+            <table>
+              <tr><th>药品</th><th>相互作用</th><th>状态</th></tr>
+              <tr><td>二甲双胍片</td><td class="dgr">造影剂 · 酒精</td><td>在架</td></tr>
+              <tr><td>华法林钠</td><td class="dgr">阿司匹林 · 鱼油</td><td>在架</td></tr>
+              <tr><td>硝苯地平控释片</td><td>—</td><td>在架</td></tr>
+              <tr><td>美托洛尔缓释片</td><td>—</td><td>在架</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>把大屏「墨玉鎏金」<b>坐下来用</b>——同一套漆器近黑、同一支鎏金青、朱砂仍然只属于印章与风险、同样的纸纹颗粒与衬线标题。大屏是挂在墙上的夜航海图，病案房是摆在桌上的同一套仪器：为长时操作把密度调高、把辉光收进边线里。管理端即"鎏金档案库"，与大屏共享令牌，医生在两个端之间视线零跳变。</p>
+        <div class="refs">
+          <div>血统 · 大屏 style.css 令牌直接继承（--paper #081120 / --card #101f33 / 鎏金 #38bdf8 / 朱砂 #f4695c / 国画色系 / 纸纹噪点）</div>
+          <div>佐证 · dark mode 已成临床界面基线（2025-26 临床 UX 趋势，Fuselab 等）——"暗色工作台"不是冒险而是主流</div>
+        </div>
+        <div class="score"><span>特色量级 <b>★★★★★</b></span><span>与大屏家族感 <b>★★★★★</b></span><span>专业密度 <b>★★★★☆</b></span><span>改造量 <b>最小（令牌同源）</b></span></div>
+        <p class="meta">色：墨玉 #081120 / 玉 #101f33 / 鎏金 #38bdf8 / 朱砂印 #f4695c / 灯下纸 #e8f1fb · 字：思源宋标题 + 等宽数据 · 印章语义：「审」「驳」朱砂印 = 医生审定动作 · 动效：数据落纸微闪 + 印章盖章回弹。</p>
+        <div class="verdict">主推理由：你爱的就是大屏那一套——最稳的"更有特色"就是把它的血统一脉相承。且四端叙事直接成立：<b>大屏＝墙上的海图，病案房＝桌上的仪器，患者端＝家里的老监护仪，管理端＝鎏金档案库</b>——一套墨玉，四种器物。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== ② 铜人经纬 ======== -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#c9a25e;color:#221a0f">②</span>
+      <h2>铜人经纬 · 针灸铜人数字台</h2>
+      <span class="en">BRONZE MERIDIAN</span>
+      <span class="num" style="background:rgba(201,162,94,.12);color:#e8dcc3;font-size:12px;padding:2px 10px">最具野心 · 医疗独有意象</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-tag">医生工作站 MOCK（穴位光点状态 + 经络线分区 + 值守列表）</div>
+      <div class="mocks">
+        <div class="mock-frame m2d">
+          <div class="bar"><h4>涟漪医疗 · 铜人台</h4><small>BRONZE MERIDIAN · INTERNAL MED</small><span class="tm">DR.WANG · 14:20</span></div>
+          <div class="acupoints">
+            <span class="acu ok"><span class="dot"></span>平稳 2</span>
+            <span class="acu warn"><span class="dot"></span>警示 1</span>
+            <span class="acu calm"><span class="dot"></span>静养 0</span>
+          </div>
+          <div class="cols">
+            <div class="panel">
+              <h5><span>值守患者</span><span>经纬 3 人</span></h5>
+              <div class="qi on"><span>王建国</span><i>RII 74.3</i></div>
+              <div class="qi"><span>李秀兰</span><i>RII 31.0</i></div>
+              <div class="qi"><span>陈志强</span><i>RII 42.5</i></div>
+            </div>
+            <div class="panel">
+              <h5><span>经络预警 · 今日</span><span>任脉 · 消渴</span></h5>
+              <div class="meridian">
+                <span class="node r" style="top:2px"></span>
+                <span class="node" style="top:38%"></span>
+                <span class="node" style="bottom:2px"></span>
+                <div class="mrow"><span><b>晨峰血压</b> · 任脉上段</span><span class="danger">152/96 ▲</span></div>
+                <div class="mrow"><span>血糖昼夜节律</span><span>7.8 · 平</span></div>
+                <div class="mrow"><span>夜间低血糖窗</span><span>0-3 点 · 观察</span></div>
+              </div>
+              <div style="display:flex; gap:8px"><span class="btn">施治安排</span><span class="btn">转 MDT</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-frame m2a">
+          <div class="side">
+            <div class="brand">铜档房 · 运营</div>
+            <div class="it">科室管理</div>
+            <div class="it">医生账号</div>
+            <div class="it on">药品库</div>
+            <div class="it">知识库</div>
+            <div class="it">排班号源</div>
+          </div>
+          <div class="main">
+            <h5><span>药品库 · 交互矩阵</span><span class="newb">＋ 新建</span></h5>
+            <table>
+              <tr><th>药品</th><th>相互作用</th><th>状态</th></tr>
+              <tr><td>二甲双胍片</td><td class="dgr">造影剂 · 酒精</td><td>在架</td></tr>
+              <tr><td>华法林钠</td><td class="dgr">阿司匹林 · 鱼油</td><td>在架</td></tr>
+              <tr><td>硝苯地平控释片</td><td>—</td><td>在架</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>北宋针灸铜人的数字转世——暗铜底、金经络线、穴位光点即状态灯：金色＝平稳、朱铜＝警示。医生 workstation 的每个分区用"经络线 + 穴位"组织，管理端是"铜档房"。这是只有<b>医疗产品才配用</b>的意象，竞品抄都没法抄。</p>
+        <div class="refs">
+          <div>意象 · 北宋「针灸铜人」（天圣铜人）——古代第一次"标准化医学教具"，与你们"标准化推演"的叙事天然同构</div>
+          <div>佐证 · 与大屏同为暗色国风（铜 vs 墨玉），家族感靠"材质变化"而不是"换颜色"</div>
+        </div>
+        <div class="score"><span>特色量级 <b>★★★★★</b></span><span>与大屏家族感 <b>★★★★☆</b></span><span>专业密度 <b>★★★★☆</b></span><span>改造量 <b>中</b></span></div>
+        <p class="meta">色：暗铜 #221a0f / 鎏铜 #c9a25e / 警铜红 #e0684f / 静青 #7fa08a / 米金 #f0e2bd · 字：思源宋 + 等宽 · 动效：经络线流光、穴位点亮脉冲。</p>
+        <div class="verdict">适合：想让医生端像患者端一样拥有<b>自己独立的世界观</b>（而不是大屏的衍生）。风险：铜金暖色调与信息密度的平衡要精调，改造量比 ① 大半轮。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== ③ 青花瓷卷 ======== -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#1e40af;color:#fff">③</span>
+      <h2>青花瓷卷 · 霁蓝诊卷</h2>
+      <span class="en">BLUE PORCELAIN</span>
+      <span class="num" style="background:rgba(30,64,175,.12);color:#8ab6e8;font-size:12px;padding:2px 10px">亮色国风</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-tag">医生工作站 MOCK（瓷白诊卷 + 钴蓝印章）</div>
+      <div class="mocks">
+        <div class="mock-frame m3d">
+          <div class="bar"><h4>涟漪医疗 · 青花诊卷</h4><small>BLUE PORCELAIN · INTERNAL MED</small><span class="tm">DR.WANG · 14:20</span></div>
+          <div class="pt"><b>患者 #1 · 王建国</b><span>男 65 · 2型糖尿病 · 高血压</span><span class="flag">⚠ 过敏：青霉素</span></div>
+          <div class="cols">
+            <div class="panel">
+              <h5><span>接诊队列</span><span>3 人</span></h5>
+              <div class="qi on"><span>王建国</span><i>RII 74.3</i></div>
+              <div class="qi"><span>李秀兰</span><i>RII 31.0</i></div>
+              <div class="qi"><span>陈志强</span><i>RII 42.5</i></div>
+            </div>
+            <div class="panel">
+              <h5><span>处方审核 RX</span><span style="color:#b91c1c">1 项冲突</span></h5>
+              <div class="rxrow"><span>二甲双胍 0.5g · 早晚</span><span class="okc">✓ 通过</span></div>
+              <div class="rxrow"><span class="danger">造影剂检查（预约中）</span><span class="danger">禁止同日</span></div>
+              <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                <span class="btn">签发处方</span><span class="btn ghost">暂存</span>
+                <span style="margin-left:auto" class="seal">阅</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-frame m3a">
+          <div class="side">
+            <div class="brand">青花档案</div>
+            <div class="it">科室管理</div>
+            <div class="it">医生账号</div>
+            <div class="it on">药品库</div>
+            <div class="it">知识库</div>
+            <div class="it">排班号源</div>
+          </div>
+          <div class="main">
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <div style="flex:1; border:1px solid rgba(30,64,175,.3); border-radius:8px; padding:6px 9px; background:#fff;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#5c78a3;">在架药品</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px;">128</b></div>
+              <div style="flex:1; border:1px solid rgba(30,64,175,.3); border-radius:8px; padding:6px 9px; background:#fff;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#5c78a3;">警示交互</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#b91c1c;">6</b></div>
+              <div style="flex:1; border:1px solid rgba(30,64,175,.3); border-radius:8px; padding:6px 9px; background:#fff;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#5c78a3;">本月更新</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px;">9</b></div>
+            </div>
+            <h5><span>药品库 · 交互矩阵</span><span class="newb">＋ 新建</span></h5>
+            <table>
+              <tr><th>药品</th><th>相互作用</th><th>状态</th></tr>
+              <tr><td>二甲双胍片</td><td class="dgr">造影剂 · 酒精</td><td>在架</td></tr>
+              <tr><td>华法林钠</td><td class="dgr">阿司匹林 · 鱼油</td><td>在架</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>青花瓷——瓷白底、钴蓝花、回纹细框。想要国风但不想要暗色的选它：白底钴蓝在高亮度门诊环境里最耐看，管理端钴蓝侧栏压瓷白表格，端庄清爽。</p>
+        <div class="refs"><div>意象 · 元明清青花瓷（钴蓝发色 + 瓷白釉面 + 回纹边饰）；国风亮色路线与大屏"一暗一亮"成对</div></div>
+        <div class="score"><span>特色量级 <b>★★★★☆</b></span><span>与大屏家族感 <b>★★★☆☆</b></span><span>专业密度 <b>★★★★☆</b></span><span>门诊环境适配 <b>★★★★★</b></span></div>
+        <p class="meta">色：瓷白 #f2f6f9 / 钴蓝 #1e40af / 釉青 hover / 警红仅做冲突 #b91c1c · 字：思源宋标题 + 等宽数据 · 动效：釉面高光扫过、蓝印落章。</p>
+        <div class="verdict">亮色国风的唯一解。家族感靠"同为国风"维系，与大屏的血缘弱于 ①②。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== ④ 朱批卷宗 ======== -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#b03024;color:#f3edda">④</span>
+      <h2>朱批卷宗 · 医生终审即朱批</h2>
+      <span class="en">VERMILION RESCRIPT</span>
+      <span class="num" style="background:rgba(176,48,36,.12);color:#e8a49c;font-size:12px;padding:2px 10px">叙事最锐</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-tag">医生工作站 MOCK（处方笺 + 朱批印章：准 / 驳）</div>
+      <div class="mocks">
+        <div class="mock-frame m4d">
+          <div class="bar"><h4>涟漪医疗 · 朱批卷宗</h4><small>VERMILION RESCRIPT · 14:20</small><span class="tm">DR.WANG</span></div>
+          <div class="sheet">
+            <h5><span>今日处方笺 · 内科</span><span class="zb">阅</span></h5>
+            <div class="row"><span class="no">Rx-01</span><span><b>王建国</b> · 二甲双胍 0.5g 早晚 · <b style="color:#b03024">造影剂冲突</b></span><span class="zb" style="width:26px;height:26px;font-size:12px">驳</span></div>
+            <div class="row"><span class="no">Rx-02</span><span><b>李秀兰</b> · 苯磺酸氨氯地平 5mg 晨</span><span class="zb" style="width:26px;height:26px;font-size:12px">准</span></div>
+            <div class="row"><span class="no">Rx-03</span><span><b>陈志强</b> · 复查肝功（服药后第 14 日）</span><span class="zb" style="width:26px;height:26px;font-size:12px">准</span></div>
+          </div>
+          <div class="seals">
+            <span class="seal">准</span><span class="seal gray">待</span><span class="seal">阅</span>
+            <small>每一枚朱批 = 一次医生终审 · 入印鉴链存证</small>
+          </div>
+        </div>
+        <div class="mock-frame m4a">
+          <div class="side">
+            <div class="brand">朱批档房</div>
+            <div class="it">科室管理</div>
+            <div class="it">医生账号</div>
+            <div class="it on">药品库</div>
+            <div class="it">知识库</div>
+            <div class="it">排班号源</div>
+          </div>
+          <div class="main">
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <div style="flex:1; border:1px solid rgba(176,48,36,.35); border-radius:8px; padding:6px 9px; background:#f3edda;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#8f8471;">归档卷宗</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px;">128</b></div>
+              <div style="flex:1; border:1px solid rgba(176,48,36,.35); border-radius:8px; padding:6px 9px; background:#f3edda;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#8f8471;">警示条目</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px; color:#b03024;">6</b></div>
+              <div style="flex:1; border:1px solid rgba(176,48,36,.35); border-radius:8px; padding:6px 9px; background:#f3edda;"><label style="display:block; font-size:8.5px; letter-spacing:1.4px; color:#8f8471;">本月朱批</label><b style="font-family:'JetBrains Mono',monospace; font-size:14px;">41</b></div>
+            </div>
+            <h5><span>药品档案 · 交互矩阵</span><span class="newb">＋ 新建</span></h5>
+            <table>
+              <tr><th>药品</th><th>相互作用</th><th>状态</th></tr>
+              <tr><td>二甲双胍片</td><td class="dgr">造影剂 · 酒精</td><td>在架</td></tr>
+              <tr><td>华法林钠</td><td class="dgr">阿司匹林 · 鱼油</td><td>在架</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>清宫朱批奏折——AI 的每条建议是一份"奏折"，医生的通过/否决就是落一枚朱批：<b>「准」「驳」「阅」</b>。它把你们最强的答辩点（"终审权在医生"、审定入印鉴链）直接做成了视觉语言：盖章那一刻就是审计事件。管理端是"朱批档房"。</p>
+        <div class="refs">
+          <div>意象 · 清宫朱批奏折制度（朱批 = 最高终审凭证，原件存档可查）——与"印鉴链存证"互为古今注脚</div>
+          <div>配合 · 大屏时辰面板的「通过/否决」按钮可直接换成朱批「准/驳」印章动画，两端叙事打通</div>
+        </div>
+        <div class="score"><span>特色量级 <b>★★★★★</b></span><span>与大屏家族感 <b>★★★★☆</b>（朱砂同源）</span><span>专业密度 <b>★★★☆☆</b></span><span>答辩叙事加成 <b>★★★★★</b></span></div>
+        <p class="meta">色：卷宗米 #ece4d0 / 朱批红 #b03024 / 墨 #2f2a20 · 字：思源宋加粗 + 等宽编号 · 动效：盖章回弹 + 印泥洇开。风险：暖纸底在数据表格密度上吃亏；管理端表格区需要用等宽无衬线补密度。</p>
+        <div class="verdict">最"刺客"的一版：把制度文化做成交互语言，答辩记忆点极强（"我们的医生终审叫朱批"）。密度硬伤可通过 ④+① 混血解决：卷宗语义 + 墨玉底。</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot-note">
+    <b>怎么选：</b>回复 ①-④。我的顺位：<b>① 鎏金病案房</b>（你要的"大屏那个味"最直接，改造成本最小，四端一个墨玉体系）；想要医生端有<b>独立世界观</b>就上 <b>② 铜人经纬</b>（医疗独有意象）；想要<b>答辩记忆点</b>最狠就 <b>④ 朱批卷宗</b>（终审=朱批，与印鉴链天然互文）；门诊高亮环境优先则 ③。<br>
+    组合技也成立：<b>① 为骨 + ④ 的印章语言做审定动效</b>（墨玉底上盖朱批），特色与密度兼得——选这项回复"①+④"。
+  </p>
+</div>
+</body>
+</html>

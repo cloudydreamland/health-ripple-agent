@@ -41,6 +41,26 @@ const CASES: CasePreset[] = [
 const mode = ref<SourceMode>("snapshot");
 const modeReason = ref("");
 const caseId = ref("flagship");
+const guideOpen = ref(false);
+
+/* 功能导读：每个面板是干什么的、怎么试（与新手指引/答辩讲解共用一套话术） */
+const GUIDE = [
+  { fig: "顶栏", name: "落石 · 推演涟漪", try: "点一下，全程的戏眼", desc: "输入诊断+用药，系统主动推演出用药冲突、复查窗口、并发症、触达时机、家属注意五维连锁影响，而不是等医生逐项去问。" },
+  { fig: "顶栏", name: "PID / 病例切换", try: "换一个病例再落一次石", desc: "切换患者 ID 或预设病例后全屏自动重算——推演按病情真实计算，不是录播动画。" },
+  { fig: "指标条", name: "RII · 节点 · 反事实 · 半径 · 耗时", desc: "推演结果的五格速览：RII 涟漪强度指数（≥45 红色高危）、涟漪节点数、反事实路径数、有效扩散半径（5 环）、推演耗时（在线模式为真实毫秒）。" },
+  { fig: "FIG.01", name: "器官涟漪图 · 人体映射", try: "点任一发光器官", desc: "病症按医学语义映射到器官（低血糖→心、视网膜→眼、糖尿病足→足），辉光亮度=风险强度，红色脉冲=高危热点。点击弹出该器官最高风险节点的评分依据（S/U/A/衰减四项可复算）。" },
+  { fig: "FIG.02", name: "涟漪强度山脊剖面", desc: "五环（用药安全/疾病进展/复查窗口/触达时机/家族影响）的强度分布山脊图；红色虚线区为 RISK ZONE ≥70，山越高该环越危险。" },
+  { fig: "FIG.03", name: "活水涟漪池 · 五维图谱", try: "点任意墨滴", desc: "石落水面的隐喻视图：涟漪一圈圈荡开，彩色墨滴抵达各自环层时浮现，颜色=所属维度。点击墨滴同样弹出节点详情。" },
+  { fig: "FIG.04", name: "反事实决策晶格 × 护栏", try: "点任意红色 FLAG 行", desc: "对每条替代路径做\"如果当初\"推演并护栏审计：红色 FLAG=高危路径已锁定禁止下发，绿色 SAFE=可安全替代。点击行展开反事实结局与证据——这是\"AI 说错了怎么办\"的工程答案。" },
+  { fig: "FIG.05", name: "五 Agent MDT 会诊弦图", try: "点右上「发起会诊」", desc: "分诊/处方/病历/随访/涟漪守护五个学科 Agent 依次发言、显式暴露分歧并按患者安全优先收敛为纪要——多智能体不是噱头，是可复现的会诊流程。" },
+  { fig: "时间学", name: "时辰守护盘 + 医生终审", try: "悬停看循证卡；点 通过/推迟/否决", desc: "每条触达悬停展开 Timing Card（指南依据/错过代价/证据等级）。通过/推迟/否决 = 医生终审：否决后 72h 预报与健康气象里该触达立刻消失，审定理由入印鉴链——终审权在医生。" },
+  { fig: "印鉴链", name: "朱砂印鉴链 · FHIR", try: "点「逐枚验印」再「导出」", desc: "每个 AI 决策与每次医生改判都入 SHA-256 哈希链；验印通过即盖章 CHAIN VERIFIED，可导出 HL7 FHIR R4 Provenance 给第三方核验——责任认定的最后一环。" },
+  { fig: "FIG.06", name: "72 小时涟漪预报 · 依从性沙盘", try: "拖「守护执行度」滑杆", desc: "红线=未来 72 小时守护强度（逐桶确定性计算，无随机数）。拖动滑杆即预演\"守护被执行 X% 后浪有多高\"——干预效果可预演。" },
+  { fig: "FIG.07", name: "今日守护队列", desc: "跨患者按「升级就医 > 未缓解 > 今日到期」排序，每行带理由和优先分——回答基层医生早晨第一问：今天该先管谁。" },
+  { fig: "FIG.08", name: "社区涟漪雷达", desc: "把个体涟漪聚合成社区潮汐（7 天窗口），潮汐指数=跨患者信号强度——从看一个病人到看一片社区。" },
+  { fig: "顶栏", name: "守护报告", try: "允许弹窗后一键生成", desc: "生成可打印的诊后守护摘要（RII 总览/TOP 风险/医生审定后的守护计划/印鉴哈希），浏览器直接打印成 PDF 随病历交给患者。" },
+  { fig: "徽章", name: "LIVE / SNAPSHOT", desc: "数据来源如实标注：LIVE=实时连接后端网关；SNAPSHOT=后端不可达时自动切换到内置真实响应快照。屏幕上是什么数据，从不撒谎——断网也能完整演示。" },
+];
 const patientId = ref(Number(localStorage.getItem("rc-patient-id") ?? 1) || 1);
 const customDiagnosis = ref("");
 const customDrugs = ref("");
@@ -395,6 +415,7 @@ onMounted(async () => {
       <select v-model="caseId" @change="run()">
         <option v-for="c in CASES" :key="c.id" :value="c.id">{{ c.label }}</option>
       </select>
+      <button class="ghost big" @click="guideOpen = true">？ 功能导读</button>
       <button class="ghost big" :disabled="!ripple" @click="generateReport()">守护报告</button>
       <button class="big" :disabled="running" @click="run()">{{ running ? "推演中 …" : "落石 · 推演涟漪" }}</button>
     </header>
@@ -561,7 +582,7 @@ onMounted(async () => {
       </section>
     </div>
 
-    <!-- 主视觉：RII 山脊剖面（技术图纸角标） -->
+    <!-- 主视觉：RII 山脊剖面 + 活水涟漪池（左右各半，技术图纸角标） -->
     <div class="grid-hero">
       <section class="panel corner-ticks">
         <header class="sec-head">
@@ -575,10 +596,7 @@ onMounted(async () => {
           <RidgePlot :dimensions="dimensions" :intensity="intensity" />
         </div>
       </section>
-    </div>
 
-    <!-- 活水涟漪池（五维图谱，降级为全景视图） -->
-    <div class="grid-path">
       <section class="panel">
         <header class="sec-head">
           <span class="dot" style="background: var(--violet)" />
@@ -740,10 +758,70 @@ onMounted(async () => {
     </div>
 
     <NodeDetailDrawer :node="selectedNode" @close="selectedNode = null" />
+
+    <!-- 功能导读抽屉：新手指引 / 答辩讲解共用 -->
+    <transition name="guide-fade">
+      <div v-if="guideOpen" class="guide-mask" @click.self="guideOpen = false">
+        <aside class="guide-drawer">
+          <header class="guide-head">
+            <h3>功能导读</h3>
+            <span class="mono">RIU GUIDE · 每个面板是干什么的、怎么试</span>
+            <button class="g-close" @click="guideOpen = false">✕ 关闭</button>
+          </header>
+          <div class="guide-body">
+            <div v-for="g in GUIDE" :key="g.fig + g.name" class="g-item">
+              <span class="g-fig mono">{{ g.fig }}</span>
+              <div class="g-txt">
+                <b>{{ g.name }}<em v-if="g.try">　▸ 试一试：{{ g.try }}</em></b>
+                <p>{{ g.desc }}</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </transition>
   </div>
 </template>
 
 <style scoped>
+/* ---------- 功能导读抽屉 ---------- */
+.guide-mask { position: fixed; inset: 0; z-index: 90; background: rgba(4, 10, 18, 0.62); backdrop-filter: blur(2px); }
+.guide-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(580px, 94vw); overflow: auto;
+  background: #0c1828;
+  border-left: 1px solid rgba(56, 191, 248, 0.4);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.55);
+}
+.guide-head {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 16px 18px 12px;
+  background: #0c1828;
+  border-bottom: 1px solid rgba(200, 224, 250, 0.16);
+}
+.guide-head h3 { margin: 0; font-family: var(--font-serif); font-size: 17px; letter-spacing: 2px; color: var(--ink); }
+.guide-head .mono { color: var(--muted); font-size: 10px; letter-spacing: 1.5px; }
+.g-close {
+  margin-left: auto; padding: 4px 11px;
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--card); color: var(--ink-soft); font-size: 11.5px;
+}
+.g-close:hover { color: var(--ink); border-color: var(--gold); }
+.guide-body { padding: 12px 16px 26px; display: grid; gap: 9px; }
+.g-item {
+  display: grid; grid-template-columns: 54px 1fr; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card);
+}
+.g-fig { padding-top: 2px; font-size: 10px; letter-spacing: 1px; color: var(--gold); }
+.g-txt b { display: block; font-size: 13px; color: var(--ink); }
+.g-txt b em { font-style: normal; font-size: 11.5px; color: #f4695c; }
+.g-txt p { margin: 3px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.guide-fade-enter-active, .guide-fade-leave-active { transition: opacity 0.18s ease; }
+.guide-fade-enter-from, .guide-fade-leave-to { opacity: 0; }
+
 .custom-bar { display: flex; gap: 10px; flex-wrap: wrap; }
 .custom-bar input { flex: 1; min-width: 200px; }
 
@@ -775,8 +853,8 @@ onMounted(async () => {
   letter-spacing: 2px;
   backdrop-filter: blur(6px);
 }
-.hero-row { display: grid; grid-template-columns: 300px 1fr 320px; gap: 14px; align-items: stretch; }
-@media (max-width: 1500px) { .hero-row { grid-template-columns: 280px 1fr; }
+.hero-row { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(500px, 660px) minmax(280px, 1fr); gap: 14px; align-items: stretch; }
+@media (max-width: 1500px) { .hero-row { grid-template-columns: 260px minmax(440px, 560px) 1fr; }
   .hero-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } }
 @media (max-width: 1100px) { .hero-row { grid-template-columns: 1fr; } .hero-right { grid-template-columns: 1fr; } }
 .hero-left, .hero-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -799,7 +877,7 @@ onMounted(async () => {
 }
 @keyframes pond-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .pond-hero::before { animation: none; } }
-.pond-hero .pond-body { position: relative; display: flex; justify-content: center; }
+.pond-hero .pond-body { position: relative; display: flex; justify-content: center; align-items: center; }
 .grid-path { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .ridge-layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
 @media (max-width: 1180px) { .ridge-layout { grid-template-columns: 1fr; } }

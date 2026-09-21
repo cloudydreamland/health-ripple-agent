@@ -1,5 +1,169 @@
 @import "../../../packages/shared-ui/src/styles/index.css";
 
+/* ============================================================
+   朱批卷宗 · 档房主题（运营管理工作台）
+   与医生工作站「朱批卷宗」、患者端「复古监护仪」同属暖纸家族；
+   AI 建议如奏折，配置如档房——墨字、卷宗米、朱批红。
+   ============================================================ */
+:root {
+  --bg: #ece4d0;
+  --surface: #f3edda;
+  --surface-alt: #e9e0cb;
+  --surface-warm: #e9e0cb;
+  --ink: #2f2a20;
+  --muted: #6e6858;
+  --subtle: #8f8471;
+  --line: #d5c9a8;
+  --line-strong: #b9ac86;
+  --primary: #8a1f14;
+  --primary-strong: #6e150c;
+  --primary-soft: rgba(176, 48, 36, 0.08);
+  --success: #4a6741;
+  --success-soft: rgba(74, 103, 65, 0.12);
+  --warning: #a8871a;
+  --warning-soft: rgba(168, 135, 26, 0.12);
+  --danger: #b03024;
+  --danger-soft: rgba(176, 48, 36, 0.08);
+  --info: #4a5a78;
+  --info-soft: rgba(74, 90, 120, 0.1);
+  --focus: 0 0 0 2px rgba(138, 31, 20, 0.22);
+}
+
+body,
+.workspace {
+  background:
+    radial-gradient(1100px 300px at 18% -60px, rgba(138, 31, 20, 0.05), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120, 106, 70, 0.04) 0 1px, transparent 1px 4px),
+    var(--bg);
+  color: var(--ink);
+}
+
+/* ---------- 档房函套侧栏 ---------- */
+.workspace-sidebar {
+  background: #2b241a;
+  border-right-color: #4a3f2e;
+  color: #e8dcc3;
+}
+
+.workspace-sidebar .brand-mark h1 {
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 2px;
+}
+
+.workspace-sidebar .brand-icon {
+  background: #8a1f14;
+  border-color: rgba(243, 237, 218, 0.3);
+  color: #f3edda;
+  font-family: "Noto Serif SC", serif;
+}
+
+.workspace-sidebar .brand-mark span,
+.workspace-sidebar .nav-group span,
+.workspace-sidebar .user-box span {
+  color: #cbbfa4;
+}
+
+.workspace-sidebar .nav-item {
+  color: #cbbfa4;
+}
+
+.workspace-sidebar .nav-item:hover,
+.workspace-sidebar .nav-item.router-link-active,
+.workspace-sidebar .nav-item.active {
+  background: rgba(176, 48, 36, 0.28);
+  color: #f3edda;
+}
+
+.workspace-sidebar .user-box {
+  border-color: rgba(243, 237, 218, 0.2);
+  background: rgba(243, 237, 218, 0.06);
+}
+
+.sidebar-footer .ghost,
+.sidebar-footer button {
+  border: 1.5px solid rgba(243, 237, 218, 0.45);
+  background: transparent;
+  color: #f3edda;
+  border-radius: 0;
+  font-weight: 700;
+}
+
+.sidebar-footer .ghost:hover,
+.sidebar-footer button:hover {
+  background: rgba(176, 48, 36, 0.3);
+  border-color: #f3edda;
+  color: #f3edda;
+}
+
+/* ---------- 卷宗卡与文字 ---------- */
+.topbar .page-title h2 {
+  font-family: "Noto Serif SC", serif;
+  letter-spacing: 1.5px;
+}
+
+.panel,
+.modal-card,
+.notice,
+.empty-state,
+.error-state,
+.loading-state {
+  background: var(--surface);
+  border-color: #cfc3a2;
+}
+
+button,
+.button {
+  background: var(--surface);
+  border-color: #b9ac86;
+  color: var(--ink);
+}
+
+button:hover,
+.button:hover {
+  background: #e9e0cb;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+button.primary,
+.button.primary {
+  background: #8a1f14;
+  border-color: #6e150c;
+  color: #f3edda;
+}
+
+button.primary:hover {
+  background: #6e150c;
+}
+
+button.danger {
+  border-color: rgba(176, 48, 36, 0.5);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+input,
+textarea,
+select {
+  background: #f8f3e4;
+  border-color: #b9ac86;
+  color: var(--ink);
+}
+
+.tag {
+  background: var(--surface);
+  border-color: #cfc3a2;
+}
+
+table {
+  background: var(--surface);
+}
+
+table th {
+  background: #e4dbc2;
+  color: #4a3f2e;
+}
+
 .admin-notices {
   display: grid;
   gap: 8px;

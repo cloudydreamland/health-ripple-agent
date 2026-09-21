@@ -116,6 +116,8 @@ body::before {
 }
 
 /* ---------- 顶栏 ---------- */
+.topbar button { white-space: nowrap; flex: none; }
+
 .topbar {
   display: flex;
   align-items: center;
@@ -221,7 +223,8 @@ button.big:hover::after { transform: translateX(130%); }
 
 /* ---------- 布局 ---------- */
 .stat-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 13px; }
-.grid-hero { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.grid-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1280px) { .grid-hero { grid-template-columns: 1fr; } }
 .grid-a { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; }
 .grid-b { display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; }
 .grid-c { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

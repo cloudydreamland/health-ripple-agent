@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>患者端风格推荐 v2 · 5 个有世界观的独特方向</title>
+<style>
+  :root {
+    --studio:#131313; --panel:#1b1b1b; --line:#2c2c2c; --ink:#e9e5da; --soft:#a39d8e; --faint:#6b665b;
+    --gold:#38bdf8; /* 与大屏 --gold 同源 */
+  }
+  * { box-sizing:border-box; }
+  body { background:var(--studio); color:var(--ink); font-family:"Microsoft YaHei",sans-serif; margin:0; padding:34px 26px 60px; }
+  .wrap { max-width:1240px; margin:0 auto; }
+  h1 { font-size:26px; letter-spacing:1px; margin:0 0 6px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .lead { color:var(--soft); line-height:1.9; font-size:13.5px; max-width:980px; }
+  .lead b { color:var(--ink); }
+  a { color:#7cc7f0; text-decoration:none; border-bottom:1px dotted #4c86a8; }
+
+  /* —— 医生端基因对照条 —— */
+  .gene { border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin:22px 0 8px; background:var(--panel); }
+  .gene h3 { margin:0 0 10px; font-size:13px; color:var(--soft); font-weight:600; letter-spacing:2px; }
+  .gene .strip { display:flex; height:34px; border-radius:8px; overflow:hidden; font-size:10px; color:#0a1420; }
+  .gene .strip span { flex:1; display:grid; place-items:center; font-weight:700; }
+  .gene p { color:var(--soft); font-size:12.5px; line-height:1.8; margin:10px 0 0; }
+
+  /* —— 方向区块 —— */
+  .opt { border:1px solid var(--line); border-radius:18px; overflow:hidden; margin:30px 0; background:var(--panel); }
+  .opt.recommended { border:1px solid rgba(56,191,248,.55); box-shadow:0 0 46px rgba(56,191,248,.10); }
+  .opt-head { display:flex; align-items:baseline; gap:14px; padding:16px 24px 0; }
+  .num { font-weight:900; border-radius:8px; padding:2px 13px; font-size:17px; }
+  .opt-head h2 { margin:0; font-size:19px; letter-spacing:.5px; }
+  .opt-head .en { color:var(--faint); font-size:12px; letter-spacing:2px; }
+  .opt-body { display:grid; grid-template-columns:1.5fr 1fr; gap:0; padding:16px 24px 24px; }
+  @media (max-width:980px){ .opt-body { grid-template-columns:1fr; } }
+  .mock-frame { border-radius:14px; overflow:hidden; min-height:360px; display:flex; flex-direction:column; }
+  .desc { padding:6px 0 0 22px; font-size:13px; line-height:1.85; color:var(--soft); }
+  @media (max-width:980px){ .desc { padding:16px 0 0; } }
+  .desc .story b { color:var(--ink); }
+  .desc .refs { margin:10px 0; padding:10px 14px; border-left:2px solid var(--line); font-size:12.5px; }
+  .desc .refs div { margin:3px 0; }
+  .score { display:flex; gap:8px; margin:10px 0 6px; flex-wrap:wrap; }
+  .score span { background:#242424; border:1px solid var(--line); border-radius:999px; padding:2px 11px; font-size:12px; color:var(--ink); }
+  .score b { color:#e3c26d; }
+  .meta { color:var(--faint); font-size:12px; }
+  .verdict { margin-top:10px; font-size:12.5px; padding:9px 13px; border-radius:10px; background:#20242a; border:1px solid #32405050; color:#b8cfdf; }
+
+  /* ========== ① 本草百子柜 ========== */
+  .m1 { background:#1d2a23; color:#e9e2cf; padding:0; position:relative; }
+  .m1::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background:repeating-linear-gradient(90deg, transparent 0 54px, rgba(201,162,94,.07) 54px 56px), repeating-linear-gradient(0deg, transparent 0 74px, rgba(201,162,94,.05) 74px 76px); }
+  .m1 .nav { display:flex; align-items:center; gap:12px; padding:13px 20px; border-bottom:1px solid rgba(201,162,94,.28); position:relative; }
+  .m1 .seal { width:34px; height:34px; background:#b03a2e; color:#f5efe0; border-radius:7px; display:grid; place-items:center; font-weight:800; font-family:serif; box-shadow:0 0 0 1px rgba(201,162,94,.5) inset; }
+  .m1 .brand { font-family:"Noto Serif SC",serif; font-weight:700; font-size:15px; letter-spacing:3px; color:#efe6cd; }
+  .m1 .brand small { display:block; font-size:9px; letter-spacing:3px; color:rgba(201,162,94,.8); font-family:inherit; }
+  .m1 .links { margin-left:auto; display:flex; gap:14px; font-size:11.5px; color:#b9c2ae; }
+  .m1 .links b { color:#e3c26d; border-bottom:2px solid #e3c26d; padding-bottom:2px; }
+  .m1 .hero { margin:16px 20px 0; border:1px solid rgba(201,162,94,.4); border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(120deg, rgba(201,162,94,.10), rgba(176,58,46,.08)); position:relative; }
+  .m1 .hero h4 { margin:0; font-family:"Noto Serif SC",serif; font-size:21px; letter-spacing:2px; color:#f0e8d2; }
+  .m1 .hero .tag { display:inline-block; font-size:10.5px; color:#e3c26d; border:1px solid rgba(201,162,94,.55); border-radius:999px; padding:1px 10px; margin-bottom:7px; letter-spacing:2px; }
+  .m1 .hero p { margin:6px 0 0; font-size:11.5px; color:#a9b49c; }
+  .m1 .index { text-align:center; }
+  .m1 .index b { font-family:"Noto Serif SC",serif; font-size:33px; color:#e3c26d; display:block; line-height:1; }
+  .m1 .index i { font-style:normal; font-size:10px; letter-spacing:3px; color:#8f9a83; }
+  .m1 .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:14px 20px 20px; position:relative; }
+  .m1 .card { background:#f5efe0; color:#2c352c; border-radius:10px; padding:12px 14px; box-shadow:0 2px 0 rgba(201,162,94,.35), 0 10px 26px rgba(0,0,0,.35); }
+  .m1 .card span { color:#7d8272; font-size:10.5px; letter-spacing:1px; }
+  .m1 .card b { display:block; font-family:"Noto Serif SC",serif; font-size:20px; margin-top:4px; }
+  .m1 .card small { color:#b03a2e; font-size:10.5px; }
+
+  /* ========== ② 新温情诊所 ========== */
+  .m2 { background:#faf6f1; color:#332e29; padding:0; position:relative; overflow:hidden; }
+  .m2::before { content:""; position:absolute; width:420px; height:420px; border-radius:46% 54% 58% 42%/52% 44% 56% 48%; background:#f2ddc9; top:-140px; right:-120px; }
+  .m2::after { content:""; position:absolute; width:300px; height:300px; border-radius:56% 44% 42% 58%/46% 58% 42% 54%; background:#e2e9dd; bottom:-150px; left:-90px; }
+  .m2 > * { position:relative; }
+  .m2 .nav { display:flex; align-items:center; gap:10px; padding:15px 22px; }
+  .m2 .dot { width:32px; height:32px; border-radius:50%; background:#d96f4e; color:#fff; display:grid; place-items:center; font-weight:800; }
+  .m2 .brand { font-family:Georgia,"Noto Serif SC",serif; font-weight:700; font-size:16px; }
+  .m2 .links { margin-left:auto; display:flex; gap:14px; font-size:12px; color:#8a8178; }
+  .m2 .links b { color:#332e29; background:#f0e4d6; border-radius:999px; padding:4px 14px; }
+  .m2 .hero { margin:8px 22px 0; }
+  .m2 .hero h4 { margin:8px 0 4px; font-family:Georgia,"Noto Serif SC",serif; font-size:29px; line-height:1.25; letter-spacing:.5px; }
+  .m2 .hero h4 em { font-style:normal; color:#d96f4e; }
+  .m2 .hero p { margin:4px 0 10px; font-size:12.5px; color:#8a8178; }
+  .m2 .hero .cta { display:inline-block; background:#332e29; color:#faf6f1; border-radius:999px; padding:8px 20px; font-size:12.5px; font-weight:600; }
+  .m2 .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:20px 22px 24px; }
+  .m2 .card { background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 12px 28px rgba(120,90,60,.10); }
+  .m2 .card span { color:#a89c8f; font-size:11px; }
+  .m2 .card b { display:block; font-size:21px; margin-top:4px; color:#332e29; }
+  .m2 .card.sage b { color:#6d8a68; } .m2 .card.clay b { color:#d96f4e; }
+
+  /* ========== ③ 药房新粗野 ========== */
+  .m3 { background:#f5f1e6; color:#141414; padding:0; }
+  .m3 .nav { display:flex; align-items:center; gap:10px; padding:13px 20px; border-bottom:3px solid #141414; }
+  .m3 .logo { background:#ffd43b; border:3px solid #141414; box-shadow:4px 4px 0 #141414; font-weight:900; padding:5px 12px; font-size:14px; }
+  .m3 .links { margin-left:auto; display:flex; gap:10px; font-size:12px; font-weight:700; }
+  .m3 .links b { background:#fff; border:2.5px solid #141414; box-shadow:3px 3px 0 #141414; padding:4px 12px; }
+  .m3 .hero { margin:16px 20px 0; border:3px solid #141414; box-shadow:7px 7px 0 #141414; background:#74c0fc; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .m3 .hero h4 { margin:0; font-size:22px; font-weight:900; letter-spacing:1px; color:#141414; }
+  .m3 .hero p { margin:6px 0 0; font-size:12px; font-weight:700; }
+  .m3 .hero .big { background:#fff; border:3px solid #141414; box-shadow:4px 4px 0 #141414; padding:8px 16px; text-align:center; }
+  .m3 .hero .big b { display:block; font-size:26px; }
+  .m3 .hero .big i { font-style:normal; font-size:10px; font-weight:800; }
+  .m3 .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:16px 20px 22px; }
+  .m3 .card { background:#fff; border:3px solid #141414; box-shadow:5px 5px 0 #141414; padding:12px 14px; }
+  .m3 .card span { font-size:11px; font-weight:800; background:#ffd43b; border:2px solid #141414; padding:1px 8px; display:inline-block; }
+  .m3 .card b { display:block; font-size:22px; margin-top:7px; }
+  .m3 .card.red b { color:#e8590c; }
+
+  /* ========== ④ 瑞士病历终端 ========== */
+  .m4 { background:#f4f5f6; color:#16181c; padding:0; font-family:"Inter","PingFang SC","Microsoft YaHei",sans-serif; }
+  .m4 .nav { display:flex; align-items:center; gap:10px; padding:12px 20px; border-bottom:1px solid #d5d9de; }
+  .m4 .cross { width:26px; height:26px; background:#0891b2; position:relative; border-radius:2px; }
+  .m4 .cross::before { content:"+"; color:#fff; position:absolute; inset:0; display:grid; place-items:center; font-weight:800; font-size:17px; }
+  .m4 .brand { font-size:13px; font-weight:700; letter-spacing:.3px; }
+  .m4 .mono { font-family:"JetBrains Mono",Consolas,monospace; }
+  .m4 .uid { margin-left:auto; font-size:10.5px; color:#697077; }
+  .m4 .grid { display:grid; grid-template-columns:1.6fr 1fr 1fr; border-top:1px solid #d5d9de; margin:0 20px; border-left:1px solid #d5d9de; }
+  .m4 .cell { border-right:1px solid #d5d9de; border-bottom:1px solid #d5d9de; padding:11px 13px; background:#fff; }
+  .m4 .cell.wide { grid-row:span 2; }
+  .m4 .cell label { display:block; font-size:9.5px; letter-spacing:1.6px; color:#8b9198; margin-bottom:5px; }
+  .m4 .cell b { font-size:21px; font-weight:700; letter-spacing:-.5px; }
+  .m4 .cell b.warn { color:#dc2626; }
+  .m4 .cell .sub { font-size:10px; color:#697077; margin-top:3px; }
+  .m4 .ecg { margin-top:6px; height:22px; }
+  .m4 .foot { padding:10px 20px 18px; font-size:10px; color:#8b9198; letter-spacing:1px; }
+
+  /* ========== ⑤ 复古监护仪 ========== */
+  .m5 { background:linear-gradient(180deg,#e9e1cf,#ddd3bc); color:#3c352a; padding:0; position:relative; }
+  .m5 .bezel { margin:18px; border-radius:16px; background:linear-gradient(180deg,#efe7d4,#d8cdb4); border:1px solid #b5a887; box-shadow:0 14px 30px rgba(60,50,30,.25), 0 2px 0 rgba(255,255,255,.6) inset; padding:14px 16px 18px; }
+  .m5 .screen { background:#0d1a12; border-radius:8px; border:2px solid #241f15; box-shadow:0 0 0 3px #b5a887, 0 0 22px rgba(125,255,176,.12) inset; padding:12px 16px; font-family:"JetBrains Mono",Consolas,monospace; color:#7dffb0; position:relative; overflow:hidden; }
+  .m5 .screen::after { content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 2px, transparent 2px 4px); }
+  .m5 .row { display:flex; justify-content:space-between; font-size:12px; margin:4px 0; letter-spacing:1px; }
+  .m5 .row b { color:#c9f7d8; }
+  .m5 .big { font-size:30px; color:#a5ffC6; text-shadow:0 0 12px rgba(125,255,176,.55); }
+  .m5 .knobs { display:flex; gap:10px; align-items:center; margin-top:12px; }
+  .m5 .knob { width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #f4ecd9, #a99a76 70%); border:1px solid #8d7f5e; box-shadow:0 3px 5px rgba(60,50,30,.35); position:relative; }
+  .m5 .knob::before { content:""; position:absolute; top:3px; left:50%; width:2px; height:9px; background:#4c4128; transform:translateX(-50%); }
+  .m5 .plate { font-size:9.5px; letter-spacing:2px; color:#7a6f55; margin-left:6px; }
+  .m5 .foot { text-align:center; font-size:10.5px; color:#8a7f65; padding:0 18px 16px; letter-spacing:2px; }
+
+  .foot-note { color:var(--faint); font-size:12.5px; line-height:1.9; border-top:1px solid var(--line); padding-top:18px; margin-top:34px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>患者端风格推荐 <em>v2</em> · 五个「有世界观」的独特方向</h1>
+  <p class="lead" style="border:1px solid rgba(125,255,176,.4); border-radius:10px; padding:10px 16px; background:rgba(125,255,176,.06)">
+    ✅ <b style="color:#a5ffc6">已定稿：方向 ⑤ 复古监护仪 · RIU-GUARD 5</b> —— patient-web 已完成主题换血（令牌 + 头部 + Hero CRT 屏 + 实体键），
+    主题实现与 mock 基本一致；效果截图见同目录 patient-retro-dashboard.png / patient-retro-ripple.png。以下推荐内容留档。
+  </p>
+  <p class="lead">
+    上一版 A/B/C/D 的问题：<b>只是在换配色</b>（晨雾蓝白≈通用 SaaS 模板、深海暗青≈大屏缩印）。这一版换方法论——
+    参照医生端（大屏）的真正做法：<b>大屏的独特性不来自"深蓝色"，而来自「墨玉鎏金」这套世界观叙事</b>（漆器近黑 / 鎏金洞察 / 朱砂印险 / 国画色系 / 纸纹颗粒）。
+    所以下面每个方向都自带世界观 + 命名系统 + 纹理与动效语言，并且每个都有<b>真实可查的品牌/设计参考</b>（不是模板拼凑）。
+    五个方向都保留了适老大字号的可读性前提。
+  </p>
+
+  <div class="gene">
+    <h3>家族感评判基准 · 医生端（大屏）的基因条</h3>
+    <div class="strip">
+      <span style="background:#081120;color:#e8f1fb">墨夜 #081120</span>
+      <span style="background:#101f33;color:#a9c0dc">玉面板 #101f33</span>
+      <span style="background:#38bdf8;color:#081120">鎏金·洞察 #38bdf8</span>
+      <span style="background:#f4695c;color:#2b0d09">朱砂·印险 #f4695c</span>
+      <span style="background:#4fd1a5;color:#08281c">竹青 #4fd1a5</span>
+      <span style="background:#e8f1fb;color:#101f33">灯下纸 #e8f1fb</span>
+    </div>
+    <p>大屏的世界观 = 「深夜航行的指挥舱，看的是海的浪」。患者端的正确姿势不是复制这片海，而是<b>同一世界里的另一个场景</b>——评委要看到"一个系统的两种空间"，而不是"两套皮肤"。</p>
+  </div>
+
+  <!-- ================= ① 本草百子柜 ================= -->
+  <div class="opt recommended">
+    <div class="opt-head">
+      <span class="num" style="background:#e3c26d;color:#1c1608">①</span>
+      <h2>本草百子柜 · 沉香鎏金</h2>
+      <span class="en">MATERIA MEDICA CABINET</span>
+      <span class="num" style="background:rgba(56,191,248,.14);color:#7dd3fc;font-size:12px;padding:2px 10px">★ 主推</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-frame m1">
+        <div class="nav">
+          <span class="seal">守</span>
+          <span class="brand">涟漪守护<small>RIU · 患者药柜</small></span>
+          <span class="links"><b>今日方</b><span>症状分诊</span><span>约医生</span><span>病历方笺</span></span>
+        </div>
+        <div class="hero">
+          <div>
+            <span class="tag">今日健康气象 · 小满</span>
+            <h4>晨峰如潮，先稳一杯温水</h4>
+            <p>今日 3 帖守护：晨起测压 · 餐后散步一刻 · 睡前药不与酒同服</p>
+          </div>
+          <div class="index"><b>37.2</b><i>守护指数</i></div>
+        </div>
+        <div class="cards">
+          <div class="card"><span>守护回执 · 消解率</span><b>0.4%</b><small>较昨日 −0.1%</small></div>
+          <div class="card"><span>72 时辰趋势</span><b>平稳</b><small>晨峰 06:30 注意</small></div>
+          <div class="card"><span>今日药屉</span><b>早 · 晚 各一帖</b><small>二甲双胍 0.5g</small></div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>大屏是「夜航指挥舱」——医生看的是浪；患者端是「老药铺的百子柜」——家人守的是人。沉香墨绿作柜、宣纸作屉、鎏金描线、朱砂封印，与《本草纲目》的"格物"传统一脉相承，"百子柜"的一格一屉正好对应"一日三次、一次一帖"的用药隐喻。</p>
+        <div class="refs">
+          <div>参考 · <b>恒修堂</b>（益丰大药房精品中药品牌全案，老药铺新做的标杆）</div>
+          <div>参考 · <b>观夏 to summer</b>（东方植物香品牌官网，"东方美学数字表达"标杆，搜「观夏 官网」）</div>
+          <div>参考 · <b>花西子</b> 页面视觉系统（亦古亦今的中文衬线排印）</div>
+        </div>
+        <div class="score"><span>独特性 <b>★★★★★</b></span><span>与大屏家族感 <b>★★★★★</b></span><span>适老可读 <b>★★★★☆</b></span></div>
+        <p class="meta">色：沉香绿 #1d2a23 / 宣纸 #f5efe0 / 本草金 #e3c26d / 朱砂印 #b03a2e（与大屏朱砂同语义）· 字：思源宋（同大屏）· 纹理：药屉细格线 + 纸纹颗粒（同大屏噪点手法）· 动效：抽屉开合 / 帖子落纸</p>
+        <div class="verdict">为什么主推：与大屏是<b>同一国风叙事的两个场景</b>（指挥舱看浪 × 百子柜守人），朱砂/鎏金/衬线/纸纹四个基因全部同源；且是对现有「数字宣纸」主题的<b>演进而非推翻</b>——保留宣纸卡与朱砂印，把底从暖黄换沉香绿、补一套鎏金描线即可，改造量约一轮。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ② 新温情诊所 ================= -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#d96f4e;color:#fff">②</span>
+      <h2>新温情诊所 · 陶土鼠尾草</h2>
+      <span class="en">SOFT CLINIC MODERN</span>
+      <span class="num" style="background:rgba(217,111,78,.14);color:#f0a88c;font-size:12px;padding:2px 10px">国际趋势</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-frame m2">
+        <div class="nav">
+          <span class="dot">守</span>
+          <span class="brand">涟漪守护</span>
+          <span class="links"><b>今日</b><span>症状</span><span>预约</span><span>病历</span></span>
+        </div>
+        <div class="hero">
+          <h4>早安，今天身体<br>有 <em>3 件小事</em> 想提醒你</h4>
+          <p>晨起测压 · 餐后散步 · 睡前药不与酒同服 —— 都不难，我们陪你。</p>
+          <span class="cta">看看今天的守护 →</span>
+        </div>
+        <div class="cards">
+          <div class="card"><span>守护指数</span><b>37.2</b></div>
+          <div class="card sage"><span>72h 趋势</span><b>平稳</b></div>
+          <div class="card clay"><span>需注意</span><b>1 件</b></div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>诊所不该像衙门，该像一家好客的咖啡馆。奶油白 + 陶土橘 + 鼠尾草绿，有机曲线色块，超大衬线标题，把"医疗"翻译成"被照顾"。这是欧美过去五年最成功的医疗品牌运动。</p>
+        <div class="refs">
+          <div>参考 · <a href="https://asktia.com/article/brand-evolution">Tia 品牌自述</a>（美国女性健康诊所，从 App 到连锁诊所的品牌演进）</div>
+          <div>参考 · <a href="https://kindbody.com">Kindbody</a>（获 Interior Awards 的 curves+warm lighting 诊所设计）</div>
+          <div>参考 · <a href="https://eyeondesign.aiga.org/high-design-healthcare-is-getting-the-millennial-branding-treatment">AIGA Eye on Design：High-design healthcare</a>（对这股潮流的综述）</div>
+        </div>
+        <div class="score"><span>独特性 <b>★★★☆☆</b></span><span>与大屏家族感 <b>★★☆☆☆</b></span><span>适老可读 <b>★★★★☆</b></span></div>
+        <p class="meta">色：奶油 #faf6f1 / 陶土 #d96f4e / 鼠尾草 #9db29a · 字：大号衬线 + 无衬线正文 · 形状：blob 有机曲线、大圆角 · 动效：柔和漂浮。近年被国内孕产/儿科品牌模仿较多，独特性在衰减；与大屏一暗一亮，家族感靠 logo/涟漪图形撑。</p>
+        <div class="verdict">适合：如果答辩想讲"国际医疗设计趋势对标"。风险：评委可能觉得"这像别的产品"，且与大屏气质距离最远。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ③ 药房新粗野 ================= -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#ffd43b;color:#141414">③</span>
+      <h2>药房新粗野 · 处方贴纸</h2>
+      <span class="en">PHARMACY NEO-BRUTALISM</span>
+      <span class="num" style="background:rgba(255,212,59,.14);color:#ffe990;font-size:12px;padding:2px 10px">个性最烈</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-frame m3">
+        <div class="nav">
+          <span class="logo">守·Rx</span>
+          <span style="font-weight:900">涟漪守护</span>
+          <span class="links"><b>今日</b><b style="background:#ffd43b">分诊</b><b>预约</b><b>病历</b></span>
+        </div>
+        <div class="hero">
+          <div>
+            <h4>今日健康气象：</h4>
+            <p style="font-size:15px">⛈ 暴雨 · 高度警戒 —— 晨峰 06:30，先测压再出门！</p>
+          </div>
+          <div class="big"><b>37.2</b><i>守护指数</i></div>
+        </div>
+        <div class="cards">
+          <div class="card"><span>回执</span><b>0.4%</b></div>
+          <div class="card"><span style="background:#b2f2bb">趋势</span><b>平稳</b></div>
+          <div class="card red"><span style="background:#ffc9c9">注意</span><b>1 项!</b></div>
+        </div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>把患者端做成一张"会说话的处方单"——3px 黑描边、零模糊硬阴影、平涂色块、贴纸与印章。诚实、直接、带一点幽默，是近年独立产品圈最有辨识度的语言。</p>
+        <div class="refs">
+          <div>参考 · <a href="https://bejamas.com">Bejamas：Neubrutalism 趋势指南</a>（粗边/硬影/平涂三要素）</div>
+          <div>参考 · <a href="https://www.setproduct.com">Setproduct：Retro & Brutalist UI field guide</a></div>
+          <div>参考 · 此前海选 final-10 中的 <b>HealthCoast 新粗野主义</b>（截图在 candidates 目录）</div>
+        </div>
+        <div class="score"><span>独特性 <b>★★★★★</b></span><span>与大屏家族感 <b>★★☆☆☆</b></span><span>适老可读 <b>★★★☆☆</b></span></div>
+        <p class="meta">色：奶油 #f5f1e6 / 柠黄 #ffd43b / 天蓝 #74c0fc / 珊瑚 #ff8787，全部 2-3px 墨线包边 · 字：超粗黑体 · 动效：硬位移、按钮按下位移=阴影消失。风险：黑粗边+高饱和对老花眼是"高对比友好"但"视觉吵闹"，需要大字号克制版；与大屏的"高级墨玉"气质相反。</div>
+        <div class="verdict">适合：想要评委过目不忘、且患者端定位偏"年轻家属代看"。若定位是老人自用，慎选。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ④ 瑞士病历终端 ================= -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#0891b2;color:#fff">④</span>
+      <h2>瑞士病历终端 · 网格信号</h2>
+      <span class="en">SWISS MEDICAL TERMINAL</span>
+      <span class="num" style="background:rgba(8,145,178,.14);color:#7edcf0;font-size:12px;padding:2px 10px">与医生端同族</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-frame m4">
+        <div class="nav">
+          <span class="cross"></span>
+          <span class="brand">涟漪守护 · 患者档案</span>
+          <span class="uid mono">PATIENT-01 / BED— / RIU 74.3</span>
+        </div>
+        <div class="grid">
+          <div class="cell wide">
+            <label>TODAY · 健康气象</label>
+            <b class="warn">暴雨 · 警戒</b>
+            <div class="sub">晨峰 06:30 · 夜间低血糖高发 · 3 项守护</div>
+            <svg class="ecg" viewBox="0 0 200 24" preserveAspectRatio="none"><path d="M0 12 H30 L38 12 42 4 46 20 50 12 H80 L88 12 92 2 96 22 100 12 H130 L138 12 142 5 146 19 150 12 H200" fill="none" stroke="#dc2626" stroke-width="1.6"/></svg>
+          </div>
+          <div class="cell"><label>RII 涟漪强度</label><b>74.3</b></div>
+          <div class="cell"><label>消解率</label><b>0.4%</b></div>
+          <div class="cell"><label>72H 趋势</label><b>平稳</b></div>
+          <div class="cell"><label>用药</label><b style="font-size:14px;line-height:1.5">二甲双胍 0.5g<br>早晚各一次</b></div>
+        </div>
+        <div class="foot">SWISS GRID 8PT · SYSTEM 14:20 · 数据墨水原则，仅一枚信号色</div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>"病历即仪器读数"。冷白底 + 8pt 严格网格 + hairline 分隔 + 等宽数据字，全屏只允许一枚信号色（心电红）做警示——冷静、精确、零装饰。注意：你们的<b>医生端 doctor-web 恰好就是零圆角零阴影的扁平临床风</b>——这个方向等于把医生端的气质做到极致，两端的"家族感"反而最强。</p>
+        <div class="refs">
+          <div>参考 · <a href="https://carbondesignsystem.ibm.com">IBM Carbon Design System</a>（医疗/企业级数据界面事实标准）</div>
+          <div>参考 · 瑞士国际主义排印（Josef Müller-Brockmann 网格系统）</div>
+        </div>
+        <div class="score"><span>独特性 <b>★★★☆☆</b></span><span>与医生端家族感 <b>★★★★★</b></span><span>适老可读 <b>★★★★★</b></span></div>
+        <p class="meta">色：冷白 #f4f5f6 / 墨 #16181c / 信号青 #0891b2 / 心电红 #dc2626 · 字：Inter + JetBrains Mono（数字全部等宽）· 动效：几乎无，只有数据刷新闪现。与大屏"感性炫"互补为"理性稳"，答辩叙事：「医生端冷静读数，大屏激情感知，患者端克制安心」。</div>
+        <div class="verdict">适合：想把"三端气质"讲成一个体系（指挥舱—工作站—家庭终端）。独特性靠克制与信息设计取胜，第一眼冲击力不如①③。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ⑤ 复古监护仪 ================= -->
+  <div class="opt">
+    <div class="opt-head">
+      <span class="num" style="background:#7dffb0;color:#0d1a12">⑤</span>
+      <h2>复古监护仪 · 磷光绿屏</h2>
+      <span class="en">RETRO VITALS HARDWARE</span>
+      <span class="num" style="background:rgba(125,255,176,.12);color:#a5ffc6;font-size:12px;padding:2px 10px">彩蛋备选</span>
+    </div>
+    <div class="opt-body">
+      <div class="mock-frame m5">
+        <div class="bezel">
+          <div class="screen">
+            <div class="row"><span>PATIENT-01</span><span>RIU 74.3</span></div>
+            <div class="row"><span>今日气象</span><b>暴雨 · 警戒</b></div>
+            <div class="row big">37.2</div>
+            <div class="row"><span>晨峰 06:30</span><b>▲ 注意</b></div>
+            <div class="row"><span>二甲双胍 0.5g</span><b>早 · 晚</b></div>
+          </div>
+          <div class="knobs">
+            <span class="knob"></span><span class="knob"></span><span class="knob"></span>
+            <span class="plate">RIU-GUARD · MODEL 5 · 适老模式</span>
+          </div>
+        </div>
+        <div class="foot">把健康数据做回"看得懂的仪表盘" —— 老人最熟悉的老家电语言</div>
+      </div>
+      <div class="desc">
+        <p class="story"><b>世界观：</b>复古老家电。米黄机身、磷光绿 CRT、实物旋钮——老一辈最熟悉的"仪器"隐喻：不用学，天生会用。拟物质感在 2026 年的 AI 产品里反而极其稀缺。</p>
+        <div class="refs">
+          <div>参考 · Setproduct Retro field guide（同③链接内的 retro 分册）</div>
+          <div>参考 · Dribbble/Pinterest 关键词「retro medical monitor UI」「CRT dashboard」</div>
+        </div>
+        <div class="score"><span>独特性 <b>★★★★★</b></span><span>与大屏家族感 <b>★★☆☆☆</b></span><span>适老可读 <b>★★★☆☆</b></span></div>
+        <p class="meta">色：机身米黄 #e9e1cf / 磷光绿 #7dffb0 / 屏黑 #0d1a12 · 纹理：CRT 扫描线 + 塑料高光 · 动效：旋钮转动、扫描线滚动。风险：娱乐感强，正式答辩场合可能被质疑"不够医疗"；信息密度低，只适合做首页/模式彩蛋。</div>
+        <div class="verdict">适合：作为「适老模式」的主题皮肤彩蛋（大字号绿屏），或在演示里当"one more thing"。不适合做整端主风格。</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot-note">
+    <b>怎么选：</b>回复 ①-⑤ 即可，选定后我直接对 patient-web / patient-mobile 动手。<br>
+    我的建议：<b>① 本草百子柜为主风格</b>（与大屏同一国风叙事、对现有宣纸主题是演进、适老可读性几乎无损）；若想再要一个答辩记忆点，可叠加 <b>⑤ 复古监护仪作为"适老模式"皮肤</b>——"指哪打哪"的两个场景切换本身就是亮点。次选 ④（若更看重"三端一个体系"的理性叙事）。<br>
+    <span style="color:#6b665b">附：医生端 doctor-web 当前为零圆角扁平临床风；方向④的"瑞士终端"即以其为基底的精修版。上一版推荐（晨雾蓝白 A / 深海暗青 B / 宣纸精修 C / 双模式 D）已废弃——它们是"换配色"，不是"立世界观"。</span>
+  </p>
+</div>
+</body>
+</html>

@@ -1,121 +1,240 @@
 @import "../../../packages/shared-ui/src/styles/index.css";
 
 /* ============================================================
-   患者端 · 「数字宣纸 · 水墨涟漪」主题（与指挥中心同源）
-   Inkp Patient Theme：宣纸底 / 墨线数据 / 朱砂印鉴 / 呼吸节律
+   患者端 · 「复古监护仪 · RIU-GUARD 5」主题（方向⑤定稿）
+   米黄机身面板 / 磷光绿 CRT 数据屏 / 实体按键 / 刻字铭牌
+   世界观：老人最熟悉的老家电——健康数据做回"看得懂的仪表盘"；
+   与大屏（夜航指挥舱）构成"新潮指挥舱 × 复古家用仪器"的对照叙事。
    令牌覆写 .theme-patient（在 shared-ui 之后引入，同特异性后者胜出）
    ============================================================ */
 
 .theme-patient {
-  /* 宣纸与墨（晨纸版：比大屏亮一档，供近读与适老） */
-  --bg: #f3efe2;
-  --surface: #fbf8ee;
-  --surface-alt: #f1ecdc;
-  --surface-warm: #f1ecdc;
-  --ink: #26231b;
-  --ink-soft: #4f4a39;
-  --muted: #857f68;
-  --subtle: #a89f83;
-  --line: #e3dcbc;
-  --line-strong: #cdc5a9;
+  /* 机身米黄与面板 */
+  --bg: #e6dec9;
+  --surface: #efe8d6;
+  --surface-alt: #e2d9c2;
+  --surface-warm: #e9e0cb;
+  /* CRT 屏与磷光（本主题新增的数据屏语言） */
+  --screen: #0d1f14;
+  --screen-edge: #b5a887;
+  --phosphor: #58e08f;
+  --phosphor-bright: #a5ffc6;
+  --phosphor-dim: #4aa570;
+  --ink: #2b2a22;
+  --ink-soft: #55523f;
+  --muted: #837b60;
+  --subtle: #a39876;
+  --line: #cfc4a4;
+  --line-strong: #a89a74;
 
-  /* 国画色：朱砂为主色 */
-  --primary: #bd4033;
-  --primary-strong: #9c3226;
-  --primary-soft: rgba(189, 64, 51, 0.08);
-  --accent: #c07a1d;
-  --accent-soft: rgba(192, 122, 29, 0.1);
-  --success: #41795f;
-  --success-soft: rgba(65, 121, 95, 0.1);
+  /* 仪器色：电源绿为主色，琥珀为注意，指示灯红为警报 */
+  --primary: #1d7a4a;
+  --primary-strong: #145c37;
+  --primary-soft: rgba(29, 122, 74, 0.12);
+  --accent: #b8860b;
+  --accent-soft: rgba(184, 134, 11, 0.12);
+  --success: #1d7a4a;
+  --success-soft: rgba(29, 122, 74, 0.1);
   --warning: #a8871a;
-  --warning-soft: rgba(168, 135, 26, 0.11);
-  --danger: #bd4033;
-  --danger-soft: rgba(189, 64, 51, 0.08);
+  --warning-soft: rgba(168, 135, 26, 0.13);
+  --danger: #c2482f;
+  --danger-soft: rgba(194, 72, 47, 0.1);
   --info: #33628f;
   --info-soft: rgba(51, 98, 143, 0.09);
 
-  --shadow: 0 1px 2px rgba(48, 42, 24, 0.05), 0 14px 34px rgba(48, 42, 24, 0.08);
+  --shadow: 0 2px 0 rgba(120, 106, 70, 0.55), 0 12px 26px rgba(70, 58, 30, 0.16);
   --radius: 10px;
-  --focus: 0 0 0 3px rgba(189, 64, 51, 0.18);
+  --focus: 0 0 0 3px rgba(29, 122, 74, 0.25);
 
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "Songti SC", serif;
-  --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "IBM Plex Mono", Consolas, monospace;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", "IBM Plex Mono", Consolas, monospace;
 }
 
-/* 宣纸底 + 顶部淡墨晕（水汽）+ 极淡纸纹 */
+/* ---------- 机身底：米黄拉丝塑料 + 顶部环境光 ---------- */
 .patient-page.theme-patient {
   background:
-    radial-gradient(1100px 300px at 18% -60px, rgba(51, 98, 143, 0.05), transparent 70%),
-    radial-gradient(900px 260px at 85% -50px, rgba(189, 64, 51, 0.045), transparent 70%),
+    radial-gradient(1200px 320px at 50% -80px, rgba(255, 246, 220, 0.75), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120, 106, 70, 0.045) 0 1px, transparent 1px 4px),
     var(--bg);
   min-height: 100vh;
 }
 
-/* 衬线标题：墨色大字，让"纸上有字"而不是"卡片有标题" */
-.patient-page.theme-patient h1,
-.patient-page.theme-patient h2 {
-  font-family: var(--font-serif);
-  letter-spacing: 0.5px;
-}
-
-/* ---------- 通用组件的墨线化 ---------- */
+/* ---------- 通用面板：注塑面板（上缘高光 + 底部投影） ---------- */
 .patient-page.theme-patient .panel {
-  border: 1.5px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.patient-page.theme-patient .notice {
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 252, 240, 0.65), rgba(255, 252, 240, 0) 42%), var(--surface);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 2px 0 rgba(120, 106, 70, 0.35), 0 10px 22px rgba(70, 58, 30, 0.13);
 }
 
+/* 面板标题：刻字铭牌风格 */
+.patient-page.theme-patient .panel-title h2 {
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.patient-page.theme-patient .panel-title p {
+  color: var(--muted);
+}
+.patient-page.theme-patient .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ---------- 实体按键：可按压的塑料键（按下 = 位移吃掉投影） ---------- */
 .patient-page.theme-patient button,
 .patient-page.theme-patient .button {
   border-radius: 9px;
-  font-weight: 600;
+  font-weight: 700;
+  border: 1px solid #8d7f5e;
+  background: linear-gradient(180deg, #f7f1df, #e4dbc2);
+  box-shadow: 0 3px 0 #b3a67e, 0 5px 10px rgba(70, 58, 30, 0.16);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+}
+.patient-page.theme-patient button:hover,
+.patient-page.theme-patient .button:hover {
+  background: linear-gradient(180deg, #fbf6e8, #eae1c9);
+}
+.patient-page.theme-patient button:active,
+.patient-page.theme-patient .button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #b3a67e, 0 2px 5px rgba(70, 58, 30, 0.18);
 }
 
-.patient-page.theme-patient .button.primary {
-  background: var(--primary);
-  border-color: var(--primary);
+.patient-page.theme-patient .button.primary,
+.patient-page.theme-patient button.primary {
+  border-color: var(--primary-strong);
+  background: linear-gradient(180deg, #2c9a5e, #1d7a4a);
+  box-shadow: 0 3px 0 var(--primary-strong), 0 5px 10px rgba(20, 92, 55, 0.3);
+  color: #f2fff5;
+}
+.patient-page.theme-patient .button.primary:active,
+.patient-page.theme-patient button.primary:active {
+  box-shadow: 0 0 0 var(--primary-strong), 0 2px 5px rgba(20, 92, 55, 0.3);
+}
+.patient-page.theme-patient .button.primary:hover,
+.patient-page.theme-patient button.primary:hover {
+  background: linear-gradient(180deg, #37a96a, #228654);
 }
 
-.patient-page.theme-patient .button.primary:hover {
-  background: var(--primary-strong);
+.patient-page.theme-patient input,
+.patient-page.theme-patient textarea,
+.patient-page.theme-patient select {
+  border: 1px solid var(--line-strong);
+  background: #f6f0dd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(70, 58, 30, 0.1) inset;
 }
 
-/* 墨线卡片（摘要/槽位/病历） */
-.patient-page.theme-patient .patient-summary-card,
+/* ---------- CRT 数据屏：磷光绿读数 + 扫描线 + 内辉光 ---------- */
+.patient-page.theme-patient .patient-summary-card {
+  position: relative;
+  border: 1px solid var(--screen-edge);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #11241710, transparent 30%), var(--screen);
+  box-shadow: 0 0 0 3px rgba(181, 168, 135, 0.35), 0 0 18px rgba(88, 224, 143, 0.12) inset, 0 8px 18px rgba(70, 58, 30, 0.2);
+  overflow: hidden;
+  padding: 14px 14px 16px;
+}
+.patient-page.theme-patient .patient-summary-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 2px, transparent 2px 4px);
+  opacity: 0.32;
+}
+.patient-page.theme-patient .patient-summary-card span {
+  color: var(--phosphor-dim);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+.patient-page.theme-patient .patient-summary-card strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--phosphor-bright);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  text-shadow: 0 0 12px rgba(88, 224, 143, 0.55);
+}
+
+/* ---------- 首屏 Hero：左文案右"开机的小监护仪" ---------- */
+.patient-page.theme-patient .mayo-hero {
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background:
+    radial-gradient(700px 200px at 18% -40px, rgba(255, 246, 220, 0.7), transparent 70%),
+    linear-gradient(180deg, rgba(255, 252, 240, 0.5), rgba(255, 252, 240, 0) 45%),
+    var(--surface);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 3px 0 rgba(120, 106, 70, 0.35), 0 16px 34px rgba(70, 58, 30, 0.16);
+  padding: 34px 36px;
+}
+.patient-page.theme-patient .mayo-hero h1 {
+  font-family: var(--font-serif);
+  color: var(--ink);
+  letter-spacing: 1px;
+}
+.patient-page.theme-patient .mayo-lead {
+  color: var(--ink-soft);
+}
+
+/* 图片占位 → 开机的小监护仪屏（磷光 EKG + 扫描线，纯 CSS/SVG，离线可用） */
+.patient-page.theme-patient .mayo-image-placeholder {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid var(--screen-edge);
+  background:
+    radial-gradient(300px 140px at 50% 0%, rgba(88, 224, 143, 0.10), transparent 75%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' preserveAspectRatio='none'%3E%3Cpath d='M0 118 H70 L82 118 88 100 94 138 100 118 H150 L162 118 170 84 178 152 186 118 H240 L252 118 258 96 264 140 270 118 H320' fill='none' stroke='%2358e08f' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") center / 88% 40% no-repeat,
+    var(--screen);
+  box-shadow: 0 0 0 3px rgba(181, 168, 135, 0.35), 0 0 24px rgba(88, 224, 143, 0.14) inset, 0 10px 20px rgba(70, 58, 30, 0.22);
+  overflow: hidden;
+}
+.patient-page.theme-patient .mayo-image-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 2px, transparent 2px 4px);
+  opacity: 0.35;
+}
+.patient-page.theme-patient .mayo-image-placeholder::after {
+  content: "LEAD II · RIU-GUARD 5 · SIGNAL OK · 72 BPM";
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  right: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: var(--phosphor-dim);
+}
+
+/* ---------- 挂号 / 病历卡片：面板纸 + 墨绿描边 ---------- */
 .patient-page.theme-patient .slot-card,
 .patient-page.theme-patient .record-card {
   background: var(--surface);
   border-color: var(--line-strong);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 2px 0 rgba(120, 106, 70, 0.3);
+  color: var(--ink);
 }
-
 .patient-page.theme-patient .slot-card.selected {
   border-color: var(--primary);
   background: var(--primary-soft);
+  box-shadow: 0 0 0 2px rgba(29, 122, 74, 0.3), 0 2px 0 rgba(120, 106, 70, 0.3);
 }
 
-/* 旧主题的蓝色标题全部转墨色 */
-.patient-page.theme-patient h1,
-.patient-page.theme-patient h2,
-.patient-page.theme-patient h3,
-.patient-page.theme-patient .patient-summary-card strong,
-.patient-page.theme-patient .auth-copy h1 {
-  color: var(--ink);
-}
-
-/* ---------- 呼吸节律动效（守护与患者同呼吸） ---------- */
+/* ---------- 呼吸节律：守护灯（磷光绿呼吸） ---------- */
 @keyframes breath-scale {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
 }
-
 @keyframes ripple-out {
   0% { transform: scale(0.72); opacity: 0.55; }
   70% { opacity: 0.12; }
@@ -140,8 +259,9 @@
   display: grid;
   place-items: center;
   font-size: 30px;
-  background: var(--surface);
-  border: 1.5px solid var(--line-strong);
+  background: var(--screen);
+  border: 2px solid var(--screen-edge);
+  box-shadow: 0 0 16px rgba(88, 224, 143, 0.3);
   animation: breath-scale 5.5s ease-in-out infinite;
 }
 
@@ -149,7 +269,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.5px solid currentColor;
+  border: 1.5px solid var(--phosphor);
   animation: ripple-out 5.5s ease-out infinite;
 }
 
@@ -158,6 +278,12 @@
 @media (prefers-reduced-motion: reduce) {
   .breath-halo .halo-core, .breath-halo .halo-ring { animation: none; }
   .breath-halo .halo-ring { opacity: 0.25; transform: scale(0.9); }
+}
+
+/* ---------- 状态标签：指示灯化 ---------- */
+.patient-page.theme-patient .tag {
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
 }
 
 /* ---------- 旧圆角覆盖保留 ---------- */
@@ -207,21 +333,6 @@
 
 .patient-summary-card {
   min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-}
-
-.patient-summary-card span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.patient-summary-card strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--ink);
-  font-size: 20px;
 }
 
 .triage-result {
@@ -234,13 +345,6 @@
   display: grid;
   gap: 8px;
   padding: 14px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-}
-
-.slot-card.selected {
-  border-color: var(--primary);
-  background: var(--primary-soft);
 }
 
 .detail-list {

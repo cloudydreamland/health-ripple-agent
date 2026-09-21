@@ -51,8 +51,10 @@ sql/ postman/ deploy/
 ```bash
 docker compose -f deploy/docker-compose.yml up -d   # 全栈 21 常驻容器
 
-# 医生指挥大屏：http://localhost:5176
-# 患者健康涟漪页：http://localhost:5173/ripple
+# 涟漪守护指挥大屏：http://localhost:5176        （免登录，?demo=1 自动演示 90 秒）
+# 患者端（复古监护仪主题）：http://localhost:5173   （种子账号 13800000001 / 123456）
+# 医生工作站（朱批卷宗主题）：http://localhost:5174  （医生账号登录）
+# 运营管理台（朱批档房主题）：http://localhost:5175  （管理员账号登录，种子 admin / 123456）
 
 py -3 scripts/e2e_test.py                           # 端到端 27 步
 py -3 evaluation/ripplebench/run_eval.py            # RippleBench v3 量化评测

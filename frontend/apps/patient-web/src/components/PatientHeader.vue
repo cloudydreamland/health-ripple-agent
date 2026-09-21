@@ -15,11 +15,11 @@ const NAV = [
 <template>
   <header class="ink-header">
     <div class="ink-header-bar">
-      <RouterLink class="ink-brand" to="/" aria-label="智慧云脑患者端">
+      <RouterLink class="ink-brand" to="/" aria-label="涟漪守护患者端">
         <span class="brand-seal">守</span>
         <span class="brand-text">
-          <b>智慧云脑 · 患者守护</b>
-          <span class="brand-en mono">PATIENT GUARDIAN / 数字宣纸 · 水墨涟漪</span>
+          <b>涟漪守护 · 患者端</b>
+          <span class="brand-en mono">RIU PATIENT / RIU-GUARD 5 · 复古监护仪</span>
         </span>
       </RouterLink>
 
@@ -46,14 +46,18 @@ const NAV = [
 </template>
 
 <style scoped>
+/* 机身顶部面板：米黄注塑 + 底部接缝，像仪器顶盖 */
 .ink-header {
   position: sticky;
   top: 0;
   z-index: 40;
   padding: 12px 24px 0;
-  background: rgba(243, 239, 226, 0.88);
-  backdrop-filter: blur(10px);
-  border-bottom: 1.5px solid var(--ink);
+  background:
+    radial-gradient(900px 160px at 50% -60px, rgba(255, 248, 224, 0.8), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(120, 106, 70, 0.05) 0 1px, transparent 1px 4px),
+    #e9e1cb;
+  border-bottom: 2px solid #a89a74;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 3px 10px rgba(70, 58, 30, 0.18);
 }
 
 .ink-header-bar {
@@ -74,6 +78,7 @@ const NAV = [
   color: var(--ink);
 }
 
+/* 电源铭牌：深绿底荧光印字（像仪器型号牌） */
 .brand-seal {
   width: 40px;
   height: 40px;
@@ -82,11 +87,12 @@ const NAV = [
   font-family: var(--font-serif);
   font-size: 21px;
   font-weight: 800;
-  color: #f6f3e8;
-  background: var(--primary);
+  color: #a5ffc6;
+  background: #0d1f14;
   border-radius: 9px;
-  transform: rotate(-3deg);
-  box-shadow: 0 2px 10px rgba(189, 64, 51, 0.28);
+  border: 1px solid #b5a887;
+  box-shadow: 0 0 14px rgba(88, 224, 143, 0.28), 0 2px 0 #b3a67e;
+  text-shadow: 0 0 8px rgba(88, 224, 143, 0.8);
 }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.25; }
@@ -101,7 +107,7 @@ const NAV = [
   margin-left: 6px;
 }
 
-/* 导航：墨线落点而非盒子——悬停晕染，选中朱砂压墨线 */
+/* 导航：仪器按键排——悬停微微抬起，选中亮"通道灯" */
 .ink-nav-link {
   position: relative;
   display: flex;
@@ -122,7 +128,8 @@ const NAV = [
   right: 12px;
   bottom: 0;
   height: 2.5px;
-  background: var(--primary);
+  background: var(--phosphor);
+  box-shadow: 0 0 8px rgba(88, 224, 143, 0.8);
   transform: scaleX(0);
   transform-origin: center;
   transition: transform 0.2s ease;
@@ -131,10 +138,10 @@ const NAV = [
 .ink-nav-link span:first-child { font-size: 13px; font-weight: 600; }
 .nav-en { font-size: 7.5px; letter-spacing: 1.4px; color: var(--subtle); }
 
-.ink-nav-link:hover { color: var(--ink); background: rgba(38, 35, 27, 0.045); }
+.ink-nav-link:hover { color: var(--ink); background: rgba(43, 42, 34, 0.05); }
 
-.ink-nav-link.router-link-active { color: var(--primary); }
-.ink-nav-link.router-link-active .nav-en { color: var(--primary); opacity: 0.72; }
+.ink-nav-link.router-link-active { color: var(--primary-strong); }
+.ink-nav-link.router-link-active .nav-en { color: var(--primary); opacity: 0.8; }
 .ink-nav-link.router-link-active::after { transform: scaleX(1); }
 
 .ink-actions {
@@ -154,38 +161,47 @@ const NAV = [
   border: 1px dashed var(--line-strong);
   border-radius: 999px;
   padding: 5px 12px;
-  background: var(--surface);
+  background: rgba(255, 252, 240, 0.7);
 }
 
-.user-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+/* 电源指示灯 */
+.user-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--phosphor);
+  box-shadow: 0 0 6px rgba(88, 224, 143, 0.9);
+}
 
+/* 实体键：可按压 */
 .ghost-btn {
-  border: 1.5px solid var(--ink);
-  background: transparent;
+  border: 1px solid #8d7f5e;
+  background: linear-gradient(180deg, #f7f1df, #e4dbc2);
   color: var(--ink);
   border-radius: 9px;
   padding: 7px 13px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+  box-shadow: 0 3px 0 #b3a67e;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
-
-.ghost-btn:hover { background: var(--ink); color: #f6f3e8; }
+.ghost-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #b3a67e; }
 
 .seal-btn {
-  border: 1.5px solid var(--primary);
-  background: var(--primary);
-  color: #f6f3e8;
+  border: 1px solid var(--primary-strong);
+  background: linear-gradient(180deg, #2c9a5e, #1d7a4a);
+  color: #f2fff5;
   border-radius: 9px;
   padding: 7px 15px;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(189, 64, 51, 0.22);
+  box-shadow: 0 3px 0 var(--primary-strong), 0 5px 10px rgba(20, 92, 55, 0.28);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
-
-.seal-btn:hover { background: var(--primary-strong); border-color: var(--primary-strong); }
+.seal-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--primary-strong); }
 
 .ink-sublink {
   display: inline-block;
