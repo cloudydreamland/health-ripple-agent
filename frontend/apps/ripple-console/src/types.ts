@@ -156,18 +156,18 @@ export interface ChainVerifyResult {
 }
 
 export const DIMENSION_META: Record<string, { label: string; color: string; en: string; icon: string }> = {
-  drugLifestyleConflicts: { label: "药物-生活冲突", color: "#f4695c", en: "CONFLICT", icon: " Rx" },
-  complicationSignals: { label: "并发症早期信号", color: "#f0a45c", en: "SIGNAL", icon: " Sig" },
-  recheckWindows: { label: "复查窗口", color: "#38cfe8", en: "RECHECK", icon: " Lab" },
-  chronoTriggers: { label: "时间学触达", color: "#9d8cff", en: "CHRONO", icon: " Chr" },
-  familyAttentions: { label: "家属注意事项", color: "#4fd1a5", en: "FAMILY", icon: " Fam" },
+  drugLifestyleConflicts: { label: "药物-生活冲突", color: "var(--red)", en: "CONFLICT", icon: " Rx" },
+  complicationSignals: { label: "并发症早期信号", color: "var(--orange)", en: "SIGNAL", icon: " Sig" },
+  recheckWindows: { label: "复查窗口", color: "var(--cyan)", en: "RECHECK", icon: " Lab" },
+  chronoTriggers: { label: "时间学触达", color: "var(--violet)", en: "CHRONO", icon: " Chr" },
+  familyAttentions: { label: "家属注意事项", color: "var(--green)", en: "FAMILY", icon: " Fam" },
 };
 
 /** 五Agent 学科配色（与弦图/底部角色卡共用）——黛蓝/朱砂/青瓷/竹青/紫藤（夜航版）。 */
 export const AGENT_META: Record<string, { label: string; en: string; char: string; color: string }> = {
-  triageView: { label: "分诊 Agent", en: "TRIAGE", char: "分", color: "#5ba7f7" },
-  prescriptionView: { label: "处方 Agent", en: "RX SAFETY", char: "方", color: "#f4695c" },
-  recordView: { label: "病历 Agent", en: "RECORD", char: "历", color: "#38cfe8" },
-  followupView: { label: "随访 Agent", en: "FOLLOW-UP", char: "随", color: "#4fd1a5" },
-  rippleView: { label: "涟漪守护 Agent", en: "RIPPLE", char: "守", color: "#9d8cff" },
+  triageView: { label: "分诊 Agent", en: "TRIAGE", char: "分", color: "var(--blue)" },
+  prescriptionView: { label: "处方 Agent", en: "RX SAFETY", char: "方", color: "var(--red)" },
+  recordView: { label: "病历 Agent", en: "RECORD", char: "历", color: "var(--cyan)" },
+  followupView: { label: "随访 Agent", en: "FOLLOW-UP", char: "随", color: "var(--green)" },
+  rippleView: { label: "涟漪守护 Agent", en: "RIPPLE", char: "守", color: "var(--violet)" },
 };

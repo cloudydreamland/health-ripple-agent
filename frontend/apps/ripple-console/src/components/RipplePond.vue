@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { THEME_EVENT, isDay, tint, triple } from "../theme";
 import { DIMENSION_META, type RippleDimensions, type RippleIntensity, type RippleNode } from "../types";
 
 /**
@@ -117,6 +118,20 @@ function draw() {
   if (!STATIC_MODE) raf = requestAnimationFrame(draw);
 }
 
+/** 主题调色板：夜航=纸白墨线在深底发光；日间=墨线在米纸上 */
+function pal() {
+  const day = isDay();
+  return {
+    day,
+    ink: day ? triple("--ink-soft", "85, 80, 63") : "200,224,250",
+    water: day ? triple("--gold", "30, 95, 138") : "56,207,232",
+    stone: day ? `rgba(${triple("--ink", "47, 42, 32")}, 0.94)` : "rgba(4,10,20,0.97)",
+    stoneInk: day ? "#f3edda" : "#dbe9f9",
+    stoneDim: day ? "rgba(243,237,218,0.72)" : "rgba(246,243,232,0.6)",
+    chipBg: day ? "rgba(243,237,218,0.95)" : "rgba(10,22,40,0.95)",
+  };
+}
+
 function drawFrame() {
   const c = canvasRef.value;
   if (!c || !ctx) return;
@@ -125,16 +140,17 @@ function drawFrame() {
   const now = performance.now();
   const t = now / 1000;
   const maxR = ringRadius(5) + 26;
-  const ink = "200,224,250"; // 夜航墨：纸白墨线在深底上发光
+  const p = pal();
+  const ink = p.ink; // 夜航=纸白墨线；日间=墨色线
 
   ctx.clearRect(0, 0, W, H);
 
   // 池心水光：极淡的青瓷辉光随呼吸起伏（夜水微光）
   const glow = 0.035 + 0.02 * Math.sin(t * 0.7);
   const water = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.9);
-  water.addColorStop(0, `rgba(56,207,232,${glow.toFixed(3)})`);
-  water.addColorStop(0.55, `rgba(56,207,232,${(glow * 0.4).toFixed(3)})`);
-  water.addColorStop(1, "rgba(56,207,232,0)");
+  water.addColorStop(0, `rgba(${p.water},${glow.toFixed(3)})`);
+  water.addColorStop(0.55, `rgba(${p.water},${(glow * 0.4).toFixed(3)})`);
+  water.addColorStop(1, `rgba(${p.water},0)`);
   ctx.fillStyle = water;
   ctx.fillRect(0, 0, W, H);
 
@@ -216,7 +232,7 @@ function drawFrame() {
     // 墨滴：外圈色环 + 夜色留底 + 发光色芯
     ctx.beginPath();
     ctx.arc(x, y, rr, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(10,22,40,0.94)";
+    ctx.fillStyle = p.chipBg;
     ctx.fill();
     ctx.strokeStyle = hexA(n.color, 0.95);
     ctx.lineWidth = 1.8;
@@ -238,7 +254,7 @@ function drawFrame() {
         chipCx = cx + (dx >= 0 ? 1 : -1) * (stoneEdge + chipW / 2 + 4);
       }
       const chipY = y + rr + 8;
-      ctx.fillStyle = "rgba(10,22,40,0.95)";
+      ctx.fillStyle = p.chipBg;
       ctx.strokeStyle = n.color;
       ctx.lineWidth = 1;
       roundRect(chipCx - chipW / 2, chipY, chipW, 16, 4);
@@ -251,7 +267,7 @@ function drawFrame() {
 
   // 健康事件墨石（中心，有机圆缘：比夜更深的墨，纸白描边）
   const stoneR = Math.min(W, H) * 0.082;
-  ctx.fillStyle = "rgba(4,10,20,0.97)";
+  ctx.fillStyle = p.stone;
   ctx.beginPath();
   ctx.arc(cx, cy, stoneR, 0, Math.PI * 2);
   ctx.fill();
@@ -266,11 +282,11 @@ function drawFrame() {
   ctx.strokeStyle = `rgba(${ink},0.34)`;
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = "rgba(246,243,232,0.6)";
+  ctx.fillStyle = p.stoneDim;
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("健康事件", cx, cy - 9);
-  ctx.fillStyle = "#dbe9f9";
+  ctx.fillStyle = p.stoneInk;
   ctx.font = `700 ${Math.max(12, stoneR * 0.34)}px 'Noto Serif SC', SimSun, serif`;
   const diag = props.healthEvent.diagnosis || "—";
   ctx.fillText(diag.length > 7 ? diag.slice(0, 6) + "…" : diag, cx, cy + 12);
@@ -322,12 +338,9 @@ function roundRect(x: number, y: number, w: number, h: number, r: number) {
   ctx.closePath();
 }
 
-function hexA(hex: string, alpha: number): string {
-  const v = hex.replace("#", "");
-  const r = parseInt(v.slice(0, 2), 16);
-  const g = parseInt(v.slice(2, 4), 16);
-  const b = parseInt(v.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
+/** 颜色（支持 CSS 令牌）+ 透明度：夜航/日间通用 */
+function hexA(color: string, alpha: number): string {
+  return tint(color, alpha);
 }
 
 function resize() {
@@ -394,10 +407,15 @@ onMounted(() => {
   // 防节流加固：挂载后先同步画一帧（后台标签 rAF 冻结时也有内容），回到可见时重绘
   if (ctx) drawFrame();
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener(THEME_EVENT, onThemeChange);
   ro = new ResizeObserver(() => resize());
   if (wrapRef.value) ro.observe(wrapRef.value);
   raf = requestAnimationFrame(draw);
 });
+
+function onThemeChange() {
+  if (ctx) draw();
+}
 
 function onVisibility() {
   if (!document.hidden) {
@@ -410,6 +428,7 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
   ro?.disconnect();
   document.removeEventListener("visibilitychange", onVisibility);
+  window.removeEventListener(THEME_EVENT, onThemeChange);
 });
 </script>
 

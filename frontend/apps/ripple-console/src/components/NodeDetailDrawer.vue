@@ -44,15 +44,15 @@ const breakdownRows = computed(() => {
 });
 
 function barColor(value: number): string {
-  if (value >= 0.9) return "#f4695c";
-  if (value >= 0.7) return "#f0a45c";
-  return "#38cfe8";
+  if (value >= 0.9) return "var(--red)";
+  if (value >= 0.7) return "var(--orange)";
+  return "var(--cyan)";
 }
 
 const spineColor = computed(() => {
   const n = props.node;
-  if (!n) return "#dbe9f9";
-  return n.intensity >= 70 ? "#f4695c" : n.intensity >= 40 ? "#f0a45c" : "#e5c15c";
+  if (!n) return "var(--ink)";
+  return n.intensity >= 70 ? "var(--red)" : n.intensity >= 40 ? "var(--orange)" : "var(--yellow)";
 });
 </script>
 

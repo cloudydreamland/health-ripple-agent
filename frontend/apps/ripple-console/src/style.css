@@ -461,3 +461,133 @@ button.big:hover::after { transform: translateX(130%); }
 .stat-cell .label .idx { font-size: 46px; }
 .stat-cell .sub { font-size: 10px; }
 .grid-hero, .grid-a, .grid-b, .grid-c, .grid-d { gap: 8px; }
+
+/* ============================================================
+   日间米纸模式（:root[data-theme="day"]）
+   与其他三端同色系：卷宗米底 + 墨字 + 朱砂高风险 + 靛青强调。
+   说明：只重定义令牌，组件与画布自动跟随（画布经 theme.ts 读令牌）。
+   ============================================================ */
+:root[data-theme="day"] {
+  --paper: #ece4d0;
+  --card: #f3edda;
+  --card-glass: rgba(243, 237, 218, 0.88);
+  --card-inset: #e7dfc9;
+  --raised: #f7f2e2;
+  --ink: #2f2a20;
+  --ink-soft: #55503f;
+  --muted: #6e6858;
+  --faint: #9a917c;
+  --line: rgba(90, 78, 48, 0.2);
+  --line-strong: rgba(90, 78, 48, 0.38);
+
+  /* 强调色：纸上的"技术高亮"用靛青（原鎏金青在纸上不可读） */
+  --gold: #1e5f8a;
+  --gold-bg: rgba(30, 95, 138, 0.1);
+
+  /* 国画色·日间版：整体压暗以适配米纸底 */
+  --red: #b03024;
+  --red-bg: rgba(176, 48, 36, 0.1);
+  --orange: #a8621c;
+  --orange-bg: rgba(168, 98, 28, 0.12);
+  --yellow: #8a6d1a;
+  --yellow-bg: rgba(138, 109, 26, 0.12);
+  --green: #3f6b4a;
+  --green-bg: rgba(63, 107, 74, 0.12);
+  --blue: #2f5d8a;
+  --blue-bg: rgba(47, 93, 138, 0.12);
+  --violet: #5b4b8a;
+  --violet-bg: rgba(91, 75, 138, 0.12);
+  --cyan: #146b7a;
+  --cyan-bg: rgba(20, 107, 122, 0.12);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 10px 26px rgba(70, 58, 30, 0.14);
+}
+
+:root[data-theme="day"],
+:root[data-theme="day"] html,
+:root[data-theme="day"] body {
+  background:
+    radial-gradient(1100px 460px at 10% -6%, rgba(176, 48, 36, 0.05), transparent 62%),
+    radial-gradient(1000px 540px at 92% -4%, rgba(30, 95, 138, 0.05), transparent 58%),
+    radial-gradient(1500px 800px at 50% 118%, rgba(138, 109, 26, 0.05), transparent 60%),
+    var(--paper);
+}
+/* 日间纸纹颗粒更淡 */
+:root[data-theme="day"] body::before { opacity: 0.09; }
+
+/* 朱砂印/主按钮上的文字：日间红更深，字用纸色 */
+:root[data-theme="day"] .brand-seal {
+  color: #f6f2e8;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.28), inset 0 0 0 3.5px var(--red), 0 0 18px rgba(176, 48, 36, 0.28);
+}
+:root[data-theme="day"] button { color: var(--paper); }
+:root[data-theme="day"] button:hover { background: #3a3327; border-color: #3a3327; }
+:root[data-theme="day"] button.ghost {
+  background: transparent;
+  color: var(--ink-soft);
+}
+:root[data-theme="day"] button.ghost:hover { background: rgba(90, 78, 48, 0.08); }
+
+/* 面板：暗色渐变描边在纸上换成细墨线 + 纸面高光 */
+:root[data-theme="day"] .panel {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(180deg, rgba(90, 78, 48, 0.42), rgba(90, 78, 48, 0.16) 42%, rgba(90, 78, 48, 0.24)) border-box;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 6px 18px rgba(70, 58, 30, 0.12);
+}
+:root[data-theme="day"] .sec-head {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid var(--line);
+}
+:root[data-theme="day"] .stat-strip { box-shadow: 0 6px 18px rgba(70, 58, 30, 0.12); }
+/* 日间：描边渐变字改为实心墨色数字（白渐变在米纸上等于隐形） */
+:root[data-theme="day"] .stat-cell .value {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: var(--ink);
+  filter: none;
+}
+:root[data-theme="day"] .stat-cell .value small { color: var(--muted); }
+:root[data-theme="day"] .stat-cell .label .idx { color: rgba(90, 78, 48, 0.1); }
+
+/* 大数字渐变字（描边式）在纸上改为实心墨色 */
+:root[data-theme="day"] .stat-cell.hero .value {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: var(--red);
+  filter: none;
+}
+:root[data-theme="day"] .seg-meter i { background: rgba(90, 78, 48, 0.08); }
+:root[data-theme="day"] .seg-meter i.on { background: linear-gradient(180deg, #4a4133 8%, #2f2a20 92%); border-color: rgba(90, 78, 48, 0.5); }
+:root[data-theme="day"] ::selection { background: rgba(176, 48, 36, 0.24); color: var(--ink); }
+
+/* 顶栏玻璃卡：纸上用白色半透明而非深色 */
+:root[data-theme="day"] .topbar { backdrop-filter: blur(8px); }
+
+/* 指标条：暗色渐变在日间换成纸卡 + 细墨线边（与 .panel 同一改写思路） */
+:root[data-theme="day"] .stat-strip {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(180deg, rgba(90, 78, 48, 0.46), rgba(90, 78, 48, 0.18) 42%, rgba(90, 78, 48, 0.26)) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(70, 58, 30, 0.14);
+}
+:root[data-theme="day"] .stat-cell::before { background: var(--ink-soft); opacity: 0.45; }
+:root[data-theme="day"] .stat-cell.accent-red::before { background: var(--red); opacity: 1; }
+:root[data-theme="day"] .stat-cell.accent-green::before { background: var(--green); opacity: 1; }
+:root[data-theme="day"] .topbar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18)),
+    var(--card-glass);
+}
+
+/* 窄屏顶栏：标题不换行，英文小标在 1600 以下隐藏（新增主题开关后按钮更挤） */
+.brand h1 { white-space: nowrap; }
+@media (max-width: 1620px) { .brand h1 .en { display: none; } }
+@media (max-width: 1460px) { .brand p { display: none; } }

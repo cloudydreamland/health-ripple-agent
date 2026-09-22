@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { DIMENSION_META, type RippleDimensions, type RippleIntensity, type RippleNode } from "../types";
+import { THEME_EVENT, isDay, triple } from "../theme";
 
 /**
  * 器官涟漪图 ORGAN MAP · 3D 全息投影版（第十三轮 · 辉光渲染）：
@@ -116,10 +117,38 @@ const callouts = computed<OrganHot[]>(() => {
   return [...organHots.value.values()].sort((a, b) => b.sum - a.sum).slice(0, 2);
 });
 
-function heatRgb(sum: number, max: number): [number, number, number] {
-  if (max >= 70 || sum >= 150) return [244, 105, 92];
-  if (max >= 40 || sum >= 80) return [240, 164, 92];
-  return [56, 207, 232];
+
+/** 主题调色板：夜航=加色辉光；日间米纸=墨点+朱砂/靛青，改用常规混合避免泛白 */
+function pal() {
+  const day = isDay();
+  return {
+    day,
+    blend: (day ? "source-over" : "lighter") as GlobalCompositeOperation,
+    grid: day ? triple("--gold", "30, 95, 138") : "56, 191, 248",
+    floorDot: day ? triple("--faint", "154, 145, 124") : "125, 211, 252",
+    dust: day ? triple("--faint", "154, 145, 124") : "125, 211, 252",
+    shell: day ? triple("--ink-soft", "85, 80, 63") : "88, 168, 224",
+    shellA: day ? 0.1 : 0.085,
+    bodyGlow: day ? triple("--muted", "110, 104, 88") : "150, 220, 255",
+    bodyGlowA: day ? 0.3 : 0.34,
+    bodyCore: day ? triple("--ink", "47, 42, 32") : "198, 235, 255",
+    hot: triple("--red", "176, 48, 36"),
+    hotMid: triple("--orange", day ? "168, 98, 28" : "240, 164, 92"),
+    hotLow: day ? triple("--cyan", "20, 107, 122") : "56, 207, 232",
+    vesselRed: triple("--red", day ? "176, 48, 36" : "244, 105, 92"),
+    vesselBlue: day ? triple("--gold", "30, 95, 138") : "125, 211, 252",
+    green: triple("--green", day ? "63, 107, 74" : "79, 209, 165"),
+    scan: day ? triple("--gold", "30, 95, 138") : "56, 191, 248",
+    cardBg: day ? "243, 237, 218" : "8, 17, 32",
+    cardInk: day ? "#2f2a20" : "#e8f1fb",
+  };
+}
+
+function heatRgb(sum: number, max: number): string {
+  const p = pal();
+  if (max >= 70 || sum >= 150) return p.hot;
+  if (max >= 40 || sum >= 80) return p.hotMid;
+  return p.hotLow;
 }
 
 /* ============ 确定性随机（点云布局稳定） ============ */
@@ -500,6 +529,7 @@ function drawFrame() {
   fitView();
   ctx.clearRect(0, 0, W, H);
 
+  const p = pal();
   const hots = organHots.value;
   const cx = W / 2;
   const baseY = H * 0.9;
@@ -509,9 +539,9 @@ function drawFrame() {
   const bodyTop = project([0, 600, 0]);
   ctx.save();
   const cone = ctx.createLinearGradient(cx, H * 1.12, cx, feet.y);
-  cone.addColorStop(0, "rgba(56, 191, 248, 0.14)");
-  cone.addColorStop(0.55, "rgba(56, 191, 248, 0.05)");
-  cone.addColorStop(1, "rgba(56, 191, 248, 0.015)");
+  cone.addColorStop(0, `rgba(${p.grid}, ${p.day ? 0.10 : 0.14})`);
+  cone.addColorStop(0.55, `rgba(${p.grid}, ${p.day ? 0.035 : 0.05})`);
+  cone.addColorStop(1, `rgba(${p.grid}, 0.015)`);
   ctx.fillStyle = cone;
   ctx.beginPath();
   ctx.moveTo(cx - 40, H * 1.1);
@@ -524,9 +554,9 @@ function drawFrame() {
 
   // 1b. 地面：透视放射网格 + 旋转虚线盘 + 辉点（加色，参考"全息舞台"）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   const gridRx = 128 * fitK, gridRz = gridRx * 0.34;
-  ctx.strokeStyle = "rgba(56, 191, 248, 0.10)";
+  ctx.strokeStyle = `rgba(${p.grid}, ${p.day ? 0.16 : 0.1})`;
   ctx.lineWidth = 1;
   for (let i = 0; i <= 12; i++) {
     const a = (i / 12) * Math.PI * 2;
@@ -537,7 +567,7 @@ function drawFrame() {
   }
   for (let i = 1; i <= 3; i++) {
     const rr = gridRx * (0.3 + i * 0.24);
-    ctx.strokeStyle = `rgba(56, 191, 248, ${(0.16 - i * 0.035).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(${p.grid}, ${((p.day ? 0.22 : 0.16) - i * 0.035).toFixed(3)})`;
     ctx.beginPath();
     ctx.ellipse(cx, feet.y, rr, rr * 0.34, 0, 0, Math.PI * 2);
     ctx.stroke();
@@ -545,7 +575,7 @@ function drawFrame() {
   for (let i = 1; i <= 3; i++) {
     ctx.beginPath();
     ctx.ellipse(cx, feet.y, 38 + i * 34, (38 + i * 34) * 0.24, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(125, 211, 252, ${0.24 - i * 0.06})`;
+    ctx.strokeStyle = `rgba(${p.floorDot}, ${(p.day ? 0.34 : 0.24) - i * 0.06})`;
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 9]);
     ctx.lineDashOffset = -t * 14 * i;
@@ -555,26 +585,26 @@ function drawFrame() {
   for (let i = 0; i < floorDots.length; i++) {
     const pr = project(floorDots[i]);
     const tw = 0.5 + 0.5 * Math.sin(t * 1.6 + i * 1.9);
-    drawGlow(ctx, pr.x, pr.y, 1.4 + pr.s * 2.4, "125,211,252", 0.08 + tw * 0.14);
+    drawGlow(ctx, pr.x, pr.y, 1.4 + pr.s * 2.4, p.floorDot, (p.day ? 0.16 : 0.08) + tw * 0.14);
   }
   ctx.restore();
 
   // 0. 环境微尘：人体四周缓慢上浮的辉尘（加色）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   for (let i = 0; i < dustPoints.length; i++) {
     const d = dustPoints[i];
     const y = (d[1] + t * 9) % 660;
     const pr = project([d[0], y, d[2]]);
     const tw = 0.5 + 0.5 * Math.sin(t * 1.3 + i * 2.4);
-    drawGlow(ctx, pr.x, pr.y, 1.5 + pr.s * 2.6, "125,211,252", 0.07 + tw * 0.10);
+    drawGlow(ctx, pr.x, pr.y, 1.5 + pr.s * 2.6, p.dust, (p.day ? 0.12 : 0.07) + tw * 0.10);
   }
   ctx.restore();
 
   // 2. 体表暗壳：半透明"玻璃体"（加色叠出体积）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
-  ctx.fillStyle = "rgba(88, 168, 224, 0.085)";
+  ctx.globalCompositeOperation = pal().blend;
+  ctx.fillStyle = `rgba(${p.shell}, ${p.shellA})`;
   for (const p of shellPoints) {
     const pr = project(p);
     ctx.fillRect(pr.x - 1.2, pr.y - 1.2, 2.4, 2.4);
@@ -583,33 +613,32 @@ function drawFrame() {
 
   // 3. 骨骼亮层：锐利亮核 + 轻晕双层（近亮远暗）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
-  for (const p of bodyPoints) {
-    const pr = project(p);
-    const a = Math.max(0.2, Math.min(0.9, (pr.s - 0.45) * 2.4));
-    drawGlow(ctx, pr.x, pr.y, 1.7 + pr.s * 1.7, "150, 220, 255", a * 0.34);
-    ctx.fillStyle = `rgba(198, 235, 255, ${a.toFixed(3)})`;
-    ctx.fillRect(pr.x - 1.1, pr.y - 1.1, 2.2, 2.2);
+  ctx.globalCompositeOperation = pal().blend;
+  for (const pt of bodyPoints) {
+    const pr = project(pt);
+    const a = Math.max(0.2, Math.min(0.9, (pr.s - 0.45) * 2.4)) * (p.day ? 1.15 : 1);
+    drawGlow(ctx, pr.x, pr.y, 1.7 + pr.s * 1.7, p.bodyGlow, a * p.bodyGlowA);
+    ctx.fillStyle = `rgba(${p.bodyCore}, ${a.toFixed(3)})`;
+    ctx.fillRect(pr.x - 1.1, pr.y - 1.1, 2.2 * (p.day ? 1.15 : 1), 2.2 * (p.day ? 1.15 : 1));
   }
   ctx.restore();
 
   // 4. 器官点云（热度着色辉光，亮度呼吸）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   for (const hot of hots.values()) {
-    const [r, g, b] = heatRgb(hot.sum, hot.max);
-    const rgb = `${r}, ${g}, ${b}`;
-    const breathe = 0.75 + 0.25 * Math.sin(t * 1.7 + hot.organ.x * 0.05);
+    const rgb = heatRgb(hot.sum, hot.max);
+        const breathe = 0.75 + 0.25 * Math.sin(t * 1.7 + hot.organ.x * 0.05);
     const n = Math.round(hot.organ.r * 3.4);
     const rnd = mulberry32(hot.organ.y * 977 + hot.organ.x);
     for (let i = 0; i < n; i++) {
       const u = rnd() * Math.PI * 2, v = Math.acos(2 * rnd() - 1);
       const rr = hot.organ.r * (0.35 + 0.65 * Math.cbrt(rnd()));
-      const p: P3 = [hot.organ.x + Math.sin(v) * Math.cos(u) * rr, hot.organ.y + Math.cos(v) * rr, hot.organ.z + Math.sin(v) * Math.sin(u) * rr];
-      const pr = project(p);
+      const op: P3 = [hot.organ.x + Math.sin(v) * Math.cos(u) * rr, hot.organ.y + Math.cos(v) * rr, hot.organ.z + Math.sin(v) * Math.sin(u) * rr];
+      const pr = project(op);
       const a = Math.min(0.9, (0.4 + hot.max / 150) * breathe);
       drawGlow(ctx, pr.x, pr.y, 1.8 + pr.s * 1.9, rgb, a * 0.42);
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${(a * 0.92).toFixed(3)})`;
+      ctx.fillStyle = `rgba(${rgb}, ${(a * 0.92).toFixed(3)})`;
       ctx.fillRect(pr.x - 1.15, pr.y - 1.15, 2.3, 2.3);
     }
   }
@@ -617,11 +646,11 @@ function drawFrame() {
 
   // 5. 血管树（宽淡晕 + 细亮线双描，加色）
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   ctx.lineCap = "round";
   vesselLines.forEach((pts, idx) => {
     const red = vesselRed[idx];
-    const rgb = red ? "244, 105, 92" : "125, 211, 252";
+    const rgb = red ? p.vesselRed : p.vesselBlue;
     ctx.beginPath();
     pts.forEach((p, i) => {
       const pr = project(p);
@@ -639,19 +668,18 @@ function drawFrame() {
   // 6. 器官热点：外晕 + 中晕 + 白炽亮核 + 双脉冲扩散环（参考医学全息图）
   projOrgans.length = 0;
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   for (const hot of hots.values()) {
     const center = project([hot.organ.x, hot.organ.y, hot.organ.z]);
     projOrgans.push({ key: hot.key, sx: center.x, sy: center.y, label: hot.topLabel });
-    const [r, g, b] = heatRgb(hot.sum, hot.max);
-    const rgb = `${r}, ${g}, ${b}`;
-    const breathe = 0.72 + 0.28 * Math.sin(t * 1.7 + hot.organ.x * 0.05);
+    const rgb = heatRgb(hot.sum, hot.max);
+        const breathe = 0.72 + 0.28 * Math.sin(t * 1.7 + hot.organ.x * 0.05);
     drawGlow(ctx, center.x, center.y, 30 * center.s + 6, rgb, (0.16 + hot.max / 420) * breathe);
     drawGlow(ctx, center.x, center.y, 13 * center.s + 3, rgb, 0.42 * breathe);
     if (hot.max >= 70 || hot.sum >= 150) {
       for (const off of [0, 0.5]) {
         const pulse = (t * 0.9 + hot.organ.x * 0.02 + off) % 1;
-        ctx.strokeStyle = `rgba(244, 105, 92, ${((1 - pulse) * 0.55).toFixed(3)})`;
+        ctx.strokeStyle = `rgba(${p.hot}, ${((1 - pulse) * (p.day ? 0.7 : 0.55)).toFixed(3)})`;
         ctx.lineWidth = 1.6;
         ctx.beginPath();
         ctx.arc(center.x, center.y, (6 + pulse * 30) * center.s, 0, Math.PI * 2);
@@ -668,14 +696,14 @@ function drawFrame() {
 
   // 8. 家属注意事项：环绕外圈辉光点
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = pal().blend;
   for (const node of familyNodes.value) {
     const ang = (Number(node.intensity) / 100) * Math.PI * 2 + t * 0.06;
-    const p: P3 = [Math.cos(ang) * 150, 330 + Math.sin(t * 0.4 + ang) * 60, Math.sin(ang) * 90];
-    const pr = project(p);
+    const fp: P3 = [Math.cos(ang) * 150, 330 + Math.sin(t * 0.4 + ang) * 60, Math.sin(ang) * 90];
+    const pr = project(fp);
     if (pr.s <= 0.05) continue;  // 转到相机身后时跳过（负半径会让 arc 抛异常中断整帧）
-    drawGlow(ctx, pr.x, pr.y, 6 * pr.s + 2, "79, 209, 165", 0.5);
-    ctx.strokeStyle = "rgba(79, 209, 165, 0.3)";
+    drawGlow(ctx, pr.x, pr.y, 6 * pr.s + 2, p.green, p.day ? 0.65 : 0.5);
+    ctx.strokeStyle = `rgba(${p.green}, ${p.day ? 0.45 : 0.3})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(pr.x, pr.y, Math.max(0.5, (6 + Math.sin(t * 2 + ang) * 2) * pr.s), 0, Math.PI * 2);
@@ -687,49 +715,50 @@ function drawFrame() {
   const bodyBotY = Math.max(...projOrgans.map(p => p.sy), feet.y);
   const scanY = bodyTopY + ((t * 0.14) % 1) * (bodyBotY - bodyTopY);
   const scanGrad = ctx.createLinearGradient(0, scanY - 22, 0, scanY + 22);
-  scanGrad.addColorStop(0, "rgba(56, 191, 248, 0)");
-  scanGrad.addColorStop(0.5, "rgba(56, 191, 248, 0.055)");
-  scanGrad.addColorStop(1, "rgba(56, 191, 248, 0)");
+  scanGrad.addColorStop(0, `rgba(${p.scan}, 0)`);
+  scanGrad.addColorStop(0.5, `rgba(${p.scan}, ${p.day ? 0.07 : 0.055})`);
+  scanGrad.addColorStop(1, `rgba(${p.scan}, 0)`);
   ctx.fillStyle = scanGrad;
   const scanHalf = Math.max(70, 80 * fitK);
   ctx.fillRect(cx - scanHalf, scanY - 22, scanHalf * 2, 44);
   drawGlow(ctx, cx, scanY, scanHalf * 0.9, "125, 211, 252", 0.04);
-  ctx.fillStyle = "rgba(170, 225, 255, 0.28)";
+  ctx.fillStyle = `rgba(${p.day ? p.grid : "170, 225, 255"}, ${p.day ? 0.45 : 0.28})`;
   ctx.fillRect(cx - scanHalf, scanY - 0.7, scanHalf * 2, 1.2);
   ctx.restore();
 }
 
 /** TOP2 标注浮窗（引线 + 卡片） */
 function top2Callouts(ctx: CanvasRenderingContext2D, t: number) {
+  const p = pal();
   const top2 = callouts.value;
   top2.forEach((hot, i) => {
     const anchor = projOrgans.find((p) => p.key === hot.key);
     if (!anchor) return;
-    const [r, g, b] = heatRgb(hot.sum, hot.max);
+    const rgb = heatRgb(hot.sum, hot.max);
     const side = i === 0 ? -1 : 1;
     const cardW = 158, cardH = 54;
     const cardX = side < 0 ? Math.max(10, anchor.sx - 240) : Math.min(W - cardW - 10, anchor.sx + 90);
     const cardY = Math.max(12, Math.min(H - cardH - 12, anchor.sy - 60 + i * 30));
     ctx.globalAlpha = 0.85;
-    ctx.strokeStyle = `rgba(${r},${g},${b},0.9)`;
+    ctx.strokeStyle = `rgba(${rgb},0.9)`;
     ctx.lineWidth = 1.1;
     ctx.beginPath();
     ctx.moveTo(anchor.sx, anchor.sy);
     ctx.lineTo(side < 0 ? cardX + cardW : cardX, cardY + cardH / 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(8, 17, 32, 0.92)";
-    ctx.strokeStyle = `rgba(${r},${g},${b},0.85)`;
+    ctx.fillStyle = `rgba(${p.cardBg}, ${p.day ? 0.97 : 0.92})`;
+    ctx.strokeStyle = `rgba(${rgb},0.85)`;
     roundRect(cardX, cardY, cardW, cardH, 9);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = "#e8f1fb";
+    ctx.fillStyle = p.cardInk;
     ctx.font = "600 12.5px 'Microsoft YaHei', sans-serif";
     ctx.textAlign = "left";
     const label = hot.topLabel.length > 12 ? hot.topLabel.slice(0, 11) + "…" : hot.topLabel;
     ctx.fillText(label, cardX + 12, cardY + 20);
     ctx.font = "11px 'JetBrains Mono', monospace";
-    ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+    ctx.fillStyle = `rgba(${rgb},1)`;
     ctx.fillText(`${hot.organ.label} · ${hot.topNode.intensity}`, cardX + 12, cardY + 40);
   });
 }
@@ -844,6 +873,7 @@ watch(organHots, () => {
 
 onMounted(() => {
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener(THEME_EVENT, onWindowResize);
   window.addEventListener("resize", onWindowResize);
   ro = new ResizeObserver(() => resize());
   if (wrapRef.value) ro.observe(wrapRef.value);
@@ -859,6 +889,7 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
   ro?.disconnect();
   document.removeEventListener("visibilitychange", onVisibility);
+  window.removeEventListener(THEME_EVENT, onWindowResize);
   window.removeEventListener("resize", onWindowResize);
 });
 </script>

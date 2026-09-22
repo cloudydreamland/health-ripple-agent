@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { initTheme, themeStore, toggleTheme } from "./theme";
 import { deriveRipple, consultMdt, probeBackend, onModeChange, snapshotMeta, fetchForecast, fetchGuardQueue, fetchForecastWithAdherence, fetchCommunityRadar, fetchPatientEvidence, type SourceMode } from "./api";
 import { AGENT_META, type RippleNode, type RippleResponse, type MdtResponse } from "./types";
 import RiiSummary from "./components/RiiSummary.vue";
@@ -42,6 +43,7 @@ const mode = ref<SourceMode>("snapshot");
 const modeReason = ref("");
 const caseId = ref("flagship");
 const guideOpen = ref(false);
+initTheme();
 
 /* 功能导读：每个面板是干什么的、怎么试（与新手指引/答辩讲解共用一套话术） */
 const GUIDE = [
@@ -189,7 +191,7 @@ async function onReviewed(info: { triggerId: number; decision: string; reviewSta
   extraEvents.value = [{
     time: new Date().toTimeString().slice(0, 8),
     code: "审定",
-    color: "#e5c15c",
+    color: "var(--yellow)",
     text: `医生${verdict}守护计划「${info.event}」${info.note ? " · " + info.note : ""} · 已入印鉴链`,
   }, ...extraEvents.value];
   await loadSandbox(adherence.value);
@@ -251,7 +253,7 @@ function generateReport() {
   body { font-family: "Noto Serif SC","Source Han Serif SC","SimSun",serif; color: #26231b; margin: 36px auto; max-width: 780px; padding: 0 24px; line-height: 1.7; }
   h1 { font-size: 22px; letter-spacing: 2px; border-bottom: 2.5px solid #26231b; padding-bottom: 10px; }
   h2 { font-size: 15px; margin: 22px 0 8px; }
-  .seal { display: inline-block; background: #bd4033; color: #dbe9f9; padding: 4px 12px; border-radius: 6px; transform: rotate(-2deg); font-size: 13px; }
+  .seal { display: inline-block; background: #bd4033; color: var(--ink); padding: 4px 12px; border-radius: 6px; transform: rotate(-2deg); font-size: 13px; }
   .meta { color: #55503f; font-size: 12.5px; margin: 6px 0 0; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
   th, td { border: 1px solid #cdc5a9; padding: 6px 9px; text-align: left; vertical-align: top; }
@@ -321,31 +323,31 @@ const activityEvents = computed<LogEvent[]>(() => {
   const at = () => new Date(base - offset++ * 900).toTimeString().slice(0, 8);
 
   const he = r.healthEvent;
-  evts.push({ time: at(), code: "事件", color: "#5ba7f7", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
+  evts.push({ time: at(), code: "事件", color: "var(--blue)", text: `健康事件接收：${he.diagnosis}${he.drugs.length ? " · 用药 " + he.drugs.join("/") : ""}${he.pastHistory ? " · 既往史 " + he.pastHistory : ""}` });
   if (r.proactiveAssessment?.isProactive) {
-    evts.push({ time: at(), code: "主动", color: "#4fd1a5", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
+    evts.push({ time: at(), code: "主动", color: "var(--green)", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
   }
   const ri = intensity.value;
-  evts.push({ time: at(), code: "强度", color: "#f4695c", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${levelTextOf(ri)}）· 半径 ${ri.radius}/5 环` : ""}` });
+  evts.push({ time: at(), code: "强度", color: "var(--red)", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${levelTextOf(ri)}）· 半径 ${ri.radius}/5 环` : ""}` });
   const gs = r.counterfactualTree?.guardrailSummary;
   if (gs) {
-    evts.push({ time: at(), code: "护栏", color: "#f4695c", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
+    evts.push({ time: at(), code: "护栏", color: "var(--red)", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
   }
   if (r.chronoTriggers?.length) {
-    const byType: Record<string, string> = { WINDOW: "#f4695c", RHYTHM: "#9d8cff", PERIODIC: "#38cfe8", SEASONAL: "#4fd1a5" };
+    const byType: Record<string, string> = { WINDOW: "var(--red)", RHYTHM: "var(--violet)", PERIODIC: "var(--cyan)", SEASONAL: "var(--green)" };
     for (const t of r.chronoTriggers) {
-      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "#7e93ab", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
+      evts.push({ time: at(), code: t.chronoType, color: byType[t.chronoType] ?? "var(--muted)", text: `触达注册：${t.event}（${t.triggerTime} · ${t.action}）` });
     }
   }
   const ev = r.evidenceChain;
   if (ev) {
-    evts.push({ time: at(), code: "存证", color: "#4fd1a5", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
+    evts.push({ time: at(), code: "存证", color: "var(--green)", text: `决策入印鉴链：${ev.decisionId} · SHA-256 链式存证` });
   }
   if (r.degraded) {
-    evts.push({ time: at(), code: "降级", color: "#f0a45c", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
+    evts.push({ time: at(), code: "降级", color: "var(--orange)", text: r.degradedReason ?? "结构化降级：内置知识库兜底" });
   }
   if (mdt.value) {
-    evts.push({ time: at(), code: "会诊", color: "#9d8cff", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
+    evts.push({ time: at(), code: "会诊", color: "var(--violet)", text: `五Agent会诊收敛：${mdt.value.consensusNotes?.length ?? 0} 条共识要点入纪要` });
   }
   return [...extraEvents.value, ...evts];
 });
@@ -424,6 +426,9 @@ onMounted(async () => {
       <select v-model="caseId" @change="run()">
         <option v-for="c in CASES" :key="c.id" :value="c.id">{{ c.label }}</option>
       </select>
+      <button class="ghost big" :title="themeStore.mode === 'day' ? '切换到夜航墨模式' : '切换到日间米纸模式'" @click="toggleTheme()">
+        {{ themeStore.mode === "day" ? "🌙 夜航" : "☀ 日间" }}
+      </button>
       <button class="ghost big" @click="guideOpen = true">？ 功能导读</button>
       <button class="ghost big" :disabled="!ripple" @click="generateReport()">守护报告</button>
       <button class="big" :disabled="running" @click="run()">{{ running ? "推演中 …" : "落石 · 推演涟漪" }}</button>
@@ -754,7 +759,7 @@ onMounted(async () => {
         class="agent-card"
         :style="{ borderColor: mdt ? meta.color : 'var(--line-strong)' }"
       >
-        <div class="agent-avatar" :style="{ borderColor: meta.color, color: mdt ? '#dbe9f9' : meta.color, background: mdt ? meta.color : 'var(--card-inset)' }">{{ meta.char }}</div>
+        <div class="agent-avatar" :style="{ borderColor: meta.color, color: mdt ? 'var(--ink)' : meta.color, background: mdt ? meta.color : 'var(--card-inset)' }">{{ meta.char }}</div>
         <div class="agent-info">
           <b>{{ meta.label }}</b>
           <span class="mono">{{ meta.en }} VIEW</span>
@@ -857,7 +862,7 @@ onMounted(async () => {
 }
 .g-fig { padding-top: 2px; font-size: 10px; letter-spacing: 1px; color: var(--gold); }
 .g-txt b { display: block; font-size: 13px; color: var(--ink); }
-.g-txt b em { font-style: normal; font-size: 11.5px; color: #f4695c; }
+.g-txt b em { font-style: normal; font-size: 11.5px; color: var(--red); }
 .g-txt p { margin: 3px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
 .guide-fade-enter-active, .guide-fade-leave-active { transition: opacity 0.18s ease; }
 .guide-fade-enter-from, .guide-fade-leave-to { opacity: 0; }

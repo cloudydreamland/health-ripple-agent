@@ -75,7 +75,7 @@ const emit = defineEmits<{ run: [] }>();
   border-radius: 999px; padding: 3px 11px;
   border: 1px solid var(--line-strong);
 }
-.chip-rx { color: #38cfe8; border-color: rgba(56, 207, 232, 0.4); background: rgba(56, 207, 232, 0.08); }
+.chip-rx { color: var(--cyan); border-color: rgba(56, 207, 232, 0.4); background: rgba(56, 207, 232, 0.08); }
 .chip-his { color: var(--ink-soft); }
 
 .pov-cta {

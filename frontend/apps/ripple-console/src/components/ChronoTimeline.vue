@@ -7,10 +7,10 @@ const props = defineProps<{ triggers: ChronoTriggerView[]; live?: boolean }>();
 const emit = defineEmits<{ reviewed: [info: { triggerId: number; decision: string; reviewStatus: string; event: string; note: string }] }>();
 
 const TYPE_META: Record<string, { label: string; color: string; en: string }> = {
-  WINDOW: { label: "窗口期", color: "#f4695c", en: "WINDOW" },
-  RHYTHM: { label: "节律", color: "#9d8cff", en: "RHYTHM" },
-  PERIODIC: { label: "周期", color: "#38cfe8", en: "PERIODIC" },
-  SEASONAL: { label: "季节", color: "#4fd1a5", en: "SEASONAL" },
+  WINDOW: { label: "窗口期", color: "var(--red)", en: "WINDOW" },
+  RHYTHM: { label: "节律", color: "var(--violet)", en: "RHYTHM" },
+  PERIODIC: { label: "周期", color: "var(--cyan)", en: "PERIODIC" },
+  SEASONAL: { label: "季节", color: "var(--green)", en: "SEASONAL" },
 };
 
 const hovered = ref<number | null>(null);
@@ -25,7 +25,7 @@ const grouped = computed(() => {
 });
 
 function metaOf(type: string) {
-  return TYPE_META[type] ?? { label: type, color: "#7e93ab", en: type };
+  return TYPE_META[type] ?? { label: type, color: "var(--muted)", en: type };
 }
 
 /** 医生审定（人机共驾终审）：审定入印鉴链；否决需填理由。 */
