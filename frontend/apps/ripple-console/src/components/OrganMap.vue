@@ -780,6 +780,29 @@ function onMove(ev: MouseEvent) {
 
 /* ============ 生命周期（防节流） ============ */
 
+/** 面板固定占高：栏头 + 内边距 + 底部图例 + flex 间隙（画布之外的部分） */
+function chromeHeight(): number {
+  const panel = wrapRef.value?.closest(".pond-hero") as HTMLElement | null;
+  if (!panel) return 100;
+  const head = panel.querySelector(".sec-head") as HTMLElement | null;
+  const body = panel.querySelector(".panel-body") as HTMLElement | null;
+  const legend = wrapRef.value?.querySelector(".omap-legend") as HTMLElement | null;
+  const cs = body ? getComputedStyle(body) : null;
+  const padY = cs ? parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) : 0;
+  return Math.round((head?.getBoundingClientRect().height ?? 44) + padY + (legend?.getBoundingClientRect().height ?? 0) + 8);
+}
+
+/** 左栏内容自然高度（逐子面板求和）——中栏与之对齐，三栏底边齐平 */
+function sideContentHeight(): number {
+  const row = wrapRef.value?.closest(".hero-row") as HTMLElement | null;
+  const side = row?.querySelector(".hero-left") as HTMLElement | null;
+  if (!side) return 0;
+  const kids = [...side.children] as HTMLElement[];
+  if (!kids.length) return 0;
+  const gap = 14;
+  return Math.round(kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0) + gap * (kids.length - 1));
+}
+
 function resize() {
   const c = canvasRef.value;
   const wrap = wrapRef.value;
@@ -788,8 +811,11 @@ function resize() {
   if (w < 40) return;
   dpr = window.devicePixelRatio || 1;
   W = w;
-  // 竖幅画布：人体是窄高比例，让投影尽量充满面板（此前 1:0.9 扁框导致大片留白）
-  H = Math.max(520, Math.min(920, W * 1.45));
+  // 竖幅画布：人体是窄高比例；再按"左栏内容高度 − 面板占高"收敛，
+  // 使中栏底边与左右两栏对齐（不再垂出屏幕）
+  const byWidth = Math.min(940, W * 1.45);
+  const bySides = sideContentHeight() - chromeHeight();
+  H = Math.round(Math.max(460, Math.min(byWidth, bySides > 320 ? bySides : byWidth)));
   c.width = Math.round(W * dpr);
   c.height = Math.round(H * dpr);
   c.style.height = H + "px";
@@ -806,12 +832,19 @@ function onVisibility() {
   if (!document.hidden && ctx) drawFrame();
 }
 
+/** 视口尺寸变化（缩窗/切分辨率）→ 重算画布高度，保持与侧栏底边对齐 */
+function onWindowResize() {
+  resize();
+}
+
 watch(organHots, () => {
-  if (ctx) drawFrame();
+  // 数据变化会改变左栏内容高度 → 重算画布高度，保持三栏底边对齐
+  resize();
 }, { deep: false });
 
 onMounted(() => {
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("resize", onWindowResize);
   ro = new ResizeObserver(() => resize());
   if (wrapRef.value) ro.observe(wrapRef.value);
   const backoff = window.setInterval(() => {
@@ -826,6 +859,7 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
   ro?.disconnect();
   document.removeEventListener("visibilitychange", onVisibility);
+  window.removeEventListener("resize", onWindowResize);
 });
 </script>
 

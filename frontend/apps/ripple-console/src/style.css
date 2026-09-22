@@ -447,3 +447,17 @@ button.big:hover::after { transform: translateX(130%); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
 ::selection { background: rgba(244, 105, 92, 0.32); color: #fff; }
+
+/* ============================================================
+   紧凑一档（全屏密度优化）：面板外壳与指标条整体缩小一档，
+   与 .hero-row 内部的卡片级压缩配合，使英雄区一屏看全。
+   ============================================================ */
+.console { gap: 8px; padding: 12px 18px 18px; }
+.topbar { padding: 9px 14px; gap: 11px; }
+.stat-strip { gap: 8px; }
+.stat-cell { padding: 8px 13px 8px; gap: 2px; }
+.stat-cell .value { font-size: 30px; }
+.stat-cell.hero .value { font-size: 40px; letter-spacing: -1.2px; }
+.stat-cell .label .idx { font-size: 46px; }
+.stat-cell .sub { font-size: 10px; }
+.grid-hero, .grid-a, .grid-b, .grid-c, .grid-d { gap: 8px; }

@@ -784,6 +784,37 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ---------- 紧凑一档：整体缩小、一屏看全（面板/卡片/行高统一下调约 20%） ---------- */
+.console { gap: 8px; }
+.hero-row { gap: 8px; }
+.hero-left, .hero-right { gap: 8px; }
+.hero-row :deep(.sec-head) { padding: 7px 12px 6px; }
+.hero-row :deep(.panel-body) { padding: 8px 11px; }
+/* 患者概览 */
+.hero-row :deep(.pov) { gap: 7px; }
+.hero-row :deep(.pov-seal) { width: 27px; height: 27px; font-size: 14px; border-radius: 8px; }
+.hero-row :deep(.pov-id b) { font-size: 12.5px; }
+.hero-row :deep(.pov-dx) { padding: 7px 9px; border-radius: 9px; }
+.hero-row :deep(.pov-dx strong) { font-size: 16.5px; }
+.hero-row :deep(.pov-dx .label) { margin-bottom: 4px; }
+.hero-row :deep(.chip) { font-size: 10px; padding: 1.5px 8px; }
+.hero-row :deep(.pov-cta) { padding: 6px 0; font-size: 11px; }
+/* AI 洞察 */
+.hero-row :deep(.insights) { gap: 5px; }
+.hero-row :deep(.insights .item) { padding: 5.5px 8px; gap: 7px; }
+.hero-row :deep(.insights .icon) { width: 22px; height: 22px; font-size: 11px; }
+.hero-row :deep(.insights .body b) { font-size: 11px; }
+.hero-row :deep(.insights .body span) { font-size: 9.5px; }
+/* RII 强度 */
+.hero-row :deep(.rii-summary) { gap: 6px; }
+.hero-row :deep(.rii-summary .big-index) { gap: 3px; padding-bottom: 7px; }
+.hero-row :deep(.rii-summary .big-index b) { font-size: 27px; }
+.hero-row :deep(.rii-summary .radius-row) { padding-bottom: 6px; }
+.hero-row :deep(.rii-summary .top-risks) { gap: 5px; }
+.hero-row :deep(.rii-summary .risk-label) { font-size: 11px; }
+/* 活动日志 */
+.hero-row :deep(.log-row) { padding: 3px 2px; font-size: 10.5px; gap: 7px; }
+
 /* ---------- 功能导读抽屉 ---------- */
 .guide-mask { position: fixed; inset: 0; z-index: 90; background: rgba(4, 10, 18, 0.62); backdrop-filter: blur(2px); }
 .guide-drawer {
@@ -859,6 +890,12 @@ onMounted(async () => {
 @media (max-width: 1100px) { .hero-row { grid-template-columns: 1fr; } .hero-right { grid-template-columns: 1fr; } }
 .hero-left, .hero-right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .hero-right .panel-body { max-height: 320px; overflow-y: auto; }
+/* 三栏布局（≥1501px）下，右栏最后一块撑满剩余高度 → 与中/左栏底边齐平；
+   ≤1500px 时右栏会换行成整行栅格，保持原 max-height 滚动行为不受影响 */
+@media (min-width: 1501px) {
+  .hero-right > .panel:last-child { flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; }
+  .hero-right > .panel:last-child .panel-body { flex: 1 1 0; max-height: none; min-height: 0; overflow-y: auto; }
+}
 .pond-hero { position: relative; }
 .pond-hero::before {
   content: "";
