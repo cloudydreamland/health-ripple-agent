@@ -117,18 +117,18 @@ function shortPath(s: string): string {
           <text :x="CHOSEN.x + 18" :y="CHOSEN.y + 4" class="chosen-label">CHOSEN · 已选路径</text>
         </g>
 
-        <text x="10" y="20" class="lat-annot">16 ALT PATHS / 4×4 LATTICE · 红点=FLAGGED 锁定</text>
+        <text x="10" y="20" class="lat-annot">16 条替代路径 / 4×4 晶格 · 红点 = 已锁定</text>
       </svg>
       <div class="lat-stats mono">
-        <span>PATHS <b>{{ tree.counterfactualCount }}</b></span>
-        <span class="red">FLAGGED <b>{{ flaggedCount }}</b></span>
-        <span>SAFE <b>{{ (tree.alternativePaths?.length ?? 0) - flaggedCount }}</b></span>
-        <span class="red">GATE <b>CLOSED</b></span>
+        <span>路径 <b>{{ tree.counterfactualCount }}</b></span>
+        <span class="red">高风险锁定 <b>{{ flaggedCount }}</b></span>
+        <span>可替代 <b>{{ (tree.alternativePaths?.length ?? 0) - flaggedCount }}</b></span>
+        <span class="red">护栏闸门 <b>已关闭</b></span>
       </div>
     </div>
 
     <div class="alt-list">
-      <p class="list-title mono">// 替代路径明细（点击晶格节点或行展开）</p>
+      <p class="list-title mono">替代路径明细 · 以下为未采取守护措施时的风险场景，已锁定、不进入建议下发</p>
       <div
         v-for="(path, i) in tree.alternativePaths"
         :key="i"

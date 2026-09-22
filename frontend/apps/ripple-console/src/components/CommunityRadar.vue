@@ -69,7 +69,7 @@ const maxScore = computed(() => Math.max(1, ...(props.radar?.signals ?? []).map(
       </div>
       <p v-if="!radar.signals.length" class="hint">暂无社区信号。</p>
     </div>
-    <p class="radar-note mono">信号强度=患者数+3×未缓解+5×升级就医（近7天）· 计数型口径可复算</p>
+    <p class="radar-note mono">信号强度 = 患者数 + 3×未缓解 + 5×升级就医（近 7 天）</p>
   </div>
   <p v-else class="hint">社区雷达需实时连接后端（跨患者聚合，仅医生角色可读）。</p>
 </template>

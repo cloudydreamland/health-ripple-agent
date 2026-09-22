@@ -34,6 +34,15 @@ watch(
   { immediate: true },
 );
 onBeforeUnmount(() => cancelAnimationFrame(raf));
+
+/** 后端等级标签（如"红色·高强度涟漪"）在前端收敛为直白文案：高强度（红色） */
+const levelText = computed(() => {
+  const raw = props.intensity?.levelLabel;
+  if (!raw) return "等待推演";
+  const cn = props.intensity?.level === "RED" ? "红色" : props.intensity?.level === "ORANGE" ? "橙色" : "黄色";
+  const name = raw.includes("高") ? "高强度" : raw.includes("中") ? "中强度" : raw.includes("低") ? "低强度" : raw;
+  return `${name}（${cn}）`;
+});
 </script>
 
 <template>
@@ -41,10 +50,10 @@ onBeforeUnmount(() => cancelAnimationFrame(raf));
     <div class="big-index">
       <span class="label">RII / 涟漪强度指数</span>
       <b :style="{ color }">{{ display.toFixed(1) }}</b>
-      <span class="tag" :class="intensity?.level ?? 'YELLOW'">{{ intensity?.levelLabel ?? "等待推演" }}</span>
+      <span class="tag" :class="intensity?.level ?? 'YELLOW'">{{ levelText }}</span>
     </div>
 
-    <p class="formula mono">RII = 100 × S × U × A × e^(−0.22·(ring−1))<br /><span>事件指数 = Top5 节点强度均值 · 每项可复算</span></p>
+    <p class="formula mono">RII = 100 × S × U × A × e^(−0.22·(ring−1))<br /><span>事件指数 = Top5 节点强度均值</span></p>
 
     <div class="radius-row">
       <span class="label">有效扩散半径</span>
@@ -52,7 +61,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf));
     </div>
 
     <div class="top-risks">
-      <span class="label">TOP 风险节点 · 医生视线第一落点</span>
+      <span class="label">TOP 风险节点</span>
       <div v-for="(risk, i) in intensity?.topRisks ?? []" :key="i" class="risk-row">
         <span class="rank mono">#{{ i + 1 }}</span>
         <div class="risk-info">

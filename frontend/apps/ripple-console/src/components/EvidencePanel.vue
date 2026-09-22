@@ -50,7 +50,7 @@ async function exportFhirJson() {
     <!-- 印鉴链 -->
     <div class="seal-chain">
       <div class="seal prev">
-        <span class="seal-tag mono">PREV 印</span>
+        <span class="seal-tag mono">上一条哈希</span>
         <span class="seal-hash mono" :title="String(evidence.prevHash)">{{ shortHash(evidence.prevHash) }}</span>
         <span class="seal-glyph">印</span>
       </div>
@@ -61,19 +61,19 @@ async function exportFhirJson() {
         <span class="mono link-label">SHA-256 链式相扣</span>
       </div>
       <div class="seal current">
-        <span class="seal-tag mono">HASH 印 · 本条</span>
+        <span class="seal-tag mono">本条哈希</span>
         <span class="seal-hash mono" :title="String(evidence.hash)">{{ shortHash(evidence.hash) }}</span>
         <span class="seal-glyph">印</span>
       </div>
     </div>
 
     <div class="meta-row">
-      <span class="k mono">DECISION ID</span>
+      <span class="k mono">决策编号</span>
       <span class="mono v id">{{ evidence.decisionId }}</span>
       <span class="tag CYAN">{{ evidence.decisionType }}</span>
       <span class="mono conf">置信度 {{ evidence.confidence }}</span>
     </div>
-    <p class="hint chain-note">任何一条被篡改，从该枚印起全部验印失败，篡改点精确定位——责任证据由此固化，并可导出 HL7 FHIR R4 Provenance。</p>
+    <p class="hint chain-note">每条记录与前一条哈希相扣，内容变动会使该条之后的验印全部失败；可按 HL7 FHIR R4 导出。</p>
 
     <div class="actions">
       <button :disabled="verifying" @click="verify">{{ verifying ? "验印中 …" : "逐枚验印" }}</button>

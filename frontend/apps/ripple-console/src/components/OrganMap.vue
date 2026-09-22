@@ -774,7 +774,7 @@ function onMove(ev: MouseEvent) {
   const hot = hitOrgan((ev.clientX - rect.left) * scaleX, (ev.clientY - rect.top) * scaleY);
   cursorPointer.value = !!hot;
   hoverInfo.value = hot
-    ? `${hot.organ.label} · ${hot.count} 项关联 · 强度和 ${hot.sum.toFixed(0)} · 点击查看评分依据`
+    ? `${hot.organ.label} · ${hot.count} 项关联 · 强度和 ${hot.sum.toFixed(0)}`
     : "";
 }
 
@@ -868,9 +868,9 @@ onBeforeUnmount(() => {
     <canvas ref="canvasRef" class="omap" @click="onClick" @mousemove="onMove" @mouseleave="hoverInfo = ''" />
     <div v-if="hoverInfo" class="omap-tip mono">{{ hoverInfo }}</div>
     <div class="omap-legend">
-      <span>人体缓慢自转 · 器官辉光 ∝ 风险强度</span>
+      <span>器官辉光亮度 = 关联风险强度</span>
       <span class="sep">·</span>
-      <span style="color:#f4695c">红色脉冲 = 高强度热点</span>
+      <span style="color:#f4695c">红色脉冲 = 高风险器官</span>
       <span class="sep">·</span>
       <span>点击器官查看评分依据</span>
     </div>

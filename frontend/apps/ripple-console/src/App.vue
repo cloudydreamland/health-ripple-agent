@@ -45,21 +45,21 @@ const guideOpen = ref(false);
 
 /* 功能导读：每个面板是干什么的、怎么试（与新手指引/答辩讲解共用一套话术） */
 const GUIDE = [
-  { fig: "顶栏", name: "落石 · 推演涟漪", try: "点一下，全程的戏眼", desc: "输入诊断+用药，系统主动推演出用药冲突、复查窗口、并发症、触达时机、家属注意五维连锁影响，而不是等医生逐项去问。" },
-  { fig: "顶栏", name: "PID / 病例切换", try: "换一个病例再落一次石", desc: "切换患者 ID 或预设病例后全屏自动重算——推演按病情真实计算，不是录播动画。" },
-  { fig: "指标条", name: "RII · 节点 · 反事实 · 半径 · 耗时", desc: "推演结果的五格速览：RII 涟漪强度指数（≥45 红色高危）、涟漪节点数、反事实路径数、有效扩散半径（5 环）、推演耗时（在线模式为真实毫秒）。" },
-  { fig: "FIG.01", name: "器官涟漪图 · 人体映射", try: "点任一发光器官", desc: "病症按医学语义映射到器官（低血糖→心、视网膜→眼、糖尿病足→足），辉光亮度=风险强度，红色脉冲=高危热点。点击弹出该器官最高风险节点的评分依据（S/U/A/衰减四项可复算）。" },
-  { fig: "FIG.02", name: "涟漪强度山脊剖面", desc: "五环（用药安全/疾病进展/复查窗口/触达时机/家族影响）的强度分布山脊图；红色虚线区为 RISK ZONE ≥70，山越高该环越危险。" },
-  { fig: "FIG.03", name: "活水涟漪池 · 五维图谱", try: "点任意墨滴", desc: "石落水面的隐喻视图：涟漪一圈圈荡开，彩色墨滴抵达各自环层时浮现，颜色=所属维度。点击墨滴同样弹出节点详情。" },
-  { fig: "FIG.04", name: "反事实决策晶格 × 护栏", try: "点任意红色 FLAG 行", desc: "对每条替代路径做\"如果当初\"推演并护栏审计：红色 FLAG=高危路径已锁定禁止下发，绿色 SAFE=可安全替代。点击行展开反事实结局与证据——这是\"AI 说错了怎么办\"的工程答案。" },
-  { fig: "FIG.05", name: "五 Agent MDT 会诊弦图", try: "点右上「发起会诊」", desc: "分诊/处方/病历/随访/涟漪守护五个学科 Agent 依次发言、显式暴露分歧并按患者安全优先收敛为纪要——多智能体不是噱头，是可复现的会诊流程。" },
-  { fig: "时间学", name: "时辰守护盘 + 医生终审", try: "悬停看循证卡；点 通过/推迟/否决", desc: "每条触达悬停展开 Timing Card（指南依据/错过代价/证据等级）。通过/推迟/否决 = 医生终审：否决后 72h 预报与健康气象里该触达立刻消失，审定理由入印鉴链——终审权在医生。" },
-  { fig: "印鉴链", name: "朱砂印鉴链 · FHIR", try: "点「逐枚验印」再「导出」", desc: "每个 AI 决策与每次医生改判都入 SHA-256 哈希链；验印通过即盖章 CHAIN VERIFIED，可导出 HL7 FHIR R4 Provenance 给第三方核验——责任认定的最后一环。" },
-  { fig: "FIG.06", name: "72 小时涟漪预报 · 依从性沙盘", try: "拖「守护执行度」滑杆", desc: "红线=未来 72 小时守护强度（逐桶确定性计算，无随机数）。拖动滑杆即预演\"守护被执行 X% 后浪有多高\"——干预效果可预演。" },
-  { fig: "FIG.07", name: "今日守护队列", desc: "跨患者按「升级就医 > 未缓解 > 今日到期」排序，每行带理由和优先分——回答基层医生早晨第一问：今天该先管谁。" },
-  { fig: "FIG.08", name: "社区涟漪雷达", desc: "把个体涟漪聚合成社区潮汐（7 天窗口），潮汐指数=跨患者信号强度——从看一个病人到看一片社区。" },
-  { fig: "顶栏", name: "守护报告", try: "允许弹窗后一键生成", desc: "生成可打印的诊后守护摘要（RII 总览/TOP 风险/医生审定后的守护计划/印鉴哈希），浏览器直接打印成 PDF 随病历交给患者。" },
-  { fig: "徽章", name: "LIVE / SNAPSHOT", desc: "数据来源如实标注：LIVE=实时连接后端网关；SNAPSHOT=后端不可达时自动切换到内置真实响应快照。屏幕上是什么数据，从不撒谎——断网也能完整演示。" },
+  { fig: "顶栏", name: "落石 · 推演涟漪", desc: "输入诊断与用药后，推演该健康事件在用药安全、疾病进展、复查窗口、触达时机、家庭影响五个环层上的连锁影响。" },
+  { fig: "顶栏", name: "PID / 病例切换", desc: "切换患者 ID 或预设病例，全屏数据按新病例重新推演。" },
+  { fig: "指标条", name: "RII · 节点 · 反事实 · 半径 · 耗时", desc: "RII 为涟漪强度指数（≥70 为红色高风险）；其余四格分别是涟漪节点数、替代路径数、有效扩散半径（5 环）与推演耗时。" },
+  { fig: "FIG.01", name: "器官涟漪图 · 人体映射", desc: "风险按器官归类：辉光亮度对应关联风险的强度，红色脉冲为高风险器官。点击器官查看该器官最高风险节点的评分依据。" },
+  { fig: "FIG.02", name: "涟漪强度山脊剖面", desc: "五个环层各自的节点强度分布，强度 ≥70 落入 RISK ZONE。" },
+  { fig: "FIG.03", name: "活水涟漪池 · 五维图谱", desc: "按环层展示全部涟漪节点，颜色对应所属维度。点击墨滴查看节点详情。" },
+  { fig: "FIG.04", name: "反事实决策晶格 × 护栏", desc: "每条替代路径的推演结果与护栏判定：红色为高风险路径，已锁定、不进入守护建议；绿色为可安全替代的路径。" },
+  { fig: "FIG.05", name: "五 Agent MDT 会诊", desc: "分诊、处方、病历、随访、涟漪守护五个 Agent 分别给出专科意见，分歧显式列出，最后收敛为会诊纪要。" },
+  { fig: "时间学", name: "时辰守护盘 + 医生终审", desc: "守护计划的执行时机与循证依据（指南来源、错过代价、证据等级）。通过、推迟、否决由医生决定；否决后该触达会从预报与队列中移除。" },
+  { fig: "印鉴链", name: "朱砂印鉴链 · FHIR", desc: "每次推演与医生改判都写入哈希链，逐枚验印可校验完整性，并按 HL7 FHIR R4 导出。" },
+  { fig: "FIG.06", name: "72 小时涟漪预报 · 依从性沙盘", desc: "未来 72 小时的守护强度曲线（逐桶确定性计算）。拖动执行度滑杆，按同一算法重算执行该比例后的曲线。" },
+  { fig: "FIG.07", name: "今日守护队列", desc: "跨患者按「升级就医 > 未缓解 > 今日到期」排序，列出今天需要优先处理的守护事项。" },
+  { fig: "FIG.08", name: "社区涟漪雷达", desc: "把近 7 天跨患者的同类信号聚合成社区潮汐指数，用于发现群体性风险。" },
+  { fig: "顶栏", name: "守护报告", desc: "生成可打印的诊后守护摘要：RII 总览、TOP 风险节点、医生审定后的守护计划、印鉴链哈希。" },
+  { fig: "徽章", name: "LIVE / SNAPSHOT", desc: "LIVE 表示数据来自后端实时推演；SNAPSHOT 表示后端不可达，展示内置的历史响应快照。" },
 ];
 const patientId = ref(Number(localStorage.getItem("rc-patient-id") ?? 1) || 1);
 const customDiagnosis = ref("");
@@ -87,7 +87,7 @@ const reviewRecords = ref<{ decisionId: string; timestamp: string; inputs: Recor
 const tickerText = computed(() => {
   const events = [...extraEvents.value, ...activityEvents.value].slice(0, 6);
   if (!events.length) {
-    return "等待落石 · 点击右上「落石 · 推演涟漪」开始 ";
+    return "等待推演";
   }
   return events.map((e) => `${e.time} ${e.code}｜${e.text}`).join("  ◆  ");
 });
@@ -123,6 +123,15 @@ const dimensions = computed(() => ripple.value?.dimensions ?? {
   drugLifestyleConflicts: [], recheckWindows: [], complicationSignals: [],
   familyAttentions: [], chronoTriggers: [],
 });
+/** 后端等级标签（"红色·高强度涟漪"）→ 直白说法："高强度（红色）" */
+function levelTextOf(ri?: { level?: string; levelLabel?: string } | null): string {
+  if (!ri?.levelLabel) return "等待推演";
+  const cn = ri.level === "RED" ? "红色" : ri.level === "ORANGE" ? "橙色" : "黄色";
+  const raw = ri.levelLabel;
+  const name = raw.includes("高") ? "高强度" : raw.includes("中") ? "中强度" : raw.includes("低") ? "低强度" : raw;
+  return `${name}（${cn}）`;
+}
+
 const flaggedCount = computed(
   () => ripple.value?.counterfactualTree?.alternativePaths.filter((p) => p.guardrailVerdict === "FLAGGED").length ?? 0,
 );
@@ -261,8 +270,8 @@ function generateReport() {
 
 <h2>一、涟漪强度总览</h2>
 <div class="box"><span class="rii">${ri ? ri.index.toFixed(1) : "—"}</span>
-  <b>${esc(ri?.levelLabel ?? "等待推演")}</b> · 有效扩散半径 ${ri?.radius ?? 0}/5 环<br/>
-  <span class="muted">RII = 100 × 严重度 × 紧迫度 × 可干预度 × e^(−0.22×(环数−1))，事件指数取 Top5 节点均值，逐项可复算</span></div>
+  <b>${esc(levelTextOf(ri))}</b> · 有效扩散半径 ${ri?.radius ?? 0}/5 环<br/>
+  <span class="muted">RII = 100 × 严重度 × 紧迫度 × 可干预度 × e^(−0.22×(环数−1))，事件指数取 Top5 节点均值</span></div>
 
 <h2>二、TOP 风险节点</h2>
 <table><tr><th>#</th><th>风险</th><th>所在环</th><th>强度</th></tr>${risks || '<tr><td colspan="4">本次事件无优先处置节点</td></tr>'}</table>
@@ -273,7 +282,7 @@ function generateReport() {
 <h2>四、安全与证据</h2>
 <p>反事实路径 ${r.counterfactualTree?.counterfactualCount ?? 0} 条，护栏锁定高危 <b>${flagged?.flaggedPaths ?? 0}</b> 条（禁止下发）。
 ${ev ? `本报告对应决策已入印鉴链：<br/><span class="hash">DECISION ${esc(ev.decisionId)}<br/>HASH ${esc(ev.hash)}</span>` : ""}</p>
-<p class="foot">本报告由健康事件涟漪守护智能体生成，仅用于诊后守护参考；智能体不开方、不下诊断、不改治疗方案——终审权在医生。证据链可验印/导出 HL7 FHIR R4 Provenance。</p>
+<p class="foot">本报告用于诊后守护参考，不作为诊断或处方依据；诊断与处方的最终决定由医生作出。</p>
 <script>window.onload = function () { window.print(); }<\/script>
 </body></html>`;
   const win = window.open("", "_blank", "width=860,height=980");
@@ -317,7 +326,7 @@ const activityEvents = computed<LogEvent[]>(() => {
     evts.push({ time: at(), code: "主动", color: "#4fd1a5", text: `主动守护评估：${r.proactiveAssessment.proactiveAction}` });
   }
   const ri = intensity.value;
-  evts.push({ time: at(), code: "强度", color: "#f4695c", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${ri.levelLabel}）· 半径 ${ri.radius}/5 环` : ""}` });
+  evts.push({ time: at(), code: "强度", color: "#f4695c", text: `涟漪推演完成：${r.summary.totalNodes} 节点 / 五环${ri ? ` · RII=${ri.index}（${levelTextOf(ri)}）· 半径 ${ri.radius}/5 环` : ""}` });
   const gs = r.counterfactualTree?.guardrailSummary;
   if (gs) {
     evts.push({ time: at(), code: "护栏", color: "#f4695c", text: `护栏审计：${gs.auditedPaths} 条反事实路径，FLAGGED ${gs.flaggedPaths} 条已锁定禁止下发` });
@@ -400,7 +409,7 @@ onMounted(async () => {
         <div class="brand-seal">守</div>
         <div>
           <h1>涟漪守护指挥中心<span class="en">INKP RIPPLE GUARDIAN</span></h1>
-          <p>夜航墨 · 水墨涟漪 —— 健康事件涟漪守护智能体</p>
+          <p>输入诊断与用药，推演健康事件的连锁影响并生成守护计划</p>
         </div>
       </div>
       <div class="topbar-spacer" />
@@ -434,7 +443,7 @@ onMounted(async () => {
       <div class="panel-body snapshot-banner-body">
         <b>SNAPSHOT 模式</b>
         <span>
-          当前展示 {{ snapshotMeta().capturedAt }} 捕获的真实后端响应（{{ snapshotMeta().note }}）。
+          当前展示 {{ snapshotMeta().capturedAt }} 捕获的后端响应快照（{{ snapshotMeta().note }}）。
           原因：{{ modeReason || "后端不可达" }}。连接后端后自动恢复实时推演。
         </span>
       </div>
@@ -457,17 +466,17 @@ onMounted(async () => {
         <span class="value" :style="{ color: intensity?.level === 'RED' ? 'var(--red)' : intensity?.level === 'ORANGE' ? 'var(--orange)' : 'var(--yellow)' }">
           {{ intensity ? intensity.index.toFixed(1) : "—" }}
         </span>
-        <span class="sub">{{ intensity?.levelLabel ?? "等待推演" }}</span>
+        <span class="sub">{{ levelTextOf(intensity) }}</span>
       </div>
       <div class="stat-cell">
         <span class="label"><span>涟漪节点 / NODES</span><span class="idx">贰</span></span>
         <span class="value">{{ ripple?.summary?.totalNodes ?? "—" }}</span>
-        <span class="sub">高风险 <b class="down">{{ ripple?.summary?.highRiskCount ?? 0 }}</b> · 五环全展开</span>
+        <span class="sub">高风险 <b class="down">{{ ripple?.summary?.highRiskCount ?? 0 }}</b> · 覆盖 5 环</span>
       </div>
       <div class="stat-cell">
         <span class="label"><span>反事实路径 / COUNTERFACTUAL</span><span class="idx">叁</span></span>
         <span class="value">{{ ripple?.counterfactualTree?.counterfactualCount ?? "—" }}</span>
-        <span class="sub">FLAGGED 锁定 <b class="down">{{ flaggedCount }}</b> · 禁止下发</span>
+        <span class="sub">护栏锁定 <b class="down">{{ flaggedCount }}</b> · 禁止下发</span>
       </div>
       <div class="stat-cell accent-green">
         <span class="label"><span>有效扩散半径 / RADIUS</span><span class="idx">肆</span></span>
@@ -479,7 +488,7 @@ onMounted(async () => {
       <div class="stat-cell">
         <span class="label"><span>推演耗时 / LATENCY</span><span class="idx">伍</span></span>
         <span class="value">{{ latencyMs == null ? "—" : latencyMs }}<small> ms</small></span>
-        <span class="sub">{{ mode === "live" ? "在线推演 · 后端网关" : "演示快照 · 断网兜底" }}</span>
+        <span class="sub">{{ mode === "live" ? "后端实时推演" : "快照数据 · 后端不可达" }}</span>
       </div>
     </div>
 
@@ -696,7 +705,7 @@ onMounted(async () => {
         <header class="sec-head">
           <span class="dot" style="background: var(--red)" />
           <h2>未来72小时涟漪预报 · 依从性沙盘</h2>
-          <span class="en">RIPPLE FORECAST / DETERMINISTIC SUPERPOSITION</span>
+          <span class="en">RIPPLE FORECAST / 72H</span>
           <span class="spacer" />
           <span v-if="forecast" class="tag RED">峰 +{{ forecast.peak.hourOffset }}h · {{ forecast.peak.intensity }}</span>
           <span class="fig">FIG.06</span>
@@ -710,7 +719,7 @@ onMounted(async () => {
         <header class="sec-head">
           <span class="dot" style="background: var(--orange, #ffab4a)" />
           <h2>今日守护队列</h2>
-          <span class="en">GUARD QUEUE / WHO TO GUARD FIRST</span>
+          <span class="en">GUARD QUEUE / PRIORITY ORDER</span>
           <span class="spacer" />
           <span class="fig">FIG.07</span>
         </header>
@@ -765,14 +774,14 @@ onMounted(async () => {
         <aside class="guide-drawer">
           <header class="guide-head">
             <h3>功能导读</h3>
-            <span class="mono">RIU GUIDE · 每个面板是干什么的、怎么试</span>
+            <span class="mono">每个面板的用途说明</span>
             <button class="g-close" @click="guideOpen = false">✕ 关闭</button>
           </header>
           <div class="guide-body">
             <div v-for="g in GUIDE" :key="g.fig + g.name" class="g-item">
               <span class="g-fig mono">{{ g.fig }}</span>
               <div class="g-txt">
-                <b>{{ g.name }}<em v-if="g.try">　▸ 试一试：{{ g.try }}</em></b>
+                <b>{{ g.name }}</b>
                 <p>{{ g.desc }}</p>
               </div>
             </div>

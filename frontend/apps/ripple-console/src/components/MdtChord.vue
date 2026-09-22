@@ -85,14 +85,14 @@ const consensusNotes = computed(() => props.mdt?.consensusNotes ?? []);
         </g>
         <!-- 中心 -->
         <text :x="CX" :y="CY - 6" text-anchor="middle" class="center-num">{{ mdt ? (mdt.consensusNotes?.length ?? 0) : "—" }}</text>
-        <text :x="CX" :y="CY + 12" text-anchor="middle" class="center-cap">{{ mdt ? "CONSENSUS" : "STANDBY" }}</text>
-        <text :x="CX" :y="CY + 30" text-anchor="middle" class="center-sub">5 AGENTS · 10 EDGES</text>
+        <text :x="CX" :y="CY + 12" text-anchor="middle" class="center-cap">{{ mdt ? "会诊纪要" : "待命" }}</text>
+        <text :x="CX" :y="CY + 30" text-anchor="middle" class="center-sub">5 个 Agent · 10 条关联</text>
       </svg>
       <div class="chord-stats mono">
-        <div><span>AGENTS</span><b>5 / 5</b></div>
-        <div><span>EDGES</span><b>10</b></div>
-        <div><span>CONSENSUS</span><b>{{ mdt?.consensusNotes?.length ?? 0 }}</b></div>
-        <div><span>BOUNDARY</span><b class="green">ADVISORY</b></div>
+        <div><span>AGENT 发言</span><b>5 / 5</b></div>
+        <div><span>意见关联</span><b>10</b></div>
+        <div><span>纪要条目</span><b>{{ mdt?.consensusNotes?.length ?? 0 }}</b></div>
+        <div><span>决策边界</span><b class="green">仅建议</b></div>
       </div>
     </div>
 
@@ -111,11 +111,11 @@ const consensusNotes = computed(() => props.mdt?.consensusNotes ?? []);
             </p>
           </div>
         </div>
-        <p class="safety mono">safetyBoundary: advisoryOnly=true · 终审权在医生 · 智能体不做处方/诊断终审</p>
+        <p class="safety mono">仅提供建议，不做诊断与处方终审；最终决定由医生作出</p>
       </template>
       <p v-else class="hint standby-hint">
-        五个学科 Agent 已就位（分诊 / 处方 / 病历 / 随访 / 涟漪守护）。<br />
-        点击右上「发起会诊」，观察五 Agent 以专科身份辩论并收敛为会诊纪要。
+        分诊、处方、病历、随访、涟漪守护五个 Agent 待命。<br />
+        发起会诊后，五个 Agent 分别给出专科意见并收敛为会诊纪要。
       </p>
     </div>
   </div>

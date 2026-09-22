@@ -16,7 +16,7 @@ const emit = defineEmits<{ focusRisk: [label: string] }>();
 
 <template>
   <div class="insights">
-    <p class="head mono">AI INSIGHTS · 智能体主动洞察</p>
+    <p class="head mono">AI INSIGHTS · 系统判断</p>
 
     <div v-if="proactive" class="item">
       <span class="icon i-pro">✦</span>
@@ -31,7 +31,7 @@ const emit = defineEmits<{ focusRisk: [label: string] }>();
       <span class="icon i-risk">◉</span>
       <div class="body">
         <b>{{ risk.label }}</b>
-        <span>{{ risk.ringName }} · 强度 {{ risk.intensity.toFixed(1) }} · 建议优先处置</span>
+        <span>{{ risk.ringName }} · 强度 {{ risk.intensity.toFixed(1) }}</span>
       </div>
       <span class="pill mono pill-red">TOP{{ i + 1 }}</span>
     </div>
@@ -39,8 +39,8 @@ const emit = defineEmits<{ focusRisk: [label: string] }>();
     <div v-if="guardrail" class="item">
       <span class="icon i-guard">⛨</span>
       <div class="body">
-        <b>护栏审计完成</b>
-        <span>{{ guardrail.auditedPaths }} 条反事实路径，FLAGGED {{ guardrail.flaggedPaths }} 条禁止下发</span>
+        <b>护栏审计</b>
+        <span>{{ guardrail.auditedPaths }} 条替代路径，{{ guardrail.flaggedPaths }} 条高风险已锁定</span>
       </div>
       <span class="pill mono">已入链</span>
     </div>
@@ -48,7 +48,7 @@ const emit = defineEmits<{ focusRisk: [label: string] }>();
     <div v-if="forecastPeak" class="item">
       <span class="icon i-fc">⏱</span>
       <div class="body">
-        <b>预报峰值临近</b>
+        <b>72 小时预报峰值</b>
         <span>+{{ forecastPeak.hourOffset }}h · {{ forecastPeak.drivers.join("、") || "守护事项" }}</span>
       </div>
       <span class="pill mono">预报</span>

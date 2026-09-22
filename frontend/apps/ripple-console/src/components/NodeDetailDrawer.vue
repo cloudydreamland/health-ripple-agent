@@ -83,7 +83,7 @@ const spineColor = computed(() => {
       </div>
 
       <div class="breakdown">
-        <h4 class="mono">SCORE BREAKDOWN · 评分依据（可审计）</h4>
+        <h4 class="mono">SCORE BREAKDOWN · 评分依据</h4>
         <div v-for="row in breakdownRows" :key="row.key" class="score-row">
           <span class="score-key">{{ row.label }}</span>
           <div class="score-track"><div class="score-bar" :style="{ width: Math.min(100, row.value * 100) + '%', background: barColor(row.value) }" /></div>

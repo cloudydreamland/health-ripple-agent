@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
       <span v-for="(meta, dim) in DIMENSION_META" :key="dim" class="legend-item">
         <i :style="{ background: meta.color }" />{{ meta.label }}
       </span>
-      <span class="legend-size">墨滴大小 ∝ 涟漪强度 · 朱砂环 = 高风险 · 点击查看评分依据</span>
+      <span class="legend-size">墨滴大小 = 涟漪强度 · 朱砂环 = 高风险 · 点击查看评分依据</span>
     </div>
   </div>
 </template>

@@ -163,12 +163,12 @@ const sandboxDelta = computed(() => {
         <span v-if="sandboxDelta" class="sb-delta mono">
           沙盘均值 {{ sandboxDelta.avg }}（{{ sandboxDelta.drop >= 0 ? "−" : "+" }}{{ Math.abs(sandboxDelta.drop) }}） · 沙盘峰 {{ sandboxDelta.peak }}
         </span>
-        <span v-else class="sb-hint mono">拖动滑杆预演"守护被执行后浪有多高"（虚线，确定性重算）</span>
+        <span v-else class="sb-hint mono">虚线为按执行度重算的守护强度</span>
       </div>
 
       <p class="fc-note">
-        未来 {{ forecast.horizonHours }} 小时确定性预报：由 {{ forecast.activeTriggers }} 项活跃守护触达的 RII 强度按时间学语义叠加，
-        均值 {{ forecast.horizonAvg }}。每缓解一项触达，对应峰值即从曲线消失——预报与消解闭环联动。
+        未来 {{ forecast.horizonHours }} 小时守护强度：{{ forecast.activeTriggers }} 项活跃触达的 RII 强度按时间学规则叠加，
+        均值 {{ forecast.horizonAvg }}。患者每缓解一项，对应峰值即从曲线中移除。
       </p>
     </template>
     <p v-else class="fc-empty">72小时预报需实时连接后端（由患者真实触达计划计算，快照模式不做臆造预报）。</p>
