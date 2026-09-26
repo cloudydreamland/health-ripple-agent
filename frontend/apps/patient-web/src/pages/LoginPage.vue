@@ -12,6 +12,10 @@ const error = ref("");
 const attempted = ref(false);
 const showPassword = ref(false);
 
+function togglePasswordVisibility() {
+  showPassword.value = !showPassword.value;
+}
+
 async function submit() {
   attempted.value = true;
   if (!form.account.trim() || !form.password.trim()) {
@@ -70,7 +74,7 @@ async function submit() {
               <div class="patient-login-input-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg>
                 <input id="patient-login-password" v-model="form.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="输入密码" :aria-invalid="attempted && !form.password.trim()" :aria-describedby="attempted && !form.password.trim() ? 'patient-password-error' : undefined" @input="error = ''" />
-                <button class="patient-login-visibility" type="button" :aria-label="showPassword ? '隐藏密码' : '显示密码'" :aria-pressed="showPassword" @click="showPassword = !showPassword">
+                <button class="patient-login-visibility" type="button" :aria-label="showPassword ? '隐藏密码' : '显示密码'" :aria-pressed="showPassword" @click="togglePasswordVisibility">
                   <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3 21 21M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.3 5.3A10 10 0 0 1 12 5c5 0 8.6 3.6 10 7a12 12 0 0 1-3.2 4.2M6.3 6.3A12 12 0 0 0 2 12c1.4 3.4 5 7 10 7a10 10 0 0 0 4.1-.9"/></svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c1.4-3.5 5-7 10-7s8.6 3.5 10 7c-1.4 3.5-5 7-10 7s-8.6-3.5-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
