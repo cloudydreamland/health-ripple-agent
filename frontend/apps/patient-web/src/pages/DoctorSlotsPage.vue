@@ -179,19 +179,16 @@ refresh();
           <div v-for="(department, index) in departments" :key="departmentId(department, index)" class="patient-department-row"
                @mouseenter="previewDepartment(departmentId(department, index))"
                @mouseleave="leaveDepartment(departmentId(department, index))">
-            <button type="button" class="patient-department-trigger"
+            <button type="button" class="patient-department-trigger" :class="{ 'is-open': openDepartmentId === departmentId(department, index) }"
                     :aria-expanded="openDepartmentId === departmentId(department, index)"
-                    :aria-controls="`department-description-${index}`"
+                    :aria-label="`${fieldText(department, 'name')}：${fieldText(department, 'description', '暂无说明')}`"
                     @focus="previewDepartment(departmentId(department, index))"
                     @blur="leaveDepartment(departmentId(department, index))"
                     @click="toggleDepartment(departmentId(department, index))">
-              <strong>{{ fieldText(department, "name") }}</strong>
-              <span aria-hidden="true">⌄</span>
+              <strong class="patient-department-name" aria-hidden="true">{{ fieldText(department, "name") }}</strong>
+              <span class="patient-department-description" aria-hidden="true">{{ fieldText(department, "description", "暂无说明") }}</span>
+              <span class="patient-department-chevron" aria-hidden="true">⌄</span>
             </button>
-            <div :id="`department-description-${index}`" class="patient-department-description"
-                 :hidden="openDepartmentId !== departmentId(department, index)">
-              {{ fieldText(department, "description", "暂无说明") }}
-            </div>
           </div>
         </div>
         <EmptyState v-else title="暂无科室数据" />

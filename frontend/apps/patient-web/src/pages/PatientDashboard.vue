@@ -51,7 +51,7 @@ const latestPrescription = computed(() => [...prescriptions.value].sort((a, b) =
       <RouterLink class="patient-summary-card" to="/doctors"><div class="patient-summary-head"><span>可约号源</span><PatientIcon name="slots" /></div><strong>{{ slots.length }}</strong><small>选择医生 <span aria-hidden="true">↗</span></small></RouterLink>
       <RouterLink class="patient-summary-card" to="/appointments"><div class="patient-summary-head"><span>挂号记录</span><PatientIcon name="appointments" /></div><strong>{{ registrations.length }}</strong><small>查看安排 <span aria-hidden="true">↗</span></small></RouterLink>
       <RouterLink class="patient-summary-card" to="/records"><div class="patient-summary-head"><span>病历</span><PatientIcon name="records" /></div><strong>{{ records.length }}</strong><small>查看病历 <span aria-hidden="true">↗</span></small></RouterLink>
-      <RouterLink class="patient-summary-card" to="/prescriptions"><div class="patient-summary-head"><span>处方</span><PatientIcon name="prescriptions" /></div><strong>{{ prescriptions.length }}</strong><small>查看处方 <span aria-hidden="true">↗</span></small></RouterLink>
+      <RouterLink class="patient-summary-card" to="/records?focus=prescriptions"><div class="patient-summary-head"><span>处方</span><PatientIcon name="prescriptions" /></div><strong>{{ prescriptions.length }}</strong><small>查看处方 <span aria-hidden="true">↗</span></small></RouterLink>
     </section>
     <section class="patient-dashboard-grid">
       <section class="panel patient-home-triage">
@@ -81,10 +81,10 @@ const latestPrescription = computed(() => [...prescriptions.value].sort((a, b) =
         </div>
       </section>
       <section class="panel patient-home-aftercare">
-        <header class="panel-header"><div class="panel-title"><h2>最近病历与处方</h2></div><RouterLink to="/ripple">健康涟漪 ↗</RouterLink></header>
+        <header class="panel-header"><div class="panel-title"><h2>最近病历与处方</h2></div><RouterLink to="/records">查看档案 ↗</RouterLink></header>
         <div class="panel-body patient-aftercare-list">
-          <RouterLink v-if="latestRecord" to="/records" class="patient-aftercare-item"><span class="patient-aftercare-icon"><PatientIcon name="records" /></span><span><small>医生保存的病历 · #{{ fieldText(latestRecord, "medicalRecordId") }}</small><strong>{{ fieldText(latestRecord, "diagnosis", "未填写诊断") }}</strong><em>{{ fieldText(latestRecord, "chiefComplaint", "暂无主诉") }}</em></span><b aria-hidden="true">↗</b></RouterLink>
-          <RouterLink v-if="latestPrescription" to="/prescriptions" class="patient-aftercare-item"><span class="patient-aftercare-icon"><PatientIcon name="prescriptions" /></span><span><small>医生保存的处方 · #{{ fieldText(latestPrescription, "prescriptionId") }}</small><strong>风险等级：{{ patientStatusText(latestPrescription.riskLevel, "未审核") }}</strong><em>查看药品与用药信息</em></span><b aria-hidden="true">↗</b></RouterLink>
+          <RouterLink v-if="latestRecord" :to="`/records?record=${latestRecord.medicalRecordId}`" class="patient-aftercare-item"><span class="patient-aftercare-icon"><PatientIcon name="records" /></span><span><small>医生保存的病历 · #{{ fieldText(latestRecord, "medicalRecordId") }}</small><strong>{{ fieldText(latestRecord, "diagnosis", "未填写诊断") }}</strong><em>{{ fieldText(latestRecord, "chiefComplaint", "暂无主诉") }}</em></span><b aria-hidden="true">↗</b></RouterLink>
+          <RouterLink v-if="latestPrescription" :to="`/records?focus=prescriptions${latestPrescription.medicalRecordId ? `&record=${latestPrescription.medicalRecordId}` : ''}`" class="patient-aftercare-item"><span class="patient-aftercare-icon"><PatientIcon name="prescriptions" /></span><span><small>医生保存的处方 · #{{ fieldText(latestPrescription, "prescriptionId") }}</small><strong>风险等级：{{ patientStatusText(latestPrescription.riskLevel, "未审核") }}</strong><em>查看药品与用药信息</em></span><b aria-hidden="true">↗</b></RouterLink>
           <EmptyState v-if="!latestRecord && !latestPrescription" title="暂无诊后记录" />
         </div>
       </section>

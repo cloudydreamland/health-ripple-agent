@@ -16,8 +16,7 @@ const visitRoutes = [
   { to: "/appointments", label: "我的挂号", icon: "◷" },
 ];
 const aftercareRoutes = [
-  { to: "/records", label: "病历", icon: "▤" },
-  { to: "/prescriptions", label: "处方", icon: "✚" },
+  { to: "/records", label: "就诊档案", icon: "▤" },
   { to: "/ripple", label: "健康涟漪", icon: "◎" },
 ];
 const activeGroup = computed(() => visitRoutes.some((item) => item.to === route.path)

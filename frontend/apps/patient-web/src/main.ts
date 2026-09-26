@@ -8,6 +8,8 @@ import "./style.css";
 import "./triage-pilot.css";
 import "./modern.css";
 import "./login.css";
+import "./archive.css";
+import "./finish.css";
 
 createApp(App)
   .use(createPinia())

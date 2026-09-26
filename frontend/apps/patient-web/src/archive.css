@@ -1,0 +1,58 @@
+.patient-page.theme-patient .patient-archive-page { overflow:hidden; }
+.patient-page.theme-patient .patient-archive-body { display:grid; gap:24px; padding:28px; }
+.patient-archive-overview { display:flex; flex-wrap:wrap; gap:9px; }
+.patient-archive-overview span { display:inline-flex; align-items:center; gap:8px; min-height:34px; padding:5px 11px; border:1px solid #d8e8df; border-radius:999px; background:#f5faf7; color:#376251; font-size:13px; font-weight:700; }
+.patient-archive-overview span:nth-child(2) { border-color:#d9e2ef; background:#f2f6fb; color:#47698e; }
+.patient-archive-overview span:nth-child(3) { border-color:#ebddc2; background:#fdf8ee; color:#8b682e; }
+.patient-archive-overview svg { width:17px; height:17px; }
+.patient-archive-section-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.patient-archive-section-head h3 { margin:0; color:#173b32; font-size:17px; letter-spacing:-.025em; }
+.patient-archive-section-head span { color:#6b8377; font-size:12px; }
+.patient-visit-rail { display:flex; gap:11px; max-width:100%; margin-top:-10px; padding:10px 2px 15px; overflow-x:auto; scrollbar-color:#bed8c9 transparent; scroll-snap-type:x proximity; }
+.patient-page.theme-patient .patient-visit-option { display:grid; flex:0 0 clamp(220px,24%,290px); align-content:center; gap:7px; min-height:107px; padding:16px 18px; border:1px solid #dbe9e0; border-radius:12px; background:#f9fcfa; color:#315d4b; text-align:left; scroll-snap-align:start; transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease; }
+.patient-page.theme-patient .patient-visit-option:hover { border-color:#a5ceb8; background:#f1f8f3; box-shadow:0 8px 22px rgba(13,82,59,.08); transform:translateY(-2px); }
+.patient-page.theme-patient .patient-visit-option.selected { border-color:#0b8a65; background:linear-gradient(125deg,#eaf6ee,#f7fbf8); box-shadow:inset 3px 0 #0b946a,0 10px 25px rgba(13,82,59,.1); }
+.patient-visit-option span { color:#607c6d; font-size:12px; }
+.patient-visit-option strong { overflow:hidden; color:#173f32; font-size:16px; text-overflow:ellipsis; white-space:nowrap; }
+.patient-visit-option small { color:#0e7859; font-size:12px; font-weight:720; }
+.patient-archive-pair { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); align-items:stretch; gap:18px; }
+.patient-archive-record,.patient-archive-prescriptions { min-width:0; padding:24px; border:1px solid #dbe8df; border-radius:15px; background:#fff; box-shadow:0 12px 29px rgba(13,68,48,.045); }
+.patient-archive-record { background:radial-gradient(circle at 0 0,rgba(161,211,185,.14),transparent 37%),#fff; }
+.patient-archive-prescriptions { background:radial-gradient(circle at 100% 0,rgba(176,198,229,.17),transparent 38%),#fff; }
+.patient-archive-pair.focus-prescriptions .patient-archive-prescriptions { border-color:#89b7a1; box-shadow:0 0 0 3px rgba(10,140,100,.09),0 16px 35px rgba(13,68,48,.08); }
+.patient-archive-panel-title { display:flex; align-items:center; gap:12px; min-width:0; padding-bottom:19px; border-bottom:1px solid #e2ece6; }
+.patient-archive-symbol { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:12px; background:#e5f2e9; color:#0c7b59; }
+.patient-archive-prescriptions .patient-archive-symbol { background:#eaf0f8; color:#557da4; }
+.patient-archive-symbol svg { width:24px; height:24px; }
+.patient-archive-panel-title > div { min-width:0; }
+.patient-archive-panel-title small { color:#70877a; font-size:11px; font-weight:700; letter-spacing:.045em; }
+.patient-archive-panel-title h3 { margin:2px 0 0; color:#153d31; font-size:22px; line-height:1.1; }
+.patient-archive-panel-title h3 em { padding-left:3px; color:#638b75; font-size:15px; font-style:normal; }
+.patient-archive-source { margin-left:auto; padding:6px 9px; border-radius:7px; background:#eaf5ec; color:#347258; font-size:11px; font-weight:700; text-align:right; }
+.patient-archive-diagnosis { display:grid; gap:6px; margin:21px 0 14px; padding:17px 19px; border:1px solid #cce1d3; border-radius:11px; background:#eff8f1; }
+.patient-archive-diagnosis span { color:#608071; font-size:12px; font-weight:700; }
+.patient-archive-diagnosis strong { color:#0d5d45; font-size:23px; line-height:1.35; overflow-wrap:anywhere; }
+.patient-archive-facts { display:grid; margin:0; }
+.patient-archive-facts > div { display:grid; grid-template-columns:80px minmax(0,1fr); gap:13px; padding:13px 0; border-bottom:1px solid #e5eee8; }
+.patient-archive-facts > div:last-child { border-bottom:0; }
+.patient-archive-facts dt { color:#668071; font-size:13px; }
+.patient-archive-facts dd { margin:0; color:#254b3c; font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+.patient-archive-medication-note { margin:18px 0; padding:11px 13px; border-left:3px solid #b57b39; border-radius:0 8px 8px 0; background:#fff8ec; color:#76552b; font-size:13px; line-height:1.55; }
+.patient-archive-prescription-list { display:grid; gap:12px; }
+.patient-archive-prescription { min-width:0; padding:18px; border:1px solid #dee9e1; border-radius:11px; background:#fbfdfb; transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; }
+.patient-archive-prescription:hover { border-color:#accfba; box-shadow:0 11px 24px rgba(15,79,56,.07); transform:translateY(-2px); }
+.patient-archive-prescription[data-risk='HIGH'] { border-left:3px solid #bb6255; }
+.patient-archive-prescription[data-risk='MEDIUM'] { border-left:3px solid #c3964d; }
+.patient-archive-prescription-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.patient-archive-prescription-top strong { color:#183e33; font-size:16px; }
+.patient-archive-prescription p { margin:8px 0 0; color:#668073; font-size:12px; }
+.patient-archive-prescription ul { display:flex; flex-wrap:wrap; gap:6px; margin:15px 0 3px; padding:0; list-style:none; }
+.patient-archive-prescription li { padding:6px 9px; border:1px solid #dbe7df; border-radius:7px; background:#fff; color:#365e4b; font-size:12px; }
+.patient-page.theme-patient .patient-archive-prescription button { display:inline-flex; align-items:center; gap:13px; min-height:35px; margin-top:14px; padding:0 11px; border-color:#bdd9c6; background:#fff; font-size:12px; }
+.patient-archive-prescription button span { transition:transform .2s ease; }
+.patient-archive-prescription button:hover span { transform:translate(2px,-2px); }
+.patient-archive-unlinked { display:grid; gap:14px; padding-top:22px; border-top:1px solid #dce8e1; }
+.patient-archive-unlinked-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:12px; }
+@media (max-width:850px) { .patient-archive-pair { grid-template-columns:1fr; } }
+@media (max-width:620px) { .patient-archive-page .panel-title p { display:none; } .patient-page.theme-patient .patient-archive-body { gap:18px; padding:18px; } .patient-page.theme-patient .patient-visit-option { flex-basis:240px; } .patient-archive-record,.patient-archive-prescriptions { padding:19px; } .patient-archive-source { max-width:100px; } .patient-archive-facts > div { grid-template-columns:1fr; gap:3px; } }
+@media (prefers-reduced-motion:reduce) { .patient-page.theme-patient .patient-visit-option,.patient-archive-prescription,.patient-archive-prescription button span { transition:none; } }

@@ -154,3 +154,30 @@
 @media (max-width: 900px) { .triage-pilot-grid { grid-template-columns: 1fr; gap: 38px; } .triage-pilot-aside { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 660px) { .triage-pilot-topline { min-height: 94px; padding: 20px 18px; } .triage-pilot-title-mark { display: none; } .triage-pilot-page-title h1 { font-size: 32px; } .triage-pilot-grid { padding: 20px 18px 64px; gap:26px; } .triage-pilot-form { padding:22px 19px; } .triage-pilot-fields, .triage-pilot-aside { grid-template-columns: 1fr; } .triage-pilot-submit-row .p-button { width: 100%; } .triage-pilot-result { padding: 22px 20px; } }
 @media (prefers-reduced-motion: reduce) { .triage-pilot *, .triage-pilot *::before, .triage-pilot *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-voice {
+  display:inline-flex; align-items:center; gap:10px; min-height:44px; padding:0 9px 0 4px;
+  border:0; border-radius:999px; background:transparent; box-shadow:none; color:#086b53;
+  font-size:13px; font-weight:740; white-space:nowrap;
+}
+.patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-voice:hover { border:0; background:#eaf7ef; box-shadow:none; }
+.triage-pilot-mic { position:relative; display:grid; place-items:center; width:39px; height:39px; flex:none; border:1px solid #a9d4bb; border-radius:50%; background:linear-gradient(145deg,#effbf2,#dff2e7); box-shadow:0 4px 11px rgba(10,109,79,.12),inset 0 1px #fff; }
+.triage-pilot-mic svg { width:20px; height:20px; }
+.triage-pilot-voice.is-listening .triage-pilot-mic { border-color:#0b946e; background:#087858; color:#fff; }
+.triage-pilot-voice.is-listening .triage-pilot-mic::after { content:""; position:absolute; inset:-5px; border:1px solid #0e9d72; border-radius:50%; animation:triage-mic-pulse 1.5s ease-out infinite; }
+.triage-pilot-speech-error { margin:7px 0 0; color:#a2443c; font-size:13px; }
+.patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-submit {
+  display:inline-flex; align-items:center; justify-content:space-between; gap:25px; min-width:198px; min-height:55px;
+  padding:0 9px 0 21px; border:1px solid #087858; border-radius:12px;
+  background:linear-gradient(112deg,#075d4b,#098466); box-shadow:0 11px 25px rgba(7,99,75,.18),inset 0 1px rgba(255,255,255,.18);
+  color:#fff; font-size:16px; font-weight:740; transition:transform .22s ease,box-shadow .22s ease,background .22s ease;
+}
+.patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-submit:hover:not(:disabled) { border-color:#087858; background:linear-gradient(112deg,#065441,#0b946d); box-shadow:0 15px 30px rgba(7,99,75,.23); transform:translateY(-2px); }
+.patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-submit:disabled { border-color:#dce8e2; background:#e8f0eb; box-shadow:none; color:#657f72; }
+.triage-pilot-submit-arrow { display:grid; place-items:center; width:36px; height:36px; border:1px solid rgba(255,255,255,.32); border-radius:9px; font-size:19px; font-weight:400; transition:transform .2s ease; }
+.triage-pilot-submit:hover:not(:disabled) .triage-pilot-submit-arrow { transform:translate(2px,-2px); }
+.triage-pilot-submit-spinner { width:20px; height:20px; margin-right:8px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:triage-submit-spin .75s linear infinite; }
+@keyframes triage-mic-pulse { from { opacity:.8; transform:scale(.85); } to { opacity:0; transform:scale(1.25); } }
+@keyframes triage-submit-spin { to { transform:rotate(360deg); } }
+@media (max-width:660px) { .patient-page.theme-patient.triage-pilot-shell .triage-pilot .triage-pilot-submit { width:100%; } }
+@media (prefers-reduced-motion:reduce) { .triage-pilot-voice.is-listening .triage-pilot-mic::after,.triage-pilot-submit-spinner { animation:none; } }
