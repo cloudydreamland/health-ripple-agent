@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { api, fieldText, formatApiError, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState } from "@smart-cloud-brain/shared-ui";
 import MedicalRecordDetailModal from "../components/MedicalRecordDetailModal.vue";
+import PatientIcon from "../components/PatientIcon.vue";
 
 const auth = useAuthStore();
 const workflow = usePatientWorkflowStore();
@@ -12,6 +13,7 @@ const loading = ref(false);
 const detailLoading = ref(false);
 const error = ref("");
 const selected = ref<DataRow | null>(null);
+const latestRecord = computed(() => [...records.value].sort((a, b) => Number(b.medicalRecordId ?? 0) - Number(a.medicalRecordId ?? 0))[0] ?? null);
 
 async function refresh() {
   loading.value = true;
@@ -42,7 +44,10 @@ refresh();
 
 <template>
   <section class="panel patient-service-page patient-records-page">
-    <header class="panel-header"><div class="panel-title"><h2>病历记录</h2></div><button type="button" :disabled="loading" @click="refresh">刷新</button></header>
+    <header class="panel-header patient-rich-header">
+      <div class="panel-title"><span class="patient-header-kicker">诊后服务 / 病历</span><h2>病历记录</h2><p v-if="latestRecord">最近主诉：{{ fieldText(latestRecord, "chiefComplaint", "暂无主诉") }}</p></div>
+      <div class="patient-header-aside"><span class="patient-header-count"><PatientIcon name="records" /><strong>{{ records.length }}</strong><small>份病历</small></span><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
+    </header>
     <div class="panel-body stack">
       <ErrorState v-if="error" :message="error" />
       <LoadingState v-if="loading || detailLoading" />

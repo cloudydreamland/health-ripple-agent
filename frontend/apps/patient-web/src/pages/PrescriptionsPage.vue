@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { fieldText, formatApiError, statusClass, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
 import PrescriptionDetailModal from "../components/PrescriptionDetailModal.vue";
+import PatientIcon from "../components/PatientIcon.vue";
 import { formatPatientDate, patientStatusText } from "../format";
 
 const auth = useAuthStore();
@@ -12,6 +13,7 @@ const { prescriptions } = storeToRefs(workflow);
 const loading = ref(false);
 const error = ref("");
 const selected = ref<DataRow | null>(null);
+const latestPrescription = computed(() => [...prescriptions.value].sort((a, b) => Number(b.prescriptionId ?? 0) - Number(a.prescriptionId ?? 0))[0] ?? null);
 function prescriptionStatus(value: unknown) {
   return patientStatusText(value);
 }
@@ -33,7 +35,10 @@ refresh();
 
 <template>
   <section class="panel patient-service-page patient-prescriptions-page">
-    <header class="panel-header"><div class="panel-title"><h2>处方记录</h2></div><button type="button" :disabled="loading" @click="refresh">刷新</button></header>
+    <header class="panel-header patient-rich-header">
+      <div class="panel-title"><span class="patient-header-kicker">诊后服务 / 处方</span><h2>处方记录</h2><p v-if="latestPrescription">最近处方 #{{ fieldText(latestPrescription, "prescriptionId") }} · {{ prescriptionStatus(latestPrescription.status) }}</p></div>
+      <div class="patient-header-aside"><span class="patient-header-count"><PatientIcon name="prescriptions" /><strong>{{ prescriptions.length }}</strong><small>份处方</small></span><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
+    </header>
     <div class="panel-body stack">
       <ErrorState v-if="error" :message="error" />
       <LoadingState v-if="loading" />

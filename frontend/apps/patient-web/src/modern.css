@@ -491,3 +491,91 @@
 @media (prefers-reduced-motion:reduce) {
   .patient-page.theme-patient .patient-appointment-card,.patient-page.theme-patient .patient-appointment-filter,.patient-page.theme-patient .patient-profile-section dl > div { transition:none; }
 }
+
+/* Dashboard: denser information with distinct, quiet accent colors. */
+.patient-page.theme-patient .patient-summary-card { --metric:#0b8064; --metric-soft:#e8f5ee; padding:17px 20px 16px; transition:background .22s,box-shadow .22s,transform .22s; }
+.patient-page.theme-patient .patient-summary-card:nth-child(2) { --metric:#416c91; --metric-soft:#eaf1f8; }
+.patient-page.theme-patient .patient-summary-card:nth-child(3) { --metric:#ae7035; --metric-soft:#fcf2e6; }
+.patient-page.theme-patient .patient-summary-card:nth-child(4) { --metric:#a25f6a; --metric-soft:#f9edf0; }
+.patient-page.theme-patient .patient-summary-card:hover,.patient-page.theme-patient .patient-summary-card:focus-visible { z-index:1; background:color-mix(in srgb,var(--metric-soft) 38%,white); box-shadow:inset 0 3px var(--metric); transform:translateY(-2px); }
+.patient-page.theme-patient .patient-summary-head { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#526f61; font-size:14px; font-weight:700; }
+.patient-page.theme-patient .patient-summary-head svg { width:38px; height:38px; padding:8px; border-radius:11px; background:var(--metric-soft); color:var(--metric); transition:transform .28s cubic-bezier(.2,.8,.2,1); }
+.patient-page.theme-patient .patient-summary-card:hover .patient-summary-head svg,.patient-page.theme-patient .patient-summary-card:focus-visible .patient-summary-head svg { transform:rotate(-6deg) scale(1.08); }
+.patient-page.theme-patient .patient-summary-card strong { color:var(--metric); font-size:34px; }
+.patient-page.theme-patient .patient-summary-card small { color:var(--metric); }
+.patient-page.theme-patient .patient-dashboard-grid > .panel { min-width:0; }
+.patient-page.theme-patient .patient-home-triage > .panel-body { padding:18px 22px 21px; }
+.patient-page.theme-patient .patient-triage-summary { display:grid; gap:10px; min-width:0; }
+.patient-page.theme-patient .patient-triage-summary-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.patient-page.theme-patient .patient-eyebrow { color:#0a765b; font-size:12px; font-weight:800; letter-spacing:.06em; }
+.patient-page.theme-patient .patient-triage-summary h3 { margin:0; color:#123c31; font-size:25px; line-height:1.2; }
+.patient-page.theme-patient .patient-triage-summary dl { display:grid; gap:0; margin:0; border-top:1px solid #e0ebe5; }
+.patient-page.theme-patient .patient-triage-summary dl > div { display:grid; grid-template-columns:72px minmax(0,1fr); gap:12px; padding:10px 0; border-bottom:1px solid #e0ebe5; }
+.patient-page.theme-patient .patient-triage-summary dt { color:#6a8577; font-size:13px; }
+.patient-page.theme-patient .patient-triage-summary dd { margin:0; color:#315348; font-size:14px; line-height:1.55; overflow-wrap:anywhere; }
+.patient-page.theme-patient .patient-triage-caution { margin:1px 0 0; color:#61796d; font-size:12px; line-height:1.5; }
+.patient-page.theme-patient .patient-home-actions-body { display:grid; grid-template-columns:1fr; grid-template-rows:repeat(2,minmax(0,1fr)); align-content:stretch; align-items:stretch; gap:10px; padding:18px; }
+.patient-page.theme-patient .patient-home-actions-body .patient-quick-link { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:center; gap:12px; min-width:0; min-height:93px; padding:17px 19px; border:1px solid #dce8e1; border-radius:11px; background:#f8faf9; color:#285c4a; text-align:left; text-decoration:none; transition:background .2s,border-color .2s,transform .2s,box-shadow .2s; }
+.patient-page.theme-patient .patient-quick-link svg { width:26px; height:26px; color:#14846a; }
+.patient-page.theme-patient .patient-quick-link span { font-size:14px; font-weight:730; }
+.patient-page.theme-patient .patient-quick-link b { font-size:17px; line-height:1; font-weight:500; transition:transform .2s; }
+.patient-page.theme-patient .patient-home-actions-body .patient-quick-link:hover,.patient-page.theme-patient .patient-home-actions-body .patient-quick-link:focus-visible { border-color:#a8cdbc; background:#eff7f2; box-shadow:0 8px 18px rgba(22,89,66,.08); transform:translateY(-2px); }
+.patient-page.theme-patient .patient-quick-link:hover b,.patient-page.theme-patient .patient-quick-link:focus-visible b { transform:translate(2px,-2px); }
+.patient-page.theme-patient .patient-home-actions-body .patient-quick-primary { border-color:#0a8062; background:#0a735a; color:#fff; }
+.patient-page.theme-patient .patient-home-actions-body .patient-quick-primary svg { color:#c8eedb; }
+.patient-page.theme-patient .patient-home-actions-body .patient-quick-primary:hover,.patient-page.theme-patient .patient-home-actions-body .patient-quick-primary:focus-visible { border-color:#0b7056; background:#075e49; }
+.patient-page.theme-patient .patient-home-registration > .panel-body { display:block; padding:12px 22px; }
+.patient-page.theme-patient .patient-recent-list { display:grid; margin:0; padding:0; list-style:none; }
+.patient-page.theme-patient .patient-recent-registration { display:grid; grid-template-columns:112px minmax(0,1fr) auto; align-items:center; gap:14px; min-width:0; padding:13px 0; border:0; border-bottom:1px solid #e3ece6; border-radius:0; background:#fff; }
+.patient-page.theme-patient .patient-recent-registration:last-child { border-bottom:0; }
+.patient-page.theme-patient .patient-recent-date { color:#6a8175; font-size:13px; font-variant-numeric:tabular-nums; }
+.patient-page.theme-patient .patient-recent-person { display:grid; gap:2px; min-width:0; }
+.patient-page.theme-patient .patient-recent-person strong { font-size:15px; }
+.patient-page.theme-patient .patient-recent-person small { color:#60786c; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.patient-page.theme-patient .patient-home-aftercare > .panel-body { padding:12px 20px; }
+.patient-page.theme-patient .patient-aftercare-list { display:grid; align-content:start; gap:0; }
+.patient-page.theme-patient .patient-aftercare-item { display:grid; grid-template-columns:40px minmax(0,1fr) auto; align-items:start; gap:12px; padding:14px 2px; border-bottom:1px solid #e3ece6; color:inherit; text-decoration:none; transition:background .2s,transform .2s; }
+.patient-page.theme-patient .patient-aftercare-item:last-of-type { border-bottom:0; }
+.patient-page.theme-patient .patient-aftercare-item:hover,.patient-page.theme-patient .patient-aftercare-item:focus-visible { background:#f5faf6; transform:translateX(3px); }
+.patient-page.theme-patient .patient-aftercare-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:#eaf2f9; color:#416c91; }
+.patient-page.theme-patient .patient-aftercare-item:nth-of-type(2) .patient-aftercare-icon { background:#f9edf0; color:#a25f6a; }
+.patient-page.theme-patient .patient-aftercare-icon svg { width:21px; height:21px; }
+.patient-page.theme-patient .patient-aftercare-item > span:nth-child(2) { display:grid; gap:3px; min-width:0; }
+.patient-page.theme-patient .patient-aftercare-item small { color:#658073; font-size:12px; }
+.patient-page.theme-patient .patient-aftercare-item strong { color:#183e33; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.patient-page.theme-patient .patient-aftercare-item em { color:#5a7166; font-size:12px; font-style:normal; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.patient-page.theme-patient .patient-aftercare-item b { color:#3e775c; font-size:17px; font-weight:500; }
+
+/* Service headers show real list context instead of an unused color band. */
+.patient-page.theme-patient .patient-service-page.panel > .patient-rich-header { min-height:128px; gap:20px; padding:21px 29px; }
+.patient-page.theme-patient .patient-rich-header .panel-title { min-width:0; }
+.patient-page.theme-patient .patient-rich-header .panel-title h2 { margin:3px 0; }
+.patient-page.theme-patient .patient-rich-header .panel-title p { max-width:52ch; margin:5px 0 0; color:#bfe6d2; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.patient-page.theme-patient .patient-header-kicker { color:#9ddbbd; font-size:11px; font-weight:780; letter-spacing:.11em; }
+.patient-page.theme-patient .patient-header-aside { display:flex; align-items:center; gap:20px; flex:none; }
+.patient-page.theme-patient .patient-header-count { display:grid; grid-template-columns:28px auto; align-items:center; column-gap:8px; min-width:110px; padding:10px 14px; border:1px solid rgba(212,245,224,.25); border-radius:11px; background:rgba(255,255,255,.08); color:#fff; }
+.patient-page.theme-patient .patient-header-count svg { grid-row:1 / 3; width:26px; height:26px; color:#b4e8d1; }
+.patient-page.theme-patient .patient-header-count strong { color:#fff; font-size:24px; line-height:1; font-variant-numeric:tabular-nums; }
+.patient-page.theme-patient .patient-header-count small { color:#c1e8d4; font-size:11px; }
+.patient-page.theme-patient .patient-header-aside button { flex:none; }
+@media (max-width:900px) {
+  .patient-page.theme-patient .patient-home-actions-body { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:1fr; }
+}
+@media (max-width:620px) {
+  .patient-page.theme-patient .patient-summary-head svg { width:32px; height:32px; padding:7px; }
+  .patient-page.theme-patient .patient-summary-card { min-height:108px; padding:13px; }
+  .patient-page.theme-patient .patient-home-actions-body { grid-template-columns:1fr; grid-template-rows:repeat(2,minmax(0,1fr)); }
+  .patient-page.theme-patient .patient-recent-registration { grid-template-columns:minmax(0,1fr) auto; gap:5px 10px; }
+  .patient-page.theme-patient .patient-recent-date { grid-column:1 / 3; }
+  .patient-page.theme-patient .patient-recent-registration .tag { grid-column:2; grid-row:2; }
+  .patient-page.theme-patient .patient-service-page.panel > .patient-rich-header { align-items:flex-start; min-height:0; padding:20px; }
+  .patient-page.theme-patient .patient-rich-header .panel-title p { max-width:100%; }
+  .patient-page.theme-patient .patient-header-aside { gap:8px; }
+  .patient-page.theme-patient .patient-header-count { min-width:0; padding:7px; grid-template-columns:20px auto; column-gap:5px; }
+  .patient-page.theme-patient .patient-header-count svg { width:19px; height:19px; }
+  .patient-page.theme-patient .patient-header-count strong { font-size:17px; }
+  .patient-page.theme-patient .patient-header-count small { font-size:10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .patient-page.theme-patient .patient-summary-card,.patient-page.theme-patient .patient-summary-head svg,.patient-page.theme-patient .patient-quick-link,.patient-page.theme-patient .patient-aftercare-item { transition:none; }
+}

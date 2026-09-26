@@ -7,6 +7,7 @@ import router from "./router";
 import "./style.css";
 import "./triage-pilot.css";
 import "./modern.css";
+import "./login.css";
 
 createApp(App)
   .use(createPinia())
