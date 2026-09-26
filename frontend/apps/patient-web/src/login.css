@@ -140,6 +140,32 @@
 .patient-page.theme-patient .patient-login-form-foot a:hover { text-decoration:underline; }
 .patient-page.theme-patient .patient-login-privacy { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:56px; padding-top:21px; border-top:1px solid #d9e6de; color:#789083; font-size:12px; }
 .patient-page.theme-patient .patient-login-privacy svg { width:16px; height:16px; }
+.patient-page.theme-patient .patient-register-stage { grid-template-columns:minmax(0,.91fr) minmax(520px,1.09fr); min-height:max(860px,calc(100dvh - 146px)); }
+.patient-page.theme-patient .patient-register-visual .patient-login-visual-copy h1 { max-width:12ch; font-size:clamp(54px,5.25vw,84px); }
+.patient-page.theme-patient .patient-register-visual .patient-login-orbit { top:4%; right:-12%; width:min(90%,620px); }
+.patient-page.theme-patient .patient-register-entry { padding:46px clamp(32px,4.4vw,72px); }
+.patient-page.theme-patient .patient-register-form { width:min(100%,590px); }
+.patient-page.theme-patient .patient-register-form-head { margin-bottom:32px; }
+.patient-page.theme-patient .patient-register-form-head h2 { font-size:clamp(35px,3vw,45px); }
+.patient-page.theme-patient .patient-register-section { min-width:0; margin:0; padding:0; border:0; }
+.patient-page.theme-patient .patient-register-section legend { width:100%; margin:0; padding:0 0 12px; border-bottom:1px solid #d8e7de; color:#1b5644; font-size:15px; font-weight:750; letter-spacing:.02em; }
+.patient-page.theme-patient .patient-register-section legend span { display:inline-grid; place-items:center; width:26px; height:26px; margin-right:8px; border-radius:8px; background:#e0f1e6; color:#087658; font-size:11px; font-weight:800; letter-spacing:0; }
+.patient-page.theme-patient .patient-register-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 16px; margin-top:17px; }
+.patient-page.theme-patient .patient-register-wide { grid-column:1 / -1; }
+.patient-page.theme-patient .patient-register-health { margin-top:29px; }
+.patient-page.theme-patient .patient-register-form .patient-login-field { gap:7px; }
+.patient-page.theme-patient .patient-register-form .patient-login-input-wrap { min-height:52px; }
+.patient-page.theme-patient .patient-register-form .patient-login-input-wrap input { height:50px; font-size:15px; }
+.patient-page.theme-patient .patient-register-form .patient-login-field label { font-size:13px; }
+.patient-page.theme-patient .patient-register-optional { margin-left:5px; color:#829a8b; font-size:11px; font-weight:550; }
+.patient-page.theme-patient .patient-register-select-wrap select { width:100%; height:50px; padding:0 10px 0 0; border:0; outline:0; appearance:none; background:transparent; box-shadow:none; color:#173b32; font:inherit; font-size:15px; }
+.patient-page.theme-patient .patient-register-select-chevron { width:8px; height:8px; margin-right:4px; border-right:1.5px solid #5d8570; border-bottom:1.5px solid #5d8570; transform:rotate(45deg); pointer-events:none; }
+.patient-page.theme-patient .patient-register-textarea-wrap { align-items:stretch; }
+.patient-page.theme-patient .patient-register-textarea-wrap textarea { width:100%; min-height:80px; padding:14px 0; border:0; outline:0; background:transparent; box-shadow:none; color:#173b32; font:inherit; font-size:14px; line-height:1.5; resize:vertical; }
+.patient-page.theme-patient .patient-register-textarea-wrap textarea::placeholder { color:#99afa2; }
+.patient-page.theme-patient .patient-register-success { margin:-8px 0 20px; padding:12px 14px; border:1px solid #a7d8bd; border-radius:10px; background:#eaf8ee; color:#0c674b; font-size:13px; }
+.patient-page.theme-patient .patient-register-submit { margin-top:27px; }
+.patient-page.theme-patient .patient-register-form-foot { margin-top:18px; }
 @keyframes patient-login-light { 0%,18% { transform:translateX(-80%); opacity:0; } 48% { opacity:.55; } 80%,100% { transform:translateX(80%); opacity:0; } }
 @keyframes patient-login-beacon { 0%,100% { transform:scale(.8); opacity:.65; } 50% { transform:scale(1.2); opacity:1; } }
 @keyframes patient-login-spin { to { transform:rotate(360deg); } }
@@ -154,6 +180,10 @@
   .patient-page.theme-patient .patient-login-visual-foot { display:none; }
   .patient-page.theme-patient .patient-login-entry { padding:43px 36px 47px; }
   .patient-page.theme-patient .patient-login-privacy { margin-top:36px; }
+  .patient-page.theme-patient .patient-register-stage { grid-template-columns:1fr; min-height:0; }
+  .patient-page.theme-patient .patient-register-visual .patient-login-visual-copy h1 { font-size:54px; }
+  .patient-page.theme-patient .patient-register-visual .patient-login-orbit { top:-42%; right:-4%; width:340px; }
+  .patient-page.theme-patient .patient-register-entry { padding:43px 36px 47px; }
 }
 @media (max-width:620px) {
   .patient-page.theme-patient .patient-login-page { display:block; min-height:calc(100dvh - 76px); padding:12px 12px 24px; }
@@ -173,6 +203,13 @@
   .patient-page.theme-patient .patient-login-input-wrap input { height:52px; }
   .patient-page.theme-patient .patient-login-submit { min-height:56px; margin-top:27px; }
   .patient-page.theme-patient .patient-login-privacy { margin-top:32px; }
+  .patient-page.theme-patient .patient-register-visual .patient-login-visual-copy h1 { font-size:clamp(33px,9vw,42px); }
+  .patient-page.theme-patient .patient-register-visual .patient-login-visual-copy h1 br { display:block; }
+  .patient-page.theme-patient .patient-register-visual .patient-login-orbit { top:-98%; right:-20%; width:290px; }
+  .patient-page.theme-patient .patient-register-entry { padding:32px 22px 38px; }
+  .patient-page.theme-patient .patient-register-fields { grid-template-columns:1fr; gap:16px; }
+  .patient-page.theme-patient .patient-register-form-head { margin-bottom:27px; }
+  .patient-page.theme-patient .patient-register-health { margin-top:26px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .patient-page.theme-patient .patient-login-visual::before,.patient-page.theme-patient .orbit-satellite,.patient-page.theme-patient .patient-login-spinner { animation:none; }
