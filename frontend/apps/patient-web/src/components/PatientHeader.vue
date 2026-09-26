@@ -80,7 +80,7 @@ watch(() => route.fullPath, closeMenus);
       </nav>
       <div class="patient-modern-actions">
         <RouterLink v-if="!publicMode" class="patient-modern-quick-link" to="/doctors">查看号源 <span aria-hidden="true">↗</span></RouterLink>
-        <RouterLink v-if="publicMode" :to="route.path === '/login' ? '/register' : '/login'" class="patient-modern-account">{{ route.path === '/login' ? '注册账号' : '登录' }}</RouterLink>
+        <RouterLink v-if="publicMode" :to="route.path === '/login' ? '/register' : '/login'" class="patient-modern-account patient-modern-public-action"><span class="patient-modern-public-dot" aria-hidden="true"></span><span>{{ route.path === '/login' ? '注册账号' : '登录' }}</span><span class="patient-modern-public-arrow" aria-hidden="true">↗</span></RouterLink>
         <div v-else class="patient-modern-account-group" @pointerenter="openMenu = 'account'" @pointerleave="openMenu = null">
           <button type="button" class="patient-modern-account-trigger" data-menu-trigger="account" :aria-expanded="openMenu === 'account'" aria-controls="patient-account-menu"
                   @focus="onMenuFocus('account')" @click="openMenu = 'account'"><span class="patient-modern-avatar">{{ userName?.slice(0, 1) || '我' }}</span><span class="patient-modern-user">{{ userName || '个人账号' }}</span><span class="patient-modern-chevron" aria-hidden="true"></span></button>
@@ -152,6 +152,12 @@ watch(() => route.fullPath, closeMenus);
 .patient-modern-avatar { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: #d9eee2; color: #086348; font-size: 14px; font-weight: 750; }
 .patient-modern-user { font-size: 14px; font-weight: 650; white-space: nowrap; }
 .patient-modern-account { color: #087858; text-decoration: none; }
+.patient-modern-public-action { display: inline-flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 12px 0 14px; border: 1px solid #0b7458; border-radius: 11px; background: linear-gradient(115deg, #074738, #087b5d); box-shadow: 0 8px 20px rgba(5, 93, 68, .14), inset 0 1px rgba(255, 255, 255, .15); color: #fff; font-size: 13px; font-weight: 720; white-space: nowrap; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+.patient-modern-public-action:hover { background: linear-gradient(115deg, #053e32, #078764); box-shadow: 0 12px 24px rgba(5, 93, 68, .2); color: #fff; transform: translateY(-2px); }
+.patient-modern-public-action:active { transform: translateY(0); }
+.patient-modern-public-dot { width: 6px; height: 6px; border-radius: 50%; background: #d1eca9; box-shadow: 0 0 0 3px rgba(209, 236, 169, .14); }
+.patient-modern-public-arrow { display: grid; place-items: center; width: 25px; height: 25px; margin-left: 5px; border: 1px solid rgba(255, 255, 255, .26); border-radius: 7px; font-size: 15px; font-weight: 400; transition: transform .2s ease; }
+.patient-modern-public-action:hover .patient-modern-public-arrow { transform: translate(2px, -2px); }
 .patient-modern-dropdown { position: absolute; top: 100%; left: 0; z-index: 80; width: 306px; padding: 9px; border: 1px solid #d9e8e0; border-radius: 15px; background: #fff; box-shadow: 0 22px 56px rgba(12, 53, 41, .16); }
 .patient-modern-dropdown-link { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 51px; padding: 8px 11px; border: 0; border-radius: 10px; background: transparent; color: #20483c; font: inherit; font-size: 15px; font-weight: 620; text-align: left; text-decoration: none; cursor: pointer; transition: background .18s ease, color .18s ease, transform .18s ease; }
 .patient-modern-dropdown-link:hover, .patient-modern-dropdown-link:focus-visible, .patient-modern-dropdown-link.current { background: #edf8f1; color: #08684d; transform: translateX(2px); }
