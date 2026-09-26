@@ -41,24 +41,33 @@ refresh();
 </script>
 
 <template>
-  <section class="panel">
-    <header class="panel-header"><div class="panel-title"><p class="eyebrow">病历记录</p><h2>病历列表</h2><p>医生保存后同步到患者端。</p></div><button type="button" @click="refresh">刷新</button></header>
+  <section class="panel patient-service-page patient-records-page">
+    <header class="panel-header"><div class="panel-title"><h2>病历记录</h2></div><button type="button" :disabled="loading" @click="refresh">刷新</button></header>
     <div class="panel-body stack">
       <ErrorState v-if="error" :message="error" />
       <LoadingState v-if="loading || detailLoading" />
-      <div v-else-if="records.length" class="table-scroll">
-        <table class="data-table">
-          <thead><tr><th>病历号</th><th>主诉</th><th>诊断</th><th>方式</th><th class="actions-cell">操作</th></tr></thead>
-          <tbody>
-            <tr v-for="item in records" :key="String(item.medicalRecordId)">
-              <td>#{{ fieldText(item, "medicalRecordId") }}</td>
-              <td>{{ fieldText(item, "chiefComplaint") }}</td>
-              <td>{{ fieldText(item, "diagnosis") }}</td>
-              <td>{{ item.aiGenerated ? "智能草稿确认" : "医生录入" }}</td>
-              <td><button type="button" @click="open(item)">详情</button></td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else-if="records.length" class="patient-records-content">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>病历号</th><th>主诉</th><th>诊断</th><th>方式</th><th class="actions-cell">操作</th></tr></thead>
+            <tbody>
+              <tr v-for="item in records" :key="String(item.medicalRecordId)">
+                <td>#{{ fieldText(item, "medicalRecordId") }}</td>
+                <td>{{ fieldText(item, "chiefComplaint") }}</td>
+                <td>{{ fieldText(item, "diagnosis") }}</td>
+                <td>{{ item.aiGenerated ? "医生确认的智能草稿" : "医生录入" }}</td>
+                <td><button type="button" @click="open(item)">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="patient-mobile-record-list">
+          <article v-for="item in records" :key="String(item.medicalRecordId)" class="patient-mobile-record">
+            <div class="patient-mobile-record-head"><strong>病历 #{{ fieldText(item, "medicalRecordId") }}</strong><span>{{ item.aiGenerated ? "医生确认的智能草稿" : "医生录入" }}</span></div>
+            <dl><div><dt>主诉</dt><dd>{{ fieldText(item, "chiefComplaint") }}</dd></div><div><dt>诊断</dt><dd>{{ fieldText(item, "diagnosis") }}</dd></div></dl>
+            <button type="button" @click="open(item)">查看详情</button>
+          </article>
+        </div>
       </div>
       <EmptyState v-else title="暂无病历" message="医生保存病历后会显示在这里。" />
     </div>

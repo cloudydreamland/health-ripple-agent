@@ -98,6 +98,7 @@ const ledger = ref<LedgerItem[]>([]);
 const resolution = ref<Resolution | null>(null);
 const history = ref<RippleHistoryItem[]>([]);
 const forecast = ref<Forecast | null>(null);
+const forecastSelection = ref<number | null>(null);
 const feedbackBusy = ref<number | null>(null);
 const shared = ref(false);
 const nlInputId = ref<number | null>(null);
@@ -158,6 +159,7 @@ const forecastColumns = computed(() => {
   }
   return cols;
 });
+const selectedForecastColumn = computed(() => forecastSelection.value === null ? null : forecastColumns.value.find((col) => col.offset === forecastSelection.value) ?? null);
 
 const forecastPeakText = computed(() => {
   if (!forecast.value || !forecast.value.peak || forecast.value.peak.intensity <= 0) return "";
@@ -334,18 +336,22 @@ async function shareToFamily() {
   }
 }
 
+async function copyFamilyLink() {
+  if (await copyText(familyLink.value)) {
+    shared.value = true;
+    window.setTimeout(() => (shared.value = false), 2500);
+  }
+}
+
 onMounted(loadAll);
 </script>
 
 <template>
   <div class="ripple-page" :class="{ 'elder-mode': elderMode }">
-    <!-- 页首：印 + 衬线标题 -->
     <header class="rp-head">
       <div class="rp-head-left">
-        <span class="rp-seal">涟</span>
         <div>
-          <h2>我的健康涟漪<span class="rp-en mono">MY HEALTH RIPPLE</span></h2>
-          <p>每一次诊断都会在生活中激起涟漪——这里能看到它，也能让它平息</p>
+          <h2>我的健康涟漪</h2>
         </div>
       </div>
       <div class="rp-actions">
@@ -364,16 +370,15 @@ onMounted(loadAll);
       <header class="sec-head">
         <span class="dot" style="background: #41795f" />
         <h3>家属守护圈链接已生成</h3>
-        <span class="en mono">FAMILY GUARDIAN CIRCLE</span>
         <span class="spacer" />
-        <span class="fig mono">READ-ONLY · 7天有效</span>
+        <span class="fig">只读 · 7天有效</span>
       </header>
       <div class="panel-body">
         <p class="rp-hint">把下面的链接发给家属（微信/短信均可）。家属打开后可以看到你的守护态势和"家属须知"，
           <b>看不到姓名、诊断和病历记录</b>——过期自动失效（{{ familyExpires }}）。</p>
         <div class="rp-family-link">
           <input class="rp-link-input" readonly :value="familyLink" @focus="($event.target as HTMLInputElement).select()" />
-          <button class="ghost-btn" type="button" @click="copyText(familyLink).then(ok => { if (ok) { shared = true; setTimeout(() => (shared = false), 2500); } })">
+          <button class="ghost-btn" type="button" @click="copyFamilyLink">
             {{ shared ? "✓ 已复制" : "复制链接" }}
           </button>
         </div>
@@ -389,7 +394,6 @@ onMounted(loadAll);
         <span class="dot" style="background: #41795f" />
         <h3>请手动复制给家属</h3>
         <span class="spacer" />
-        <span class="fig mono">SHARE</span>
       </header>
       <div class="panel-body">
         <textarea class="rp-share-text" readonly rows="5" @focus="($event.target as HTMLTextAreaElement).select()">{{ shareText }}</textarea>
@@ -403,7 +407,6 @@ onMounted(loadAll);
       <header class="sec-head">
         <span class="dot" :style="{ background: weather.color }" />
         <h3>今日健康气象</h3>
-        <span class="en mono">HEALTH WEATHER DAILY</span>
         <span class="spacer" />
         <span class="fig mono">{{ weather.date }}</span>
       </header>
@@ -415,7 +418,7 @@ onMounted(loadAll);
             <span class="halo-core">{{ WEATHER_ICON[weather.weather] ?? "☁️" }}</span>
           </div>
           <div class="rp-weather-text">
-            <h3 :style="{ color: weather.color }" class="weather-label">{{ weather.weatherLabel }}</h3>
+            <h3 class="weather-label">{{ weather.weatherLabel }}</h3>
             <p class="rp-headline">{{ weather.headline }}</p>
           </div>
           <div class="rp-index">
@@ -431,7 +434,7 @@ onMounted(loadAll);
           </li>
         </ul>
         <p v-if="weather.familyTip" class="rp-family">👨‍👩‍👧 家属须知：{{ weather.familyTip }}</p>
-        <p class="rp-model mono">{{ weather.model }}</p>
+        <details class="rp-model-details"><summary>指数计算说明</summary><p>{{ weather.model }}</p></details>
       </div>
     </section>
 
@@ -440,19 +443,26 @@ onMounted(loadAll);
       <header class="sec-head">
         <span class="dot" style="background: #37808a" />
         <h3>未来三天守护天气趋势</h3>
-        <span class="en mono">72H RIPPLE FORECAST</span>
-        <span class="spacer" />
-        <span class="fig mono">FIG.P2</span>
       </header>
       <div class="panel-body">
         <p class="rp-hint">每一格是 3 小时——颜色越暖表示那个时段越需要当心。这是由你的守护计划计算出来的趋势，每缓解一项，格子就会降下去。</p>
-        <div class="rp-fc" role="img" aria-label="未来72小时守护强度趋势图">
+        <div class="rp-fc" role="group" aria-label="未来72小时守护强度趋势图">
           <div v-for="col in forecastColumns" :key="col.offset" class="rp-fc-col"
-               :title="`${col.offset}小时后 · 强度${col.intensity}${col.drivers.length ? ' · ' + col.drivers.join('、') : ''}`">
+               role="button" tabindex="0" :aria-label="`${col.offset}小时后，守护强度${col.intensity}${col.drivers.length ? '，' + col.drivers.join('、') : ''}`"
+               :aria-pressed="forecastSelection === col.offset"
+               :title="`${col.offset}小时后 · 强度${col.intensity}${col.drivers.length ? ' · ' + col.drivers.join('、') : ''}`"
+               @click="forecastSelection = col.offset" @keydown.enter.prevent="forecastSelection = col.offset" @keydown.space.prevent="forecastSelection = col.offset">
             <div class="rp-fc-bar" :style="{ height: Math.max(4, Math.min(72, col.intensity)) + 'px', background: forecastColor(col.intensity) }" />
             <span v-if="col.offset % 24 === 0" class="rp-fc-t mono">+{{ col.offset }}h</span>
           </div>
         </div>
+        <label class="rp-fc-picker">查看时段
+          <select :value="forecastSelection ?? ''" @change="forecastSelection = Number(($event.target as HTMLSelectElement).value)">
+            <option value="" disabled>选择 3 小时时段</option>
+            <option v-for="col in forecastColumns" :key="col.offset" :value="col.offset">{{ col.offset }} 小时后</option>
+          </select>
+        </label>
+        <p v-if="selectedForecastColumn" class="rp-fc-selected" role="status">{{ selectedForecastColumn.offset }} 小时后 · 守护强度 {{ selectedForecastColumn.intensity }}<span v-if="selectedForecastColumn.drivers.length"> · {{ selectedForecastColumn.drivers.join('、') }}</span></p>
         <p v-if="forecastPeakText" class="rp-fc-peak">⏰ {{ forecastPeakText }}</p>
       </div>
     </section>
@@ -463,9 +473,6 @@ onMounted(loadAll);
         <header class="sec-head">
           <span class="dot" style="background: #37808a" />
           <h3>涟漪曲线（RII 轨迹）</h3>
-          <span class="en mono">RII TRAJECTORY</span>
-          <span class="spacer" />
-          <span class="fig mono">FIG.P3</span>
         </header>
         <div class="panel-body">
           <svg v-if="riiPoints.length >= 2" viewBox="0 0 320 120" class="rp-chart">
@@ -489,9 +496,6 @@ onMounted(loadAll);
         <header class="sec-head">
           <span class="dot" style="background: #41795f" />
           <h3>守护回执 · 涟漪消解</h3>
-          <span class="en mono">RESOLUTION</span>
-          <span class="spacer" />
-          <span class="fig mono">FIG.P4</span>
         </header>
         <div class="panel-body">
           <div class="rp-rate">
@@ -520,9 +524,6 @@ onMounted(loadAll);
       <header class="sec-head">
         <span class="dot" style="background: #bd4033" />
         <h3>守护事项回执</h3>
-        <span class="en mono">GUARD LEDGER / FEEDBACK</span>
-        <span class="spacer" />
-        <span class="fig mono">FIG.P5</span>
       </header>
       <div class="panel-body">
         <p class="rp-hint">这是智能体为你主动设置的守护计划——完成后点击回执，涟漪就会消解。</p>

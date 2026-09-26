@@ -44,7 +44,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="patient-page theme-patient">
+  <main class="patient-page theme-patient triage-pilot-shell">
     <PatientHeader :user-name="session?.name" @logout="logout" />
     <div class="portal-notices">
       <div v-if="permissionError" class="notice error">

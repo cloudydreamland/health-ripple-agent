@@ -26,6 +26,8 @@ interface FamilyView {
 const route = useRoute();
 const token = computed(() => String(route.params.token ?? ""));
 const view = ref<FamilyView | null>(null);
+const selectedTrendIndex = ref<number | null>(null);
+const selectedTrendValue = computed(() => selectedTrendIndex.value === null ? null : view.value?.trend[selectedTrendIndex.value] ?? null);
 const error = ref("");
 const loading = ref(true);
 
@@ -47,9 +49,9 @@ async function load() {
   loading.value = true;
   error.value = "";
   try {
-    view.value = await request<FamilyView>(`/api/health-event/share/public/${token.value}`, {}, null);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : "链接无效或已过期";
+    view.value = await request<FamilyView>(`/api/health-event/share/public/${token.value}`, {});
+  } catch {
+    error.value = "请让家人重新生成分享链接。链接有效期为 7 天。";
   } finally {
     loading.value = false;
   }
@@ -59,19 +61,18 @@ onMounted(load);
 </script>
 
 <template>
-  <main class="patient-page theme-patient">
+  <main class="patient-page theme-patient family-share-page">
     <header class="share-head">
-      <span class="share-seal">守</span>
       <div>
-        <h1>家属守护圈<span class="share-en">FAMILY GUARDIAN CIRCLE</span></h1>
-        <p>这是一份只读的守护态势视图——由您的家人主动分享，帮助您一起守护TA</p>
+        <h1>家属守护圈</h1>
+        <p>家人分享的只读守护信息。此页面不显示姓名、诊断和病历。</p>
       </div>
     </header>
 
     <p v-if="loading" class="share-status">正在加载守护态势…</p>
     <section v-else-if="error" class="share-error" role="alert">
       <b>链接无效或已过期</b>
-      <span>{{ error }}。请让家人重新生成守护圈链接（链接7天有效，可随时刷新）。</span>
+      <span>{{ error }}</span>
     </section>
 
     <template v-else-if="view">
@@ -101,12 +102,22 @@ onMounted(load);
       <!-- 72小时趋势 -->
       <section class="share-panel">
         <h3 class="sp-title">未来三天守护趋势</h3>
-        <p class="sp-hint">每一格是3小时——颜色越暖表示那个时段越需要家人多留意。</p>
-        <div class="sp-trend" role="img" aria-label="未来72小时守护强度趋势">
-          <div v-for="(v, i) in view.trend" :key="i" class="sp-col" :title="`${i}小时后 · 强度${v}`">
+        <p class="sp-hint">每一格是1小时——颜色越暖表示那个时段越需要家人多留意。</p>
+        <div class="sp-trend" role="group" aria-label="未来72小时守护强度趋势">
+          <div v-for="(v, i) in view.trend" :key="i" class="sp-col" role="button" tabindex="0"
+               :aria-label="`${i}小时后，守护强度${v}`" :aria-pressed="selectedTrendIndex === i"
+               :title="`${i}小时后 · 强度${v}`"
+               @click="selectedTrendIndex = i" @keydown.enter.prevent="selectedTrendIndex = i" @keydown.space.prevent="selectedTrendIndex = i">
             <div class="sp-bar" :style="{ height: Math.max(4, Math.min(72, v)) + 'px', background: forecastColor(v) }" />
           </div>
         </div>
+        <label class="sp-trend-picker">查看时段
+          <select :value="selectedTrendIndex ?? ''" @change="selectedTrendIndex = Number(($event.target as HTMLSelectElement).value)">
+            <option value="" disabled>选择时段</option>
+            <option v-for="(_, i) in view.trend" :key="i" :value="i">{{ i }} 小时后</option>
+          </select>
+        </label>
+        <p v-if="selectedTrendValue !== null" class="sp-trend-selected" role="status">{{ selectedTrendIndex ?? 0 }} 小时后 · 守护强度 {{ selectedTrendValue }}</p>
       </section>
 
       <!-- 消解率 -->

@@ -33,17 +33,15 @@ async function submit() {
 </script>
 
 <template>
-  <section class="mayo-container auth-grid">
+  <section class="mayo-container auth-grid patient-login-page">
     <div class="auth-copy">
-      <p class="eyebrow">患者登录</p>
-      <h1>进入患者服务门户</h1>
-      <p class="mayo-lead">登录后可以提交分诊、选择号源、管理挂号，并查看诊后病历与处方。</p>
+      <span class="auth-kicker">涟漪守护 · 患者服务</span>
+      <h1>欢迎回来</h1>
     </div>
     <form class="panel" @submit.prevent="submit">
       <header class="panel-header">
         <div class="panel-title">
           <h2>患者登录</h2>
-          <p>使用已注册手机号或账号登录。</p>
         </div>
       </header>
       <div class="panel-body stack">

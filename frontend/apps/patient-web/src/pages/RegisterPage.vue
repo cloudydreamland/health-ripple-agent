@@ -48,20 +48,20 @@ async function submit() {
 </script>
 
 <template>
-  <section class="mayo-container auth-grid">
+  <section class="mayo-container auth-grid patient-register-page">
     <div class="auth-copy">
-      <p class="eyebrow">患者注册</p>
+      <span class="auth-kicker">涟漪守护 · 患者服务</span>
       <h1>创建患者档案</h1>
-      <p class="mayo-lead">基础信息会用于挂号、医生接诊识别和处方审核，请保持真实准确。</p>
+      <p class="mayo-lead">资料用于挂号与医生接诊识别，请填写真实信息。</p>
     </div>
     <form class="panel" @submit.prevent="submit">
-      <header class="panel-header"><div class="panel-title"><h2>患者注册</h2><p>完成后返回登录。</p></div></header>
+      <header class="panel-header"><div class="panel-title"><h2>患者注册</h2></div></header>
       <div class="panel-body stack">
         <ErrorState v-if="error" :message="error" />
         <div v-if="notice" class="notice success">{{ notice }}</div>
         <div class="form-grid">
-          <FormField label="姓名"><input v-model.trim="form.name" /></FormField>
-          <FormField label="手机号"><input v-model.trim="form.phone" /></FormField>
+          <FormField label="姓名"><input v-model.trim="form.name" autocomplete="name" /></FormField>
+          <FormField label="手机号"><input v-model.trim="form.phone" type="tel" inputmode="tel" autocomplete="tel" /></FormField>
           <FormField label="密码"><input v-model="form.password" type="password" autocomplete="new-password" /></FormField>
           <FormField label="年龄"><input v-model.number="form.age" type="number" min="0" max="120" /></FormField>
           <FormField label="性别">
