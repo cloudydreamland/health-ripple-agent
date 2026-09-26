@@ -321,12 +321,16 @@
 .patient-page.theme-patient .patient-departments-scroll { flex:1 1 0; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-color:#b9d3c3 transparent; }
 .patient-page.theme-patient .patient-departments-list { border-top:1px solid #e0ebe4; }
 .patient-page.theme-patient .patient-department-row { border-bottom:1px solid #e0ebe4; }
-.patient-page.theme-patient .patient-department-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:65px; padding:13px 7px; border:0; border-radius:0; background:transparent; color:#193e32; text-align:left; }
-.patient-page.theme-patient .patient-department-trigger:hover,.patient-page.theme-patient .patient-department-trigger[aria-expanded='true'] { background:#f2f8f4; }
-.patient-page.theme-patient .patient-department-trigger strong { font-size:16px; font-weight:690; }
-.patient-page.theme-patient .patient-department-trigger > span { color:#6e9380; font-size:23px; line-height:1; transition:transform .18s ease; }
-.patient-page.theme-patient .patient-department-trigger[aria-expanded='true'] > span { transform:rotate(180deg); }
-.patient-page.theme-patient .patient-department-description { margin:0 7px 13px; padding:12px 14px; border-left:3px solid #0b946a; border-radius:0 8px 8px 0; background:#f1f8f3; color:#3c5e4d; font-size:14px; line-height:1.6; animation:patient-detail-reveal .18s ease-out; }
+.patient-page.theme-patient .patient-department-trigger { position:relative; display:block; width:100%; height:86px; min-height:86px; overflow:hidden; padding:0 45px 0 13px; border:0; border-radius:0; background:transparent; color:#193e32; text-align:left; isolation:isolate; }
+.patient-page.theme-patient .patient-department-trigger:hover,.patient-page.theme-patient .patient-department-trigger.is-open { background:#f0f7f3; }
+.patient-page.theme-patient .patient-department-trigger::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:#13936d; transform:scaleY(0); transform-origin:center; transition:transform .24s ease; }
+.patient-page.theme-patient .patient-department-trigger.is-open::before { transform:scaleY(1); }
+.patient-page.theme-patient .patient-department-name { display:block; font-size:16px; font-weight:690; opacity:1; transform:translateX(0); transition:opacity .2s ease,transform .24s ease; }
+.patient-page.theme-patient .patient-department-trigger.is-open .patient-department-name { opacity:0; transform:translateX(18px); }
+.patient-page.theme-patient .patient-department-description { position:absolute; inset:8px 46px 8px 14px; display:flex; align-items:center; overflow-y:auto; color:#315b47; font-size:13px; font-weight:600; line-height:1.45; opacity:0; transform:translateX(-22px); scrollbar-width:thin; pointer-events:none; transition:opacity .23s ease,transform .26s cubic-bezier(.2,.8,.2,1); }
+.patient-page.theme-patient .patient-department-trigger.is-open .patient-department-description { opacity:1; transform:translateX(0); pointer-events:auto; }
+.patient-page.theme-patient .patient-department-chevron { position:absolute; top:50%; right:12px; color:#6e9380; font-size:22px; line-height:1; transform:translateY(-50%); transition:transform .22s ease,color .22s ease; }
+.patient-page.theme-patient .patient-department-trigger.is-open .patient-department-chevron { color:#138363; transform:translateY(-50%) rotate(180deg); }
 
 /* Patient detail hierarchy; modal behavior and clinical confirmation stay intact. */
 .modal-card:has(.patient-detail-shell) { width:min(760px,100%); overflow-y:auto; overscroll-behavior:contain; }
@@ -394,8 +398,8 @@
   .patient-triage-dialog .patient-detail-lead { align-items:flex-start; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .patient-page.theme-patient .patient-slot-row,.patient-page.theme-patient .patient-department-trigger > span,.patient-detail-drugs li { transition:none; }
-  .patient-page.theme-patient .patient-department-description,.patient-detail-shell { animation:none; }
+  .patient-page.theme-patient .patient-slot-row,.patient-page.theme-patient .patient-department-trigger::before,.patient-page.theme-patient .patient-department-name,.patient-page.theme-patient .patient-department-description,.patient-page.theme-patient .patient-department-chevron,.patient-detail-drugs li { transition:none; }
+  .patient-detail-shell { animation:none; }
 }
 
 /* Patient profile: the record is read-only until a real update API exists. */

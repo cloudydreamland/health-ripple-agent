@@ -8,8 +8,7 @@ import PatientDashboard from "../pages/PatientDashboard.vue";
 import TriagePage from "../pages/TriagePage.vue";
 import DoctorSlotsPage from "../pages/DoctorSlotsPage.vue";
 import AppointmentsPage from "../pages/AppointmentsPage.vue";
-import MedicalRecordsPage from "../pages/MedicalRecordsPage.vue";
-import PrescriptionsPage from "../pages/PrescriptionsPage.vue";
+import VisitArchivePage from "../pages/VisitArchivePage.vue";
 import MyRipplePage from "../pages/MyRipplePage.vue";
 import ProfilePage from "../pages/ProfilePage.vue";
 import FamilySharePage from "../pages/FamilySharePage.vue";
@@ -26,8 +25,8 @@ const router = createRouter({
         { path: "triage", name: "patient-triage", component: TriagePage },
         { path: "doctors", name: "patient-doctors", component: DoctorSlotsPage },
         { path: "appointments", name: "patient-appointments", component: AppointmentsPage },
-        { path: "records", name: "patient-records", component: MedicalRecordsPage },
-        { path: "prescriptions", name: "patient-prescriptions", component: PrescriptionsPage },
+        { path: "records", name: "patient-records", component: VisitArchivePage },
+        { path: "prescriptions", redirect: (to) => ({ path: "/records", query: { ...to.query, focus: "prescriptions" } }) },
         { path: "ripple", name: "patient-ripple", component: MyRipplePage },
         { path: "profile", name: "patient-profile", component: ProfilePage },
       ],

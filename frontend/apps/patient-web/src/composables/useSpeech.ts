@@ -9,6 +9,7 @@ import { onBeforeUnmount, onMounted, ref } from "vue";
 export function useSpeechRecognition() {
   const supported = ref(false);
   const listening = ref(false);
+  const error = ref("");
   let recognition: any = null;
 
   onMounted(() => {
@@ -21,7 +22,14 @@ export function useSpeechRecognition() {
       recognition.maxAlternatives = 1;
       recognition.continuous = false;
       recognition.onend = () => { listening.value = false; };
-      recognition.onerror = () => { listening.value = false; };
+      recognition.onerror = (event: { error?: string }) => {
+        listening.value = false;
+        error.value = event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "麦克风权限未开启，请在浏览器中允许使用后重试。"
+          : event.error === "no-speech"
+            ? "没有听清，请靠近麦克风再试一次。"
+            : "语音输入暂时不可用，可以直接输入文字。";
+      };
     }
   });
   onBeforeUnmount(() => {
@@ -33,9 +41,11 @@ export function useSpeechRecognition() {
     if (!recognition || listening.value) {
       return;
     }
+    error.value = "";
     recognition.onresult = (event: any) => {
       const text = String(event.results?.[0]?.[0]?.transcript ?? "").trim();
       if (text) {
+        error.value = "";
         onText(text);
       }
     };
@@ -44,6 +54,7 @@ export function useSpeechRecognition() {
       listening.value = true;
     } catch {
       listening.value = false;
+      error.value = "语音输入暂时不可用，可以直接输入文字。";
     }
   }
 
@@ -52,5 +63,5 @@ export function useSpeechRecognition() {
     listening.value = false;
   }
 
-  return { supported, listening, start, stop };
+  return { supported, listening, error, start, stop };
 }

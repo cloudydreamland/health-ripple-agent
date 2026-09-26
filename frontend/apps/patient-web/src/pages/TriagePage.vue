@@ -15,7 +15,7 @@ import TriageResultModal from "../components/TriageResultModal.vue";
 import { patientStatusText } from "../format";
 import { useSpeechRecognition } from "../composables/useSpeech";
 
-const { supported: speechSupported, listening: speechListening, start: speechStart, stop: speechStop } = useSpeechRecognition();
+const { supported: speechSupported, listening: speechListening, error: speechError, start: speechStart, stop: speechStop } = useSpeechRecognition();
 function dictateSymptoms() {
   if (speechListening.value) { speechStop(); return; }
   speechStart((text) => {
@@ -149,11 +149,14 @@ async function submit() {
             <Textarea id="triage-symptoms" v-model.trim="form.symptoms" rows="5" placeholder="例如：左膝疼痛，走路时加重" />
             <div class="triage-pilot-input-tools">
               <span :class="{ 'is-ready': form.symptoms.trim().length >= 6 }">{{ form.symptoms.trim().length >= 6 ? '症状已填写' : '至少输入 6 个字' }}</span>
-              <Button v-if="speechSupported" type="button" class="triage-pilot-voice" text :aria-pressed="speechListening"
-                      :title="speechListening ? '正在听，说完自动停止' : '语音说症状'"
-                      :label="speechListening ? '停止语音输入' : '使用语音输入'" @click="dictateSymptoms" />
+              <button v-if="speechSupported" type="button" class="triage-pilot-voice" :class="{ 'is-listening': speechListening }"
+                      :aria-pressed="speechListening" :aria-label="speechListening ? '停止语音输入' : '使用语音输入'" @click="dictateSymptoms">
+                <span class="triage-pilot-mic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21m-4 0h8"/></svg></span>
+                <span>{{ speechListening ? '正在聆听 · 点击停止' : '语音输入' }}</span>
+              </button>
             </div>
           </div>
+          <p v-if="speechError" class="triage-pilot-speech-error" role="alert">{{ speechError }}</p>
         </div>
 
         <div class="triage-pilot-fields">
@@ -164,7 +167,11 @@ async function submit() {
         </div>
         <FormField label="补充说明（选填）"><Textarea v-model.trim="form.extra" aria-label="补充说明" rows="3" placeholder="症状变化、诱因或其他需要说明的情况" /></FormField>
         <div class="triage-pilot-submit-row">
-          <Button type="submit" :loading="loading" :disabled="!canSubmit" label="提交分诊" class="triage-pilot-submit" />
+          <button type="submit" :disabled="!canSubmit || loading" :aria-busy="loading" class="triage-pilot-submit">
+            <span>{{ loading ? '正在生成建议' : '提交分诊' }}</span>
+            <span v-if="loading" class="triage-pilot-submit-spinner" aria-hidden="true"></span>
+            <span v-else class="triage-pilot-submit-arrow" aria-hidden="true">↗</span>
+          </button>
         </div>
       </form>
 
