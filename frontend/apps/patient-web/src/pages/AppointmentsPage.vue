@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import { api, fieldText, formatApiError, statusClass, toNumber, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
 import CancelAppointmentModal from "../components/CancelAppointmentModal.vue";
+import PatientIcon from "../components/PatientIcon.vue";
 import { patientStatusText } from "../format";
 
 type AppointmentFilter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -97,9 +98,9 @@ refresh();
 
 <template>
   <section class="panel patient-service-page patient-appointments-page">
-    <header class="panel-header">
-      <div class="panel-title"><h2>我的挂号</h2></div>
-      <button type="button" :disabled="loading" @click="refresh">刷新</button>
+    <header class="panel-header patient-rich-header">
+      <div class="panel-title"><span class="patient-header-kicker">就诊服务 / 挂号</span><h2>我的挂号</h2><p v-if="filters[1].count">{{ filters[1].count }} 条进行中 · {{ filters[2].count }} 条已完成</p></div>
+      <div class="patient-header-aside"><span class="patient-header-count"><PatientIcon name="appointments" /><strong>{{ registrations.length }}</strong><small>条记录</small></span><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
     </header>
     <div class="panel-body patient-appointments-body">
       <ErrorState v-if="error" :message="error" />
