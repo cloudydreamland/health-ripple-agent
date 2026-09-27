@@ -6,20 +6,22 @@ import {
   fieldText,
   formatApiError,
   medicalRecordStreamUrl,
-  statusClass,
   toNumber,
   useAuthStore,
   useDoctorWorkflowStore,
   type DataRow,
   type DrugItem,
 } from "@smart-cloud-brain/shared-api";
-import { EmptyState, ErrorState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
+import { EmptyState, ErrorState, LoadingState } from "@smart-cloud-brain/shared-ui";
+import DoctorStatusTag from "../components/DoctorStatusTag.vue";
+import { doctorStatusText } from "../doctorStatus";
 import PatientContextDrawer from "../components/PatientContextDrawer.vue";
 import AiRecordPreviewModal from "../components/AiRecordPreviewModal.vue";
 import SaveRecordConfirmModal from "../components/SaveRecordConfirmModal.vue";
 import PrescriptionRiskModal from "../components/PrescriptionRiskModal.vue";
 import HighRiskConfirmModal from "../components/HighRiskConfirmModal.vue";
 import CompleteRegistrationConfirmModal from "../components/CompleteRegistrationConfirmModal.vue";
+import DoctorCombobox from "../components/DoctorCombobox.vue";
 
 const props = defineProps<{ registrationId: string }>();
 const emit = defineEmits<{ refresh: [] }>();
@@ -36,6 +38,9 @@ const riskOpen = ref(false);
 const highRiskOpen = ref(false);
 const completeOpen = ref(false);
 const dialogueText = ref("");
+const activeStage = ref<"record" | "prescription">("record");
+const patientDetailsOpen = ref(false);
+const drugNames = computed(() => drugs.value.map((drug) => String(drug.name ?? "")).filter(Boolean));
 const checkResult = ref<DataRow | null>(null);
 let recordStream: AbortController | null = null;
 
@@ -60,6 +65,15 @@ const prescription = reactive({
 const canSaveRecord = computed(() => medicalForm.registrationId > 0 && medicalForm.chiefComplaint.trim() && medicalForm.diagnosis.trim());
 const canCheck = computed(() => prescription.drugs.every((item) => item.drugName.trim() && item.dosage.trim() && item.frequency.trim() && item.usageMethod.trim()));
 const canCreate = computed(() => prescription.medicalRecordId > 0 && canCheck.value);
+const prescriptionInputs = computed(() => JSON.stringify({
+  patientId: toNumber(registration.value?.patientId),
+  medicalRecordId: prescription.medicalRecordId,
+  diagnosis: medicalForm.diagnosis,
+  pastHistory: medicalForm.pastHistory,
+  drugs: prescription.drugs,
+}));
+const checkedInputs = ref("");
+const riskChecked = computed(() => Boolean(checkResult.value) && checkedInputs.value === prescriptionInputs.value);
 
 function applyRegistration() {
   medicalForm.registrationId = toNumber(props.registrationId);
@@ -174,7 +188,10 @@ function removeDrug(index: number) {
 async function checkPrescription() {
   if (!canCheck.value) return setError("请完整填写药品、剂量、频次和用法。");
   loading.prescription = true;
+  checkResult.value = null;
+  checkedInputs.value = "";
   try {
+    const inputsAtCheck = prescriptionInputs.value;
     checkResult.value = await api.checkPrescription(auth.token(), {
       patientId: toNumber(registration.value?.patientId),
       doctorId: auth.session?.userId,
@@ -184,6 +201,7 @@ async function checkPrescription() {
       drugs: prescription.drugs,
     });
     prescription.riskLevel = fieldText(checkResult.value, "riskLevel", "UNREVIEWED");
+    checkedInputs.value = inputsAtCheck;
     riskOpen.value = true;
   } catch (err) {
     setError(formatApiError(err, "处方审核失败"));
@@ -194,7 +212,9 @@ async function checkPrescription() {
 
 async function createPrescription() {
   if (!canCreate.value) return setError("请先保存病历并完成处方药品录入。");
+  if (!riskChecked.value) return setError("处方内容已变更或尚未审核，请重新进行风险审核。");
   if (String(prescription.riskLevel).toUpperCase() === "HIGH" && !highRiskOpen.value) {
+    riskOpen.value = false;
     highRiskOpen.value = true;
     return;
   }
@@ -209,6 +229,9 @@ async function createPrescription() {
     });
     riskOpen.value = false;
     highRiskOpen.value = false;
+    checkResult.value = null;
+    checkedInputs.value = "";
+    prescription.riskLevel = "UNREVIEWED";
     emit("refresh");
     setNotice("处方已创建。");
   } catch (err) {
@@ -237,23 +260,7 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
 
 <template>
   <section class="clinical-page consultation-workbench">
-    <header class="patient-context-bar">
-      <div class="patient-name-block">
-        <span>患者</span>
-        <strong>{{ registration ? patientName : "未选择" }}</strong>
-      </div>
-      <div class="patient-context-grid">
-        <span><b>患者 ID</b>{{ fieldText(registration, "patientId", "-") }}</span>
-        <span><b>挂号 ID</b>#{{ registrationId }}</span>
-        <span><b>科室</b>{{ fieldText(registration, "departmentName", "-") }}</span>
-        <span><b>预约</b>{{ fieldText(registration, "appointmentTime", "-") }}</span>
-        <span><b>状态</b><StatusTag v-if="registration" :status="fieldText(registration, 'status')" :tone="statusClass(registration.status)" /></span>
-      </div>
-      <div class="encounter-actions">
-        <button type="button" @click="contextOpen = true">上下文</button>
-        <button type="button" class="primary" :disabled="loading.complete" @click="completeOpen = true">完成接诊</button>
-      </div>
-    </header>
+    <header class="encounter-heading"><div><span>接诊 · 挂号 #{{ registrationId }}</span><h1>{{ registration ? patientName : "未选择患者" }}</h1></div><div class="encounter-actions"><DoctorStatusTag v-if="registration" :status="registration.status" /><button type="button" :disabled="loading.complete" @click="completeOpen = true">完成接诊</button></div></header>
 
     <ErrorState v-if="error" :message="error" />
     <div v-if="notice" class="clinical-alert success">{{ notice }}</div>
@@ -262,49 +269,53 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
     <div v-else class="encounter-layout">
       <aside class="clinical-section patient-rail">
         <header class="section-toolbar">
-          <h2>患者/分诊</h2>
-          <button type="button" class="compact-action" @click="contextOpen = true">详情</button>
+          <h2>患者与分诊</h2>
+          <button type="button" class="compact-action patient-full-detail" @click="contextOpen = true">完整信息</button>
         </header>
-        <dl class="clinical-dl">
-          <div><dt>患者</dt><dd>{{ patientName }}</dd></div>
+        <div class="patient-rail-summary"><strong>{{ patientName }}</strong><span>#{{ registrationId }} · {{ fieldText(registration, "departmentName", "-") }}</span><button type="button" class="patient-rail-toggle" :aria-expanded="patientDetailsOpen" @click="patientDetailsOpen = !patientDetailsOpen">{{ patientDetailsOpen ? '收起信息' : '查看分诊信息' }} <span aria-hidden="true">{{ patientDetailsOpen ? '⌃' : '⌄' }}</span></button></div>
+        <dl class="clinical-dl" :class="{ 'mobile-expanded': patientDetailsOpen }">
           <div><dt>患者 ID</dt><dd>{{ fieldText(registration, "patientId", "-") }}</dd></div>
-          <div><dt>科室</dt><dd>{{ fieldText(registration, "departmentName", "-") }}</dd></div>
-          <div><dt>分诊状态</dt><dd>{{ fieldText(triage, "status", "-") }}</dd></div>
+          <div class="span"><dt>预约时间</dt><dd>{{ fieldText(registration, "appointmentTime", "-").replace('T', ' ') }}</dd></div>
+          <div><dt>分诊状态</dt><dd>{{ doctorStatusText(triage?.status, "—") }}</dd></div>
           <div class="span"><dt>主诉</dt><dd>{{ fieldText(triage, "chiefComplaint", medicalForm.chiefComplaint || "-") }}</dd></div>
           <div class="span"><dt>历史信息</dt><dd>{{ fieldText(triage, "pastHistory", medicalForm.pastHistory || "-") }}</dd></div>
         </dl>
       </aside>
 
-      <main class="clinical-section record-workspace">
+      <div class="encounter-main">
+      <nav class="encounter-stage-tabs" aria-label="接诊阶段"><button type="button" :class="{ active: activeStage === 'record' }" :aria-current="activeStage === 'record' ? 'step' : undefined" @click="activeStage = 'record'"><b>01</b><span>病历编辑</span><small>{{ prescription.medicalRecordId ? '已保存' : '待保存' }}</small></button><button type="button" :class="{ active: activeStage === 'prescription' }" :aria-current="activeStage === 'prescription' ? 'step' : undefined" @click="activeStage = 'prescription'"><b>02</b><span>用药审核</span><small>{{ riskChecked ? '已审核' : '待审核' }}</small></button></nav>
+      <main v-show="activeStage === 'record'" class="clinical-section record-workspace">
         <header class="section-toolbar">
-          <h2>病历工作区</h2>
-          <StatusTag :status="streamStatus" tone="info" />
+          <h2>病历编辑</h2>
+          <DoctorStatusTag :status="streamStatus" tone="info" />
         </header>
 
         <div class="record-editor-grid">
           <label class="clinical-field full">
-            <span>问诊文本</span>
-            <textarea v-model.trim="dialogueText" class="consultation-textarea" rows="5" />
+            <span>问诊摘要 · 智能草稿依据</span>
+            <textarea v-model.trim="dialogueText" class="consultation-textarea" rows="3" placeholder="记录本次问诊的症状、时长与关键发现" />
           </label>
 
-          <div class="ai-draft-pane full">
+          <div v-if="loading.record || streamText || streamStatus === 'FAILED'" class="ai-draft-pane full">
             <div class="inline-toolbar">
               <strong>智能草稿</strong>
               <button type="button" class="compact-action" :disabled="!streamText" @click="previewOpen = true">预览</button>
             </div>
             <LoadingState v-if="loading.record" title="正在处理病历" />
             <pre v-else-if="streamText" class="stream-box">{{ streamText }}</pre>
-            <span v-else class="muted-line">暂无草稿</span>
+            <span v-else class="muted-line">草稿生成失败，可重新生成。</span>
           </div>
 
+          <div class="record-form-label full">病历必填项 <small>医生确认后保存</small></div>
           <label class="clinical-field">
-            <span>主诉</span>
+            <span>主诉 *</span>
             <input v-model.trim="medicalForm.chiefComplaint" />
           </label>
           <label class="clinical-field">
-            <span>诊断</span>
+            <span>诊断 *</span>
             <input v-model.trim="medicalForm.diagnosis" />
           </label>
+          <div class="record-form-label full">补充记录 <small>按临床需要填写</small></div>
           <label class="clinical-field">
             <span>现病史</span>
             <textarea v-model.trim="medicalForm.presentIllness" />
@@ -324,54 +335,41 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
         </div>
 
         <footer class="area-actions">
-          <button class="primary" type="button" :disabled="loading.record" @click="generateRecord">生成病历</button>
+          <button class="primary" type="button" :disabled="loading.record" @click="generateRecord">{{ loading.record ? '生成中…' : '生成病历' }}</button>
           <button type="button" :disabled="!canSaveRecord || loading.record" @click="saveConfirmOpen = true">保存病历</button>
         </footer>
       </main>
 
-      <aside class="clinical-section prescription-rail">
+      <section v-show="activeStage === 'prescription'" class="clinical-section prescription-rail">
         <header class="section-toolbar">
-          <h2>处方</h2>
-          <StatusTag :status="prescription.riskLevel" :tone="statusClass(prescription.riskLevel)" />
+          <h2>药品录入与审核</h2>
+          <DoctorStatusTag :status="riskChecked ? prescription.riskLevel : 'UNREVIEWED'" />
         </header>
 
-        <div class="table-scroll prescription-scroll">
-          <table class="clinical-table order-table">
-            <thead>
-              <tr>
-                <th>序号</th>
-                <th>药品</th>
-                <th>剂量</th>
-                <th>频次</th>
-                <th>用法</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(drug, index) in prescription.drugs" :key="index">
-                <td>{{ index + 1 }}</td>
-                <td><input v-model.trim="drug.drugName" list="drug-options" /></td>
-                <td><input v-model.trim="drug.dosage" /></td>
-                <td><input v-model.trim="drug.frequency" /></td>
-                <td><input v-model.trim="drug.usageMethod" /></td>
-                <td><button class="danger compact-action" type="button" @click="removeDrug(index)">删除</button></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="medication-list">
+          <div v-for="(drug, index) in prescription.drugs" :key="index" class="medication-row">
+            <div class="medication-row-head"><strong><span>{{ String(index + 1).padStart(2, '0') }}</span> 药品明细</strong><button class="danger compact-action" type="button" :aria-label="`删除第 ${index + 1} 种药品`" @click="removeDrug(index)">删除</button></div>
+            <div class="medication-fields">
+              <label class="drug-name">药品<DoctorCombobox v-model="drug.drugName" :options="drugNames" :control-label="`第 ${index + 1} 种药品`" placeholder="搜索或输入药品名称" /></label>
+              <label>剂量<input v-model.trim="drug.dosage" placeholder="例如 1 片" /></label>
+              <label>频次<input v-model.trim="drug.frequency" placeholder="例如 每日两次" /></label>
+              <label>用法<input v-model.trim="drug.usageMethod" /></label>
+            </div>
+          </div>
         </div>
 
-        <datalist id="drug-options"><option v-for="drug in drugs" :key="String(drug.id)" :value="String(drug.name)" /></datalist>
-
-        <div v-if="checkResult" class="risk-result">
+        <div v-if="checkResult && riskChecked" class="risk-result">
           {{ fieldText(checkResult, "suggestions", "请医生复核用药风险。") }}
         </div>
+        <div v-else-if="checkResult" class="risk-result">处方内容已变更，请重新进行风险审核。</div>
 
         <footer class="area-actions prescription-actions">
           <button type="button" @click="addDrug">新增药品</button>
           <button class="primary" type="button" :disabled="loading.prescription || !canCheck" @click="checkPrescription">风险审核</button>
-          <button type="button" :disabled="loading.prescription || !canCreate" @click="createPrescription">创建处方</button>
+          <button type="button" :disabled="loading.prescription || !canCreate || !riskChecked" @click="createPrescription">创建处方</button>
         </footer>
-      </aside>
+      </section>
+      </div>
     </div>
 
     <PatientContextDrawer :open="contextOpen" :registration="registration" :triage="triage" @close="contextOpen = false" />

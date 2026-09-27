@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Drawer, EmptyState, StatusTag } from "@smart-cloud-brain/shared-ui";
-import { fieldText, statusClass, type DataRow } from "@smart-cloud-brain/shared-api";
+import { Drawer, EmptyState } from "@smart-cloud-brain/shared-ui";
+import { fieldText, type DataRow } from "@smart-cloud-brain/shared-api";
+import DoctorStatusTag from "./DoctorStatusTag.vue";
 
 defineProps<{ open: boolean; registration: DataRow | null; triage: DataRow | null }>();
 defineEmits<{ close: [] }>();
@@ -15,7 +16,7 @@ defineEmits<{ close: [] }>();
         <div class="summary-item"><span>科室</span><strong>{{ fieldText(registration, "departmentName") }}</strong></div>
       </div>
       <div v-if="triage" class="clinical-note">
-        <StatusTag :status="fieldText(triage, 'status')" :tone="statusClass(triage.status)" />
+        <DoctorStatusTag :status="triage.status" />
         <p>{{ fieldText(triage, "chiefComplaint") }}</p>
         <p>{{ fieldText(triage, "reason", "暂无分诊说明") }}</p>
       </div>
