@@ -16,7 +16,6 @@ const keyword = ref("");
 const sort = ref("appointment");
 const sortOptions = [{ value: "appointment", label: "预约时间较早" }, { value: "recent", label: "预约时间较晚" }, { value: "name", label: "患者姓名" }];
 const page = ref(1);
-const expandedId = ref("");
 const loading = ref(false);
 const error = ref("");
 const loaded = ref(false);
@@ -38,7 +37,7 @@ const rows = computed(() => registrations.value.filter((item) => {
   return fieldText(a, "appointmentTime").localeCompare(fieldText(b, "appointmentTime"));
 }));
 const visibleRows = computed(() => rows.value.slice((page.value - 1) * 20, page.value * 20));
-watch([filter, keyword, sort], () => { page.value = 1; expandedId.value = ""; });
+watch([filter, keyword, sort], () => { page.value = 1; });
 
 async function refresh() {
   loading.value = true;
@@ -52,7 +51,7 @@ refresh();
 
 <template>
   <section class="doctor-page queue-page">
-    <DoctorPageHeader eyebrow="CLINICAL FLOW" title="接诊队列" index="02" :description="loaded ? `待处理 ${activeCount} 位 · 当前匹配 ${rows.length} 位` : '正在获取队列'">
+    <DoctorPageHeader title="接诊队列" :description="loaded ? `待处理 ${activeCount} 位 · 当前匹配 ${rows.length} 位` : '正在获取队列'">
       <template #actions><button type="button" :disabled="loading" @click="refresh">{{ loading ? '同步中…' : '↻ 刷新队列' }}</button></template>
     </DoctorPageHeader>
     <div class="queue-control-bar">
@@ -69,15 +68,14 @@ refresh();
     <div v-else-if="error && !loaded" class="queue-error"><ErrorState :message="error" /><button type="button" @click="refresh">重试</button></div>
     <div v-else-if="rows.length" class="worklist" role="list" aria-label="接诊队列">
       <div class="worklist-head"><span>患者 / 挂号</span><span>科室</span><span>预约时间</span><span>状态</span><span>操作</span></div>
-      <div v-for="item in visibleRows" :key="String(item.registrationId)" class="worklist-item" :class="{ selected: expandedId === String(item.registrationId) }" role="listitem">
+      <div v-for="item in visibleRows" :key="String(item.registrationId)" class="worklist-item" role="listitem">
         <div class="worklist-main">
           <div class="worklist-patient"><span class="patient-monogram">{{ fieldText(item, 'patientName', '患').slice(0, 1) }}</span><span><strong>{{ fieldText(item, "patientName", `患者${fieldText(item, "patientId")}`) }}</strong><small>挂号 #{{ fieldText(item, "registrationId", "-") }}</small></span></div>
           <span class="worklist-department">{{ fieldText(item, "departmentName", "-") }}</span>
           <time class="worklist-time">{{ fieldText(item, "appointmentTime", "-").replace('T', ' ') }}</time>
           <DoctorStatusTag :status="item.status" />
-          <div class="worklist-actions"><button type="button" class="detail-trigger" :aria-expanded="expandedId === String(item.registrationId)" @click="expandedId = expandedId === String(item.registrationId) ? '' : String(item.registrationId)">详情</button><RouterLink class="button primary" :to="`/consult/${item.registrationId}`">{{ ['COMPLETED', 'CANCELLED'].includes(fieldText(item, 'status')) ? '查看' : '接诊' }}</RouterLink></div>
+          <div class="worklist-actions"><RouterLink class="button primary" :to="`/consult/${item.registrationId}`">{{ ['COMPLETED', 'CANCELLED'].includes(fieldText(item, 'status')) ? '查看' : '接诊' }}</RouterLink></div>
         </div>
-        <div v-if="expandedId === String(item.registrationId)" class="worklist-detail"><span>患者 ID <b>{{ fieldText(item, "patientId", "-") }}</b></span><span>挂号号 <b>#{{ fieldText(item, "registrationId", "-") }}</b></span><span>预约时间 <b>{{ fieldText(item, "appointmentTime", "-").replace('T', ' ') }}</b></span></div>
       </div>
       <DoctorPager v-model:page="page" :total="rows.length" />
     </div>

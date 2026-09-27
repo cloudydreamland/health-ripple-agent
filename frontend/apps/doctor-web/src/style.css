@@ -1424,3 +1424,92 @@ input:focus, select:focus, textarea:focus { border-color: #4a9b7b; outline: 0; b
 @media (max-width: 620px) {
   .dashboard-patient-row time { display: block; grid-column: 1; grid-row: 2; padding-left: 36px; white-space: nowrap; }
 }
+
+/* Workbench refinement: put clinical content ahead of decoration. */
+.doctor-main { background: #f4f7f5; }
+.doctor-page-header { min-height: 0; padding-bottom: 12px; }
+.doctor-page-header h1 { margin-top: 0; }
+.record-library, .prescription-board { grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); }
+.record-inspector, .prescription-inspector { min-height: 0; padding: 17px 20px; }
+.record-inspector h2, .prescription-inspector h2 { margin: 10px 0 8px; font-size: 21px; }
+.record-field { padding: 11px 0; }
+.inspector-meta { padding-bottom: 12px; }
+.prescription-facts > div { min-height: 39px; }
+.prescription-items { margin-top: 19px; }
+.prescription-items h3 { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 9px; color: #254d3c; font-size: 13px; }
+.prescription-items h3 span { color: #789082; font-size: 11px; font-weight: 600; }
+.prescription-item-list { display: grid; border-top: 1px solid #dfeae2; }
+.prescription-item { display: grid; grid-template-columns: 25px minmax(0,1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid #e7eee9; }
+.prescription-item-number { color: #6c9a80; font-size: 10px; font-weight: 800; }
+.prescription-item strong { color: #163c2d; font-size: 12px; }
+.prescription-item p { margin: 4px 0 0; color: #496b58; font-size: 11px; }
+.prescription-item small { display: block; margin-top: 4px; color: #758c7e; font-size: 10px; }
+.prescription-items-empty { margin: 0; padding: 12px; border: 1px solid #e2ebe4; border-radius: 8px; background: #f8faf8; color: #6d8073; font-size: 11px; }
+.worklist-head, .worklist-main { grid-template-columns: minmax(165px,1.45fr) minmax(75px,.7fr) minmax(140px,1fr) 95px 68px; }
+.worklist-actions .button { min-width: 52px; justify-content: center; }
+.worklist-item:hover .worklist-main, .worklist-item:focus-within .worklist-main { box-shadow: inset 3px 0 #4c9570; }
+.patient-rail-summary { display: grid; gap: 3px; padding: 11px 12px; border-bottom: 1px solid #e0eae3; }
+.patient-rail-summary strong { color: #174330; font-size: 16px; }
+.patient-rail-summary > span { color: #688574; font-size: 11px; }
+.patient-rail-toggle { display: none; }
+.patient-rail .clinical-dl div { padding: 7px 10px; }
+.doctor-shell.nav-collapsed .doctor-nav-toggle { top: 56px; right: -10px; width: 23px; min-height: 23px; padding: 0; border-color: #628e75; border-radius: 50%; background: #1e5b45; color: #fff; box-shadow: 0 3px 9px rgba(10,48,34,.2); }
+.doctor-shell.nav-collapsed .doctor-nav-toggle:hover, .doctor-shell.nav-collapsed .doctor-nav-toggle:focus-visible { background: #267555; }
+.ai-draft-pane { border-top: 1px solid #dbe8de; }
+.notification-empty { display: flex; align-items: center; gap: 12px; max-width: 540px; padding: 18px 19px; border: 1px solid #d9e7dd; border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
+.notification-empty-mark { display: grid; flex: 0 0 30px; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #e8f4ec; color: #19734d; font-weight: 900; }
+.notification-empty strong { color: #204a35; font-size: 13px; }
+.notification-empty p { margin: 3px 0 0; color: #738b7c; font-size: 11px; }
+.notification-stream:has(.empty-state)::before { display: none; }
+.settings-layout { display: grid; grid-template-columns: 1fr; gap: 12px; max-width: 900px; }
+.settings-identity { flex-direction: row; align-items: center; gap: 13px; min-height: 0; padding: 14px 17px; background: #fff; }
+.settings-avatar { flex: 0 0 43px; width: 43px; height: 43px; margin: 0; border-radius: 11px; font-size: 18px; }
+.settings-person { min-width: 0; }
+.settings-identity h2 { font-size: 16px; }
+.settings-identity p { margin: 2px 0 0; }
+.identity-stamp { display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0 0 0 auto; padding: 5px 8px; border: 1px solid #c9e2d0; border-radius: 99px; background: #edf7ef; color: #297351; white-space: nowrap; }
+.identity-stamp i { width: 6px; height: 6px; border-radius: 50%; background: #45a56d; }
+.settings-details { grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; gap: 12px; }
+.settings-details section { padding: 16px 18px; }
+.settings-details h2 { margin: 0 0 10px; }
+.settings-details dl div { padding: 7px 0; }
+.login-art-foot { display: none; }
+@media (max-width: 1100px) {
+  .dashboard-grid { grid-template-columns: minmax(0,1fr) 230px; }
+  .record-library, .prescription-board { grid-template-columns: minmax(210px, 300px) minmax(0,1fr); }
+  .worklist-head, .worklist-main { grid-template-columns: minmax(150px,1.2fr) 80px minmax(118px,1fr) 90px 58px; gap: 8px; }
+}
+@media (max-width: 860px) {
+  .dashboard-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .worklist-main { grid-template-columns: minmax(0,1fr) 88px auto; }
+  .record-library, .prescription-board { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+}
+@media (max-width: 700px) {
+  .patient-rail .section-toolbar { display: none; }
+  .patient-rail-summary { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 1px 8px; padding: 8px 11px; border-bottom: 0; }
+  .patient-rail-summary strong { grid-column: 1; font-size: 13px; }
+  .patient-rail-summary strong { display: none; }
+  .patient-rail-summary > span { grid-column: 1; font-size: 10px; }
+  .patient-rail-toggle { display: inline-flex; align-items: center; align-self: center; grid-column: 2; grid-row: 1; gap: 4px; min-height: 29px; padding: 0 7px; border-color: transparent; background: #edf6ef; color: #236947; font-size: 10px; }
+  .patient-rail .clinical-dl { display: none; }
+  .patient-rail .clinical-dl.mobile-expanded { display: grid; }
+  .record-library, .prescription-board { grid-template-columns: 1fr; }
+  .record-index, .prescription-index { max-height: 235px; overflow-y: auto; }
+  .record-index-row, .prescription-row { min-height: 55px; }
+  .settings-details { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .doctor-page-header { padding-bottom: 10px; }
+  .dashboard-grid { display: flex; flex-direction: column; }
+  .dashboard-grid > * { width: 100%; min-width: 0; }
+  .worklist-main { grid-template-columns: minmax(0,1fr) auto; }
+  .login-art { min-height: 112px; padding: 14px 18px; }
+  .login-brand { font-size: 16px; }
+  .login-brand span { width: 30px; height: 30px; }
+  .login-art-center { flex: none; align-content: start; margin-top: 8px; }
+  .login-art-center strong { margin: 0; font-size: 17px; line-height: 1.15; }
+  .login-art-center strong br, .login-orbit { display: none; }
+  .login-form { padding: 23px 20px 30px; }
+  .login-form h1 { margin-top: 7px; font-size: 24px; }
+  .login-instruction { margin-bottom: 20px; }
+}

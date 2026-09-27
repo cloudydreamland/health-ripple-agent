@@ -134,11 +134,11 @@ onBeforeUnmount(() => {
     <button v-if="mobileNavOpen" class="doctor-nav-backdrop" type="button" aria-label="关闭导航" @click="mobileNavOpen = false" />
     <aside class="doctor-nav" aria-label="医生端导航" @keydown.esc="mobileNavOpen = false">
       <div class="doctor-nav-head">
-        <RouterLink class="doctor-mark" to="/" aria-label="DuMate 医生工作台"><span class="brand-symbol">✚</span><span class="brand-word">DuMate<small>DOCTOR STATION</small></span></RouterLink>
+        <RouterLink class="doctor-mark" to="/" aria-label="DuMate 医生工作台"><span class="brand-symbol">✚</span><span class="brand-word">DuMate<small>医生工作台</small></span></RouterLink>
         <button class="doctor-nav-toggle" type="button" :aria-label="navCollapsed ? '展开导航' : '收起导航'" :aria-expanded="!navCollapsed" aria-controls="doctor-primary-nav" @click="toggleDesktopNav">{{ navCollapsed ? '›' : '‹' }}</button>
         <button class="doctor-mobile-close" type="button" aria-label="关闭导航" @click="mobileNavOpen = false">×</button>
       </div>
-      <div class="nav-section-label">临床工作区 <span>01 / 06</span></div>
+      <div class="nav-section-label">临床工作区</div>
       <nav id="doctor-primary-nav">
         <RouterLink
           v-for="item in navItems"
@@ -155,7 +155,6 @@ onBeforeUnmount(() => {
           <b v-if="item.badge">{{ item.badge }}</b>
         </RouterLink>
       </nav>
-      <div class="doctor-nav-footer"><span class="nav-footer-mark" aria-hidden="true">●</span><span class="nav-footer-copy">医疗工作台<small>专注每一次接诊</small></span></div>
     </aside>
 
     <div class="doctor-app">

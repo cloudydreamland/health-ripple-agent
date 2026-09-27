@@ -34,7 +34,7 @@ refresh();
 
 <template>
   <section class="doctor-page records-page">
-    <DoctorPageHeader eyebrow="MEDICAL RECORDS" title="病历档案" index="03" :description="loaded ? `已保存 ${records.length} 份病历` : '正在获取病历'">
+    <DoctorPageHeader title="病历档案" :description="loaded ? `已保存 ${records.length} 份病历` : '正在获取病历'">
       <template #actions><button type="button" :disabled="loading" @click="refresh">{{ loading ? '同步中…' : '↻ 刷新病历' }}</button></template>
     </DoctorPageHeader>
     <div class="library-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><input v-model.trim="keyword" aria-label="搜索患者或诊断" placeholder="搜索患者、病历号或诊断" /></label><div class="sort-field"><span>排序</span><DoctorSelect v-model="sort" :options="sortOptions" control-label="排序病历" /></div></div>
@@ -49,7 +49,7 @@ refresh();
         <DoctorPager v-model:page="page" :total="rows.length" />
       </div>
       <article v-if="selected" class="record-inspector">
-        <div class="inspector-label">病历详情 <span>REC / {{ fieldText(selected, "medicalRecordId", "-") }}</span></div>
+        <div class="inspector-label">病历 #{{ fieldText(selected, "medicalRecordId", "-") }}</div>
         <h2>{{ fieldText(selected, "patientName", fieldText(selected, "patientId", "患者")) }}</h2>
         <div class="inspector-meta"><span>患者 ID <b>{{ fieldText(selected, "patientId", "-") }}</b></span><span>录入方式 <b>{{ selected.aiGenerated ? "智能草稿·医生确认" : "医生录入" }}</b></span></div>
         <div class="record-field"><span>主诉</span><p>{{ fieldText(selected, "chiefComplaint", "暂无记录") }}</p></div>

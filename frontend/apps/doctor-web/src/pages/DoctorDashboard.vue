@@ -17,7 +17,6 @@ const active = computed(() => registrations.value.filter((item) => ["CREATED", "
 const cancelled = computed(() => registrations.value.filter((item) => fieldText(item, "status") === "CANCELLED").length);
 const other = computed(() => Math.max(0, registrations.value.length - active.value - completed.value - cancelled.value));
 const dashboardRegistrations = computed(() => [...registrations.value].sort((a, b) => Number(!["CREATED", "CHECKED_IN", "CONFIRMED"].includes(fieldText(a, "status"))) - Number(!["CREATED", "CHECKED_IN", "CONFIRMED"].includes(fieldText(b, "status")))).slice(0, 8));
-const completionRate = computed(() => registrations.value.length ? Math.round((completed.value / registrations.value.length) * 100) : null);
 const statusComposition = computed(() => [
   { label: "待处理", value: active.value, className: "pending" },
   { label: "已完成", value: completed.value, className: "complete" },
@@ -28,12 +27,12 @@ const statusComposition = computed(() => [
 
 <template>
   <section class="doctor-page dashboard-workbench">
-    <DoctorPageHeader eyebrow="OVERVIEW" title="医生工作台" index="01">
+    <DoctorPageHeader title="医生工作台">
       <template #actions><RouterLink to="/queue" class="button primary">进入接诊队列 ↗</RouterLink></template>
     </DoctorPageHeader>
     <div class="dashboard-overview">
       <div class="overview-lead"><span class="overview-index">当前工作量</span><strong>{{ hasSynced ? active : '—' }}</strong><span>位患者待处理</span><small>{{ hasSynced ? `该医生累计挂号 ${registrations.length}` : '等待同步' }}</small></div>
-      <div class="overview-metrics"><div><span>完成率</span><strong>{{ hasSynced && completionRate !== null ? `${completionRate}%` : '—' }}</strong><small>已完成 / 该医生累计挂号</small></div><div><span>病历</span><strong>{{ hasSynced ? records.length : '—' }}</strong><small>已保存记录</small></div><div><span>处方</span><strong>{{ hasSynced ? prescriptions.length : '—' }}</strong><small>已创建处方</small></div><div :class="{ 'metric-attention': unread > 0 }"><span>未读通知</span><strong>{{ hasSynced ? unread : '—' }}</strong><small>需要查看</small></div></div>
+      <div class="overview-metrics"><div><span>已完成接诊</span><strong>{{ hasSynced ? completed : '—' }}</strong><small>该医生累计完成</small></div><div><span>病历</span><strong>{{ hasSynced ? records.length : '—' }}</strong><small>已保存记录</small></div><div><span>处方</span><strong>{{ hasSynced ? prescriptions.length : '—' }}</strong><small>已创建处方</small></div><div :class="{ 'metric-attention': unread > 0 }"><span>未读通知</span><strong>{{ hasSynced ? unread : '—' }}</strong><small>需要查看</small></div></div>
     </div>
 
     <div class="dashboard-grid">
@@ -68,7 +67,7 @@ const statusComposition = computed(() => [
         </div><p v-else class="dashboard-awaiting">等待同步</p>
       </aside>
 
-      <aside class="clinical-section dashboard-side">
+      <aside v-if="!hasSynced || notifications.length" class="clinical-section dashboard-side">
         <header class="section-toolbar">
           <h2>风险与未读</h2>
           <RouterLink class="button compact-action" to="/notifications">全部</RouterLink>
@@ -78,7 +77,6 @@ const statusComposition = computed(() => [
             <strong>{{ item.title }}</strong>
             <span>{{ item.content }}</span>
           </article>
-          <EmptyState v-if="!notifications.length" title="暂无通知" message="" />
         </div><p v-else class="dashboard-awaiting">等待同步</p>
       </aside>
     </div>

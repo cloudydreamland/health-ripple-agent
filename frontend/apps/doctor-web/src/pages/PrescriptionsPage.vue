@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
-import { fieldText, formatApiError, useAuthStore, useDoctorWorkflowStore } from "@smart-cloud-brain/shared-api";
+import { fieldText, formatApiError, useAuthStore, useDoctorWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState } from "@smart-cloud-brain/shared-ui";
 import DoctorStatusTag from "../components/DoctorStatusTag.vue";
 import DoctorPageHeader from "../components/DoctorPageHeader.vue";
@@ -24,9 +24,11 @@ const riskFilters = [{ label: "全部", value: "" }, { label: "高风险", value
 const highCount = computed(() => prescriptions.value.filter((item) => fieldText(item, "riskLevel").toUpperCase() === "HIGH").length);
 const patientLabel = (item: Record<string, unknown>) => fieldText(item, "patientName", "") || `患者 #${fieldText(item, "patientId", "—")}`;
 const displayTime = (value: unknown) => String(value ?? "").replace("T", " ").slice(0, 16) || "—";
+const drugRemark = (item: DataRow) => [Number(item.days) > 0 ? `${item.days} 天` : "", fieldText(item, "remark") === "-" ? "" : fieldText(item, "remark")].filter(Boolean).join(" · ");
 const rows = computed(() => prescriptions.value.filter((item) => (!risk.value || fieldText(item, "riskLevel").toUpperCase() === risk.value) && [fieldText(item, "patientName"), fieldText(item, "patientId"), fieldText(item, "prescriptionId")].join(" ").toLowerCase().includes(keyword.value.toLowerCase())).sort((a, b) => sort.value === "oldest" ? fieldText(a, "createdAt").localeCompare(fieldText(b, "createdAt")) : fieldText(b, "createdAt").localeCompare(fieldText(a, "createdAt"))));
 const visibleRows = computed(() => rows.value.slice((page.value - 1) * 20, page.value * 20));
 const selected = computed(() => visibleRows.value.find((item) => String(item.prescriptionId) === selectedId.value) ?? visibleRows.value[0]);
+const selectedItems = computed(() => Array.isArray(selected.value?.items) ? selected.value.items as DataRow[] : []);
 watch([risk, keyword, sort], () => { page.value = 1; selectedId.value = ""; });
 watch(page, () => { selectedId.value = ""; });
 async function refresh() {
@@ -40,7 +42,7 @@ refresh();
 
 <template>
   <section class="doctor-page prescriptions-page">
-    <DoctorPageHeader eyebrow="PRESCRIPTION SAFETY" title="处方审核台" index="04" :description="loaded ? `处方 ${prescriptions.length} 份 · 高风险 ${highCount} 份` : '正在获取处方'">
+    <DoctorPageHeader title="处方审核台" :description="loaded ? `处方 ${prescriptions.length} 份 · 高风险 ${highCount} 份` : '正在获取处方'">
       <template #actions><button type="button" :disabled="loading" @click="refresh">{{ loading ? '同步中…' : '↻ 刷新处方' }}</button></template>
     </DoctorPageHeader>
     <div class="risk-filter-bar">
@@ -61,10 +63,11 @@ refresh();
         <DoctorPager v-model:page="page" :total="rows.length" />
       </div>
       <article v-if="selected" class="prescription-inspector">
-        <div class="inspector-label">处方档案 <span>RX / {{ fieldText(selected, "prescriptionId", "-") }}</span></div>
+        <div class="inspector-label">处方 #{{ fieldText(selected, "prescriptionId", "-") }}</div>
         <div class="prescription-inspector-head"><h2>{{ patientLabel(selected) }}</h2><DoctorStatusTag :status="selected.riskLevel || 'UNREVIEWED'" /></div>
         <div class="inspector-meta"><span>患者 ID <b>{{ fieldText(selected, "patientId", "-") }}</b></span><span>病历号 <b>#{{ fieldText(selected, "medicalRecordId", "-") }}</b></span></div>
         <div class="prescription-facts"><div><span>处方状态</span><DoctorStatusTag :status="selected.status" /></div><div><span>风险等级</span><DoctorStatusTag :status="selected.riskLevel || 'UNREVIEWED'" /></div><div><span>创建时间</span><strong>{{ displayTime(selected.createdAt) }}</strong></div></div>
+        <section class="prescription-items"><h3>用药明细 <span>{{ selectedItems.length }} 种</span></h3><div v-if="selectedItems.length" class="prescription-item-list"><div v-for="(drug, index) in selectedItems" :key="index" class="prescription-item"><span class="prescription-item-number">{{ String(index + 1).padStart(2, '0') }}</span><div><strong>{{ fieldText(drug, 'drugName', '药品名称待确认') }}</strong><p>{{ fieldText(drug, 'dosage', '剂量待确认') }} · {{ fieldText(drug, 'frequency', '频次待确认') }} · {{ fieldText(drug, 'usageMethod', '用法待确认') }}</p><small v-if="drugRemark(drug)">{{ drugRemark(drug) }}</small></div></div></div><p v-else class="prescription-items-empty">该处方没有可显示的药品明细，请核对原始记录。</p></section>
       </article>
     </div>
     <EmptyState v-else title="暂无匹配处方" message="可以调整筛选条件；处方创建后会显示在这里。" />

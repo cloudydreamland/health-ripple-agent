@@ -39,6 +39,7 @@ const highRiskOpen = ref(false);
 const completeOpen = ref(false);
 const dialogueText = ref("");
 const activeStage = ref<"record" | "prescription">("record");
+const patientDetailsOpen = ref(false);
 const drugNames = computed(() => drugs.value.map((drug) => String(drug.name ?? "")).filter(Boolean));
 const checkResult = ref<DataRow | null>(null);
 let recordStream: AbortController | null = null;
@@ -259,7 +260,7 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
 
 <template>
   <section class="clinical-page consultation-workbench">
-    <header class="encounter-heading"><div><span>接诊工作区 · 挂号 #{{ registrationId }}</span><h1>{{ registration ? patientName : "未选择患者" }}</h1></div><div class="encounter-actions"><DoctorStatusTag v-if="registration" :status="registration.status" /><button type="button" :disabled="loading.complete" @click="completeOpen = true">完成接诊</button></div></header>
+    <header class="encounter-heading"><div><span>接诊 · 挂号 #{{ registrationId }}</span><h1>{{ registration ? patientName : "未选择患者" }}</h1></div><div class="encounter-actions"><DoctorStatusTag v-if="registration" :status="registration.status" /><button type="button" :disabled="loading.complete" @click="completeOpen = true">完成接诊</button></div></header>
 
     <ErrorState v-if="error" :message="error" />
     <div v-if="notice" class="clinical-alert success">{{ notice }}</div>
@@ -269,13 +270,11 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
       <aside class="clinical-section patient-rail">
         <header class="section-toolbar">
           <h2>患者与分诊</h2>
-          <button type="button" class="compact-action" @click="contextOpen = true">详情</button>
+          <button type="button" class="compact-action patient-full-detail" @click="contextOpen = true">完整信息</button>
         </header>
-        <dl class="clinical-dl">
-          <div><dt>患者</dt><dd>{{ patientName }}</dd></div>
+        <div class="patient-rail-summary"><strong>{{ patientName }}</strong><span>#{{ registrationId }} · {{ fieldText(registration, "departmentName", "-") }}</span><button type="button" class="patient-rail-toggle" :aria-expanded="patientDetailsOpen" @click="patientDetailsOpen = !patientDetailsOpen">{{ patientDetailsOpen ? '收起信息' : '查看分诊信息' }} <span aria-hidden="true">{{ patientDetailsOpen ? '⌃' : '⌄' }}</span></button></div>
+        <dl class="clinical-dl" :class="{ 'mobile-expanded': patientDetailsOpen }">
           <div><dt>患者 ID</dt><dd>{{ fieldText(registration, "patientId", "-") }}</dd></div>
-          <div><dt>挂号号</dt><dd>#{{ registrationId }}</dd></div>
-          <div><dt>科室</dt><dd>{{ fieldText(registration, "departmentName", "-") }}</dd></div>
           <div class="span"><dt>预约时间</dt><dd>{{ fieldText(registration, "appointmentTime", "-").replace('T', ' ') }}</dd></div>
           <div><dt>分诊状态</dt><dd>{{ doctorStatusText(triage?.status, "—") }}</dd></div>
           <div class="span"><dt>主诉</dt><dd>{{ fieldText(triage, "chiefComplaint", medicalForm.chiefComplaint || "-") }}</dd></div>
@@ -297,14 +296,14 @@ watch(() => props.registrationId, applyRegistration, { immediate: true });
             <textarea v-model.trim="dialogueText" class="consultation-textarea" rows="3" placeholder="记录本次问诊的症状、时长与关键发现" />
           </label>
 
-          <div class="ai-draft-pane full">
+          <div v-if="loading.record || streamText || streamStatus === 'FAILED'" class="ai-draft-pane full">
             <div class="inline-toolbar">
               <strong>智能草稿</strong>
               <button type="button" class="compact-action" :disabled="!streamText" @click="previewOpen = true">预览</button>
             </div>
             <LoadingState v-if="loading.record" title="正在处理病历" />
             <pre v-else-if="streamText" class="stream-box">{{ streamText }}</pre>
-            <span v-else class="muted-line">暂无草稿</span>
+            <span v-else class="muted-line">草稿生成失败，可重新生成。</span>
           </div>
 
           <div class="record-form-label full">病历必填项 <small>医生确认后保存</small></div>

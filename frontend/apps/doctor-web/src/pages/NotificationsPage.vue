@@ -55,11 +55,11 @@ refresh();
 
 <template>
   <section class="doctor-page notifications-page">
-    <DoctorPageHeader eyebrow="EVENT STREAM" title="通知中心" index="05" :description="`未读 ${unreadCount} 条 · 共 ${notifications.length} 条`">
+    <DoctorPageHeader title="通知中心" :description="`未读 ${unreadCount} 条 · 共 ${notifications.length} 条`">
       <template #actions><button type="button" :disabled="loading" @click="refresh">{{ loading ? '同步中…' : '↻ 刷新通知' }}</button></template>
     </DoctorPageHeader>
-    <div class="notification-controls" role="group" aria-label="筛选通知"><button type="button" :class="{ selected: view === 'UNREAD' }" :aria-pressed="view === 'UNREAD'" @click="view = 'UNREAD'">未读 <span>{{ unreadCount }}</span></button><button type="button" :class="{ selected: view === 'ALL' }" :aria-pressed="view === 'ALL'" @click="view = 'ALL'">全部</button><button type="button" :class="{ selected: view === 'READ' }" :aria-pressed="view === 'READ'" @click="view = 'READ'">已读</button></div>
-    <div class="notification-stream">
+    <div v-if="notifications.length" class="notification-controls" role="group" aria-label="筛选通知"><button type="button" :class="{ selected: view === 'UNREAD' }" :aria-pressed="view === 'UNREAD'" @click="view = 'UNREAD'">未读 <span>{{ unreadCount }}</span></button><button type="button" :class="{ selected: view === 'ALL' }" :aria-pressed="view === 'ALL'" @click="view = 'ALL'">全部</button><button type="button" :class="{ selected: view === 'READ' }" :aria-pressed="view === 'READ'" @click="view = 'READ'">已读</button></div>
+    <div v-if="notifications.length || loading || error" class="notification-stream">
       <ErrorState v-if="error" :message="error" />
       <div v-if="notice" class="notice success">{{ notice }}</div>
       <LoadingState v-if="loading" title="正在同步通知" />
@@ -80,8 +80,9 @@ refresh();
           </div>
         </article>
       </div>
-      <EmptyState v-else title="当前筛选下暂无通知" />
+      <EmptyState v-else title="当前筛选下暂无通知" message="试试其他筛选条件。" />
     </div>
+    <div v-else class="notification-empty"><span class="notification-empty-mark" aria-hidden="true">✓</span><div><strong>目前没有通知</strong><p>有新的接诊或风险提醒时，会显示在这里。</p></div></div>
     <NotificationDetailModal :open="Boolean(selected)" :notification="selected" @close="selected = null" @read="markRead()" />
   </section>
 </template>
