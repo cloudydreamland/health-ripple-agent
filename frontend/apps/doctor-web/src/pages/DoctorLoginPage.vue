@@ -31,14 +31,17 @@ async function submit() {
 </script>
 
 <template>
-  <main class="workspace">
-    <form class="panel" style="max-width: 520px; margin: 12vh auto 0" @submit.prevent="submit">
-      <header class="panel-header"><div class="panel-title"><p class="eyebrow">医生登录</p><h2>进入接诊工作台</h2><p>登录后可查看队列、生成病历和审核处方。</p></div></header>
-      <div class="panel-body stack">
+  <main class="doctor-login">
+    <div class="login-art" aria-hidden="true"><div class="login-brand"><span>✚</span> DuMate <small>DOCTOR STATION</small></div><div class="login-art-center"><span>CLINICAL WORKSPACE / 01</span><div class="login-orbit"><i /><i /><i /><b>✚</b></div><strong>让每一次接诊<br />都有清晰脉络</strong></div><div class="login-art-foot"><span>CARE · REVIEW · DECIDE</span><span>01 — 03</span></div></div>
+    <form class="login-form" @submit.prevent="submit">
+      <div class="login-form-inner">
+        <span class="page-index">安全访问 <i /> DOCTOR LOGIN</span>
+        <h1>进入医生工作台</h1>
+        <p class="login-instruction">使用医生账号登录，继续接诊与处方审核。</p>
         <ErrorState v-if="error" :message="error" />
-        <FormField label="账号"><input v-model.trim="form.account" autocomplete="username" /></FormField>
-        <FormField label="密码"><input v-model="form.password" type="password" autocomplete="current-password" /></FormField>
-        <button class="primary" type="submit" :disabled="loading">{{ loading ? "登录中" : "进入工作台" }}</button>
+        <div class="login-fields"><FormField label="医生账号"><input v-model.trim="form.account" autocomplete="username" placeholder="请输入账号" /></FormField><FormField label="密码"><input v-model="form.password" type="password" autocomplete="current-password" placeholder="请输入密码" /></FormField></div>
+        <button class="primary login-submit" type="submit" :disabled="loading">{{ loading ? "正在验证…" : "进入工作台 →" }}</button>
+        <span class="login-form-foot">DuMate 医生端 · 仅限授权账号</span>
       </div>
     </form>
   </main>
