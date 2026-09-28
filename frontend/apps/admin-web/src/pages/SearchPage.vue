@@ -1,63 +1,71 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { api, fieldText, formatApiError, useAuthStore, type DataRow } from "@smart-cloud-brain/shared-api";
-import { EmptyState, ErrorState, FormField, LoadingState } from "@smart-cloud-brain/shared-ui";
+import { FormField } from "@smart-cloud-brain/shared-ui";
 
 const auth = useAuthStore();
 const loading = ref(false);
+const searched = ref(false);
 const error = ref("");
 const form = reactive({ q: "", departmentCode: "" });
 const results = reactive({ knowledge: [] as DataRow[], drugs: [] as DataRow[], prompts: [] as DataRow[] });
-
+const resultErrors = reactive({ knowledge: "", drugs: "", prompts: "" });
+const groups = [
+  { key: "knowledge" as const, title: "知识库", kicker: "KNOWLEDGE / 01", primary: "title", secondary: "departmentCode", detail: "advice" },
+  { key: "drugs" as const, title: "药品", kicker: "DRUG / 02", primary: "name", secondary: "specification", detail: "contraindication" },
+  { key: "prompts" as const, title: "提示词", kicker: "PROMPT / 03", primary: "templateName", secondary: "taskType", detail: "version" },
+];
 async function search() {
   if (!form.q.trim()) {
     error.value = "请输入检索关键词。";
+    searched.value = false;
+    results.knowledge = []; results.drugs = []; results.prompts = [];
     return;
   }
   loading.value = true;
+  searched.value = true;
   error.value = "";
-  try {
-    const [knowledge, drugs, prompts] = await Promise.all([
-      api.searchKnowledge(auth.token(), form.q.trim(), form.departmentCode.trim()),
-      api.searchDrugs(auth.token(), form.q.trim()),
-      api.searchPrompts(auth.token(), form.q.trim()),
-    ]);
-    results.knowledge = knowledge;
-    results.drugs = drugs;
-    results.prompts = prompts;
-  } catch (err) {
-    error.value = formatApiError(err, "检索失败");
-  } finally {
-    loading.value = false;
-  }
+  results.knowledge = []; results.drugs = []; results.prompts = [];
+  resultErrors.knowledge = ""; resultErrors.drugs = ""; resultErrors.prompts = "";
+  const [knowledge, drugs, prompts] = await Promise.allSettled([
+    api.searchKnowledge(auth.token(), form.q.trim(), form.departmentCode.trim()),
+    api.searchDrugs(auth.token(), form.q.trim()),
+    api.searchPrompts(auth.token(), form.q.trim()),
+  ]);
+  if (knowledge.status === "fulfilled") results.knowledge = knowledge.value;
+  else resultErrors.knowledge = formatApiError(knowledge.reason, "知识库检索失败");
+  if (drugs.status === "fulfilled") results.drugs = drugs.value;
+  else resultErrors.drugs = formatApiError(drugs.reason, "药品检索失败");
+  if (prompts.status === "fulfilled") results.prompts = prompts.value;
+  else resultErrors.prompts = formatApiError(prompts.reason, "提示词检索失败");
+  loading.value = false;
 }
 </script>
 
 <template>
-  <section class="panel">
-    <header class="panel-header"><div class="panel-title"><p class="eyebrow">综合检索</p><h2>知识、药品和提示词检索</h2><p>统一调用后端检索接口核对配置内容。</p></div></header>
-    <div class="panel-body stack">
-      <ErrorState v-if="error" :message="error" />
-      <div class="form-grid">
-        <FormField label="关键词"><input v-model.trim="form.q" /></FormField>
-        <FormField label="科室编码"><input v-model.trim="form.departmentCode" /></FormField>
-      </div>
-      <div class="toolbar"><button type="button" class="primary" :disabled="loading" @click="search">检索</button></div>
-      <LoadingState v-if="loading" title="正在检索" />
-      <div v-else class="search-results">
-        <section class="panel">
-          <header class="panel-header"><div class="panel-title"><h3>知识库</h3><p>{{ results.knowledge.length }} 条</p></div></header>
-          <div class="list"><article v-for="item in results.knowledge" :key="String(item.id)" class="list-row"><div class="row-main"><strong>{{ fieldText(item, "title") }}</strong><p>{{ fieldText(item, "advice") }}</p></div></article><EmptyState v-if="!results.knowledge.length" title="暂无知识结果" /></div>
-        </section>
-        <section class="panel">
-          <header class="panel-header"><div class="panel-title"><h3>药品</h3><p>{{ results.drugs.length }} 条</p></div></header>
-          <div class="list"><article v-for="item in results.drugs" :key="String(item.id)" class="list-row"><div class="row-main"><strong>{{ fieldText(item, "name") }}</strong><p>{{ fieldText(item, "specification") }}</p></div></article><EmptyState v-if="!results.drugs.length" title="暂无药品结果" /></div>
-        </section>
-        <section class="panel">
-          <header class="panel-header"><div class="panel-title"><h3>提示词</h3><p>{{ results.prompts.length }} 条</p></div></header>
-          <div class="list"><article v-for="item in results.prompts" :key="String(item.id)" class="list-row"><div class="row-main"><strong>{{ fieldText(item, "templateName") }}</strong><p>{{ fieldText(item, "taskType") }}</p></div></article><EmptyState v-if="!results.prompts.length" title="暂无提示词结果" /></div>
-        </section>
-      </div>
+  <section class="admin-page search-page">
+    <header class="admin-page-heading"><div><span class="admin-page-kicker">SEARCH / CATALOG</span><h1>综合检索</h1></div></header>
+    <form class="admin-search-form" @submit.prevent="search">
+      <FormField label="关键词"><input v-model.trim="form.q" type="search" placeholder="知识、药品或提示词" /></FormField>
+      <FormField label="科室编码"><input v-model.trim="form.departmentCode" placeholder="仅用于知识库检索" /></FormField>
+      <button type="submit" class="primary" :disabled="loading">{{ loading ? "检索中…" : "开始检索" }}</button>
+    </form>
+    <div v-if="error" class="notice error" role="alert">{{ error }}</div>
+    <div v-if="!searched" class="admin-search-idle">输入关键词后查看三个目录的检索结果。</div>
+    <div v-else class="admin-search-results">
+      <section v-for="group in groups" :key="group.key" class="admin-list-panel" :aria-label="group.title + '检索结果'">
+        <div class="admin-list-heading"><div><span class="admin-page-kicker">{{ group.kicker }}</span><h2>{{ group.title }}</h2></div><span class="admin-list-count">{{ resultErrors[group.key] ? "未更新" : `${results[group.key].length} 条` }}</span></div>
+        <div v-if="loading" class="admin-list-state">正在检索…</div>
+        <div v-else-if="resultErrors[group.key]" class="admin-list-state error" role="status">{{ resultErrors[group.key] }}</div>
+        <div v-else-if="!results[group.key].length" class="admin-list-state">没有匹配的{{ group.title }}结果。</div>
+        <div v-else class="admin-search-result-list">
+          <article v-for="item in results[group.key]" :key="String(item.id)" class="admin-search-result-row">
+            <strong>{{ fieldText(item, group.primary) }}</strong>
+            <span>{{ fieldText(item, group.secondary, "") }}</span>
+            <p v-if="fieldText(item, group.detail, '')">{{ fieldText(item, group.detail) }}</p>
+          </article>
+        </div>
+      </section>
     </div>
   </section>
 </template>
