@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
-import { api, fieldText, formatApiError, useAuthStore, usePatientWorkflowStore } from "@smart-cloud-brain/shared-api";
+import { api, fieldText, formatApiError, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { FormField } from "@smart-cloud-brain/shared-ui";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
@@ -11,6 +11,7 @@ import Textarea from "primevue/textarea";
 import Tag from "primevue/tag";
 import Message from "primevue/message";
 import Skeleton from "primevue/skeleton";
+import Drawer from "primevue/drawer";
 import TriageResultModal from "../components/TriageResultModal.vue";
 import { patientStatusText } from "../format";
 import { useSpeechRecognition } from "../composables/useSpeech";
@@ -32,15 +33,23 @@ const loading = ref(false);
 const error = ref("");
 const notice = ref("");
 const resultOpen = ref(false);
-const historyExpanded = ref(false);
-const flowOpen = ref(false);
-const flowRef = ref<HTMLElement | null>(null);
-const flowTriggerRef = ref<HTMLElement | null>(null);
-let suppressFlowFocus = false;
-const previewRecordId = ref<string | null>(null);
-const pinnedRecordId = ref<string | null>(null);
-const blockedHoverId = ref<string | null>(null);
-const visibleHistory = computed(() => historyExpanded.value ? triageHistory.value : triageHistory.value.slice(0, 5));
+const extraOpen = ref(false);
+const historyDrawerOpen = ref(false);
+const historyQuery = ref("");
+const historyPageSize = ref(20);
+const selectedHistoryId = ref<string | null>(null);
+const visibleHistory = computed(() => triageHistory.value.slice(0, 3));
+const filteredHistory = computed(() => {
+  const query = historyQuery.value.trim().toLocaleLowerCase();
+  if (!query) return triageHistory.value;
+  return triageHistory.value.filter((item) => [
+    fieldText(item, "recommendedDepartment", ""),
+    triageStatusText(item.status),
+    fieldText(item, "chiefComplaint", ""),
+    fieldText(item, "reason", ""),
+  ].some((value) => value.toLocaleLowerCase().includes(query)));
+});
+const drawerHistory = computed(() => filteredHistory.value.slice(0, historyPageSize.value));
 const canSubmit = computed(() => form.symptoms.trim().length >= 6 && form.duration.trim().length > 0);
 const severityLabels: Record<string, string> = { LOW: "轻度", MEDIUM: "中度", HIGH: "重度或明显加重" };
 const severityOptions = Object.entries(severityLabels).map(([value, label]) => ({ value, label }));
@@ -53,36 +62,17 @@ function triageTagSeverity(status: unknown) {
   return "success";
 }
 function recordId(item: { triageRecordId?: unknown }) { return String(item.triageRecordId); }
-function isHistoryOpen(item: { triageRecordId?: unknown }) {
-  const id = recordId(item);
-  return pinnedRecordId.value === id || (previewRecordId.value === id && blockedHoverId.value !== id);
+function openHistory(item?: DataRow) {
+  historyQuery.value = "";
+  historyPageSize.value = 20;
+  selectedHistoryId.value = item ? recordId(item) : null;
+  historyDrawerOpen.value = true;
 }
-function toggleHistory(item: { triageRecordId?: unknown }) {
-  const id = recordId(item);
-  if (pinnedRecordId.value === id) {
-    pinnedRecordId.value = null;
-    blockedHoverId.value = id;
-  } else {
-    pinnedRecordId.value = id;
-    blockedHoverId.value = null;
-  }
+function updateHistoryQuery(value: string | undefined) {
+  historyQuery.value = value ?? "";
+  historyPageSize.value = 20;
+  selectedHistoryId.value = null;
 }
-function leaveHistory() { previewRecordId.value = null; blockedHoverId.value = null; }
-function onFlowOutside(event: PointerEvent) {
-  if (flowRef.value && !flowRef.value.contains(event.target as Node)) flowOpen.value = false;
-}
-function onFlowFocusOut(event: FocusEvent) {
-  if (!flowRef.value?.contains(event.relatedTarget as Node | null)) flowOpen.value = false;
-}
-function onFlowFocus() { if (!suppressFlowFocus) flowOpen.value = true; }
-function onFlowEscape() {
-  suppressFlowFocus = true;
-  flowOpen.value = false;
-  flowTriggerRef.value?.focus();
-  queueMicrotask(() => { suppressFlowFocus = false; });
-}
-onMounted(() => document.addEventListener("pointerdown", onFlowOutside));
-onBeforeUnmount(() => document.removeEventListener("pointerdown", onFlowOutside));
 
 function complaint() {
   return [
@@ -123,18 +113,6 @@ async function submit() {
         <span class="triage-pilot-title-mark" aria-hidden="true"><span></span><span></span></span>
         <h1>症状分诊</h1>
       </div>
-      <div ref="flowRef" class="triage-pilot-flow-control" @pointerenter="flowOpen = true" @pointerleave="flowOpen = false"
-           @focusout="onFlowFocusOut" @keydown.esc="onFlowEscape">
-        <button ref="flowTriggerRef" type="button" class="triage-pilot-flow-trigger" aria-controls="triage-flow-menu" :aria-expanded="flowOpen"
-                @focus="onFlowFocus" @click="flowOpen = true">就诊流程 <span aria-hidden="true">⌄</span></button>
-        <Transition name="patient-nav-pop">
-          <div v-if="flowOpen" id="triage-flow-menu" class="triage-pilot-flow-menu">
-            <a href="#triage-symptoms" @click="flowOpen = false"><span>01</span> 描述症状 <b aria-hidden="true">↗</b></a>
-            <a href="#triage-latest-title" @click="flowOpen = false"><span>02</span> 查看建议 <b aria-hidden="true">↗</b></a>
-            <RouterLink to="/doctors" @click="flowOpen = false"><span>03</span> 选择号源 <b aria-hidden="true">↗</b></RouterLink>
-          </div>
-        </Transition>
-      </div>
     </header>
 
     <div class="triage-pilot-grid">
@@ -146,7 +124,7 @@ async function submit() {
         <div class="triage-pilot-symptom-field">
           <label for="triage-symptoms">主要症状</label>
           <div class="triage-pilot-input-shell">
-            <Textarea id="triage-symptoms" v-model.trim="form.symptoms" rows="5" placeholder="例如：左膝疼痛，走路时加重" />
+            <Textarea id="triage-symptoms" v-model.trim="form.symptoms" rows="3" auto-resize placeholder="例如：左膝疼痛，走路时加重" />
             <div class="triage-pilot-input-tools">
               <span :class="{ 'is-ready': form.symptoms.trim().length >= 6 }">{{ form.symptoms.trim().length >= 6 ? '症状已填写' : '至少输入 6 个字' }}</span>
               <button v-if="speechSupported" type="button" class="triage-pilot-voice" :class="{ 'is-listening': speechListening }"
@@ -165,7 +143,17 @@ async function submit() {
             <SelectButton v-model="form.severity" aria-label="严重程度" :options="severityOptions" option-label="label" option-value="value" :allow-empty="false" />
           </FormField>
         </div>
-        <FormField label="补充说明（选填）"><Textarea v-model.trim="form.extra" aria-label="补充说明" rows="3" placeholder="症状变化、诱因或其他需要说明的情况" /></FormField>
+        <div class="triage-pilot-optional" :class="{ 'is-open': extraOpen }">
+          <button type="button" class="triage-pilot-optional-trigger" aria-controls="triage-extra-panel" :aria-expanded="extraOpen" @click="extraOpen = !extraOpen">
+            <span class="triage-pilot-optional-copy"><strong>补充说明 <small>选填</small></strong><span>{{ form.extra.trim() ? '已填写 · 点击查看或修改' : '症状变化、诱因等' }}</span></span>
+            <span class="triage-pilot-optional-indicator" aria-hidden="true">⌄</span>
+          </button>
+          <div id="triage-extra-panel" class="triage-pilot-optional-panel" :aria-hidden="!extraOpen" :inert="!extraOpen">
+            <div class="triage-pilot-optional-panel-inner">
+              <FormField label="补充说明"><Textarea v-model.trim="form.extra" aria-label="补充说明" rows="2" auto-resize placeholder="症状变化、诱因或其他需要说明的情况" /></FormField>
+            </div>
+          </div>
+        </div>
         <div class="triage-pilot-submit-row">
           <button type="submit" :disabled="!canSubmit || loading" :aria-busy="loading" class="triage-pilot-submit">
             <span>{{ loading ? '正在生成建议' : '提交分诊' }}</span>
@@ -194,23 +182,43 @@ async function submit() {
         <section class="triage-pilot-history" aria-labelledby="triage-history-title">
           <div class="triage-pilot-section-heading"><div><span class="triage-pilot-section-index" aria-hidden="true">03 / 记录</span><h2 id="triage-history-title">历史分诊</h2></div><span v-if="triageHistory.length" class="triage-pilot-history-count">{{ triageHistory.length }}</span></div>
           <div v-if="triageHistory.length" class="triage-pilot-history-list">
-            <article v-for="item in visibleHistory" :key="recordId(item)" class="triage-pilot-history-item" :class="{ expanded: isHistoryOpen(item) }"
-                     @pointerenter="previewRecordId = recordId(item)" @pointerleave="leaveHistory" @focusin="previewRecordId = recordId(item)" @focusout="leaveHistory">
-              <button type="button" class="triage-pilot-history-summary" :aria-expanded="isHistoryOpen(item)" @click="toggleHistory(item)">
+            <article v-for="item in visibleHistory" :key="recordId(item)" class="triage-pilot-history-item">
+              <button type="button" class="triage-pilot-history-summary" :aria-label="`查看${fieldText(item, 'recommendedDepartment', '待确认')}的分诊记录`" @click="openHistory(item)">
                 <strong>{{ fieldText(item, "recommendedDepartment", "待确认") }}</strong>
                 <Tag :value="triageStatusText(item.status)" :severity="triageTagSeverity(item.status)" />
-                <span class="triage-pilot-history-chevron" aria-hidden="true">⌄</span>
+                <span class="triage-pilot-history-arrow" aria-hidden="true">↗</span>
               </button>
-              <div class="triage-pilot-history-detail" :aria-hidden="!isHistoryOpen(item)"><div><span>症状描述</span><p>{{ fieldText(item, "chiefComplaint") }}</p><span>建议依据</span><p>{{ fieldText(item, "reason", "暂无说明") }}</p></div></div>
             </article>
           </div>
-          <Button v-if="triageHistory.length > 5" type="button" class="triage-pilot-history-toggle" text :aria-expanded="historyExpanded"
-                  :label="historyExpanded ? '收起历史记录' : `查看全部 ${triageHistory.length} 条记录`" @click="historyExpanded = !historyExpanded" />
+          <Button v-if="triageHistory.length > 3" type="button" class="triage-pilot-history-toggle" text
+                  :label="`查看全部 ${triageHistory.length} 条记录`" @click="openHistory()" />
           <div v-if="!triageHistory.length" class="triage-pilot-empty">暂无历史分诊</div>
         </section>
       </aside>
     </div>
 
     <TriageResultModal :open="resultOpen" :result="triage" @close="resultOpen = false" @doctors="router.push('/doctors')" />
+    <Drawer v-model:visible="historyDrawerOpen" position="right" header="历史分诊" class="patient-triage-history-drawer" :style="{ width: 'min(100vw, 520px)' }">
+      <div class="triage-drawer-intro">共 {{ triageHistory.length }} 条记录 · 最新在前</div>
+      <div v-if="triageHistory.length > 8" class="triage-drawer-search">
+        <label for="triage-history-search">搜索历史记录</label>
+        <InputText id="triage-history-search" :model-value="historyQuery" placeholder="搜索科室、症状或建议" @update:model-value="updateHistoryQuery" />
+      </div>
+      <div v-if="!filteredHistory.length" class="triage-drawer-empty">没有找到匹配的记录</div>
+      <div v-else class="triage-drawer-list">
+        <article v-for="item in drawerHistory" :key="recordId(item)" class="triage-drawer-item" :class="{ 'is-selected': selectedHistoryId === recordId(item) }">
+          <button type="button" class="triage-drawer-item-trigger" :aria-expanded="selectedHistoryId === recordId(item)" :aria-controls="`triage-drawer-detail-${recordId(item)}`"
+                  @click="selectedHistoryId = selectedHistoryId === recordId(item) ? null : recordId(item)">
+            <span><strong>{{ fieldText(item, "recommendedDepartment", "待确认") }}</strong><small>{{ triageStatusText(item.status) }}</small></span>
+            <span class="triage-drawer-item-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div :id="`triage-drawer-detail-${recordId(item)}`" class="triage-drawer-detail" :aria-hidden="selectedHistoryId !== recordId(item)" :inert="selectedHistoryId !== recordId(item)">
+            <div class="triage-drawer-detail-inner"><span>症状描述</span><p>{{ fieldText(item, "chiefComplaint") }}</p><span>建议依据</span><p>{{ fieldText(item, "reason", "暂无说明") }}</p></div>
+          </div>
+        </article>
+      </div>
+      <Button v-if="historyPageSize < filteredHistory.length" type="button" class="triage-drawer-more" text
+              :label="`再显示 ${Math.min(20, filteredHistory.length - historyPageSize)} 条`" @click="historyPageSize += 20" />
+    </Drawer>
   </section>
 </template>

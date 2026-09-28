@@ -28,9 +28,14 @@ import sys
 import urllib.request
 import urllib.error
 from datetime import datetime
+# 中文输出在任意终端/沙箱按 UTF-8 编码（Windows 控制台默认 GBK 会导致乱码）
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
-GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:18080")
+# 处方审核接口按 DOCTOR 角色鉴权，优先取医生令牌
+API_TOKEN = os.environ.get("SCB_API_TOKEN_DOCTOR") or os.environ.get("SCB_API_TOKEN", "")
 EVIDENCE_STORE = os.environ.get("SCB_EVIDENCE_STORE", ".scb_evidence")
 TIMEOUT = 15
 
@@ -39,6 +44,8 @@ def _http_get(path):
     url = GATEWAY_URL.rstrip("/") + path
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -57,6 +64,8 @@ def _http_post(path, payload):
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -82,7 +91,7 @@ def _parse_result(body):
     except json.JSONDecodeError:
         return {"error": "json_parse_failed", "raw": body[:500]}
     if isinstance(result, dict) and "code" in result:
-        if result.get("code") == 200:
+        if result.get("code") in (0, 200):
             return result.get("data")
         return {"error": "business_error", "code": result.get("code"), "message": result.get("message")}
     return result
@@ -319,21 +328,34 @@ def action_check(args):
     except json.JSONDecodeError:
         return {"error": "invalid_param", "message": "drugs must be valid JSON array"}
 
-    # Step1: 查询患者过敏史与既往史
+    # 药品项归一：安全审核只依赖药名即可成立（过敏拦截不能因为没写剂量而失效）。
+    # 兼容调用方三种常见形态：{"drugName":"阿莫西林"}、纯字符串 "阿莫西林"、字段齐全的对象。
+    drugs = _normalize_drugs(drugs)
+    if isinstance(drugs, dict) and drugs.get("error"):
+        return drugs
+
+    # Step1: 查询患者过敏史与既往史（服务间端点，仅作证据链展示的增强；
+    #        判定本身由后端 PrescriptionService 从患者库直读取值，不依赖本步骤）
     patient_summary = _http_get(f"/internal/patients/{args.patient_id}/summary")
     allergy_history = ""
     past_history = ""
     patient_age = None
     patient_gender = ""
     patient_name = ""
-    if isinstance(patient_summary, dict):
+    if isinstance(patient_summary, dict) and patient_summary.get("error"):
+        # 查询失败必须标注 UNKNOWN，绝不默认"无过敏史"（安全语义：未知≠无）
+        allergy_history = "UNKNOWN"
+    elif isinstance(patient_summary, dict):
         allergy_history = patient_summary.get("allergyHistory", "") or ""
         past_history = patient_summary.get("pastHistory", "") or ""
         patient_age = patient_summary.get("age")
         patient_gender = patient_summary.get("gender", "") or ""
         patient_name = patient_summary.get("name", "") or ""
-    elif isinstance(patient_summary, dict) and patient_summary.get("error"):
-        allergy_history = "UNKNOWN"
+
+    # 调用方声明的过敏史优先（对话中已明确告知，如"患者青霉素过敏"）——
+    # 这使过敏拦截在未连接院内系统时同样可证据化，且不依赖内网端点。
+    if args.allergy_history:
+        allergy_history = args.allergy_history
 
     # Step2: 调用处方审核API
     payload = {
@@ -355,18 +377,28 @@ def action_check(args):
         result["patientAllergyHistory"] = allergy_history
         result["patientName"] = patient_name
     else:
-        result = {
-            "riskLevel": "UNKNOWN",
-            "riskDescription": "处方审核服务暂时不可用",
-            "suggestions": "建议人工审核处方安全性",
-            "interactions": [],
-            "contraindications": [],
-            "adjustmentSuggestions": [],
-            "degraded": True,
-            "patientAllergyHistory": allergy_history,
-            "patientName": patient_name,
-            "errorDetail": result,
-        }
+        # 分级降级：先走内置药品知识库（本地循证规则），能判定则给出完整审核卡片；
+        # 否则退回"需人工审核"（诚实降级，绝不假装通过、也不假装拦截）。
+        local = _local_prescription_check(drugs, allergy_history)
+        if local is not None:
+            local["patientAllergyHistory"] = allergy_history
+            local["patientName"] = patient_name
+            local["errorDetail"] = result
+            result = local
+        else:
+            result = {
+                "riskLevel": "UNKNOWN",
+                "riskDescription": "处方审核服务暂时不可用，且内置知识库未覆盖本次药品",
+                "suggestions": "建议人工审核处方安全性",
+                "interactions": [],
+                "contraindications": [],
+                "adjustmentSuggestions": [],
+                "degraded": True,
+                "mode": "MANUAL_REQUIRED",
+                "patientAllergyHistory": allergy_history,
+                "patientName": patient_name,
+                "errorDetail": result,
+            }
 
     # 创新点1：主动式拦截判定
     risk_level = result.get("riskLevel", "")
@@ -413,7 +445,7 @@ def action_check(args):
             "contraindications": list(result.get("contraindications", [])),
         },
         reasoning=[
-            f"患者过敏史: {allergy_history or '无'}",
+            f"患者过敏史: {allergy_history if allergy_history and allergy_history != 'UNKNOWN' else '未知（未查得，已按未知处理）'}",
             f"AI审核风险等级: {risk_level}",
             f"药物相互作用: {result.get('interactions', [])}",
             f"禁忌: {result.get('contraindications', [])}",
@@ -432,21 +464,49 @@ def action_check(args):
 # action: notify（推送风险通知）
 # ============================================================
 def action_notify(args):
-    """推送风险通知给医生（通过通知服务）。"""
-    if not (args.doctor_id and args.message):
-        return {"error": "missing_param", "message": "doctor-id and message are required"}
+    """核验处方风险通知是否已下发（真实数据，不做假推送）。
 
-    payload = {
-        "doctorId": _parse_int(args.doctor_id),
-        "type": "PRESCRIPTION_RISK",
-        "title": "处方安全风险通知",
-        "content": args.message,
-        "level": "HIGH",
+    设计说明：通知服务对外只暴露 /api/notification/list 与 /read；服务间创建走
+    /internal/notifications（需内部令牌）。且**后端在 HIGH/MEDIUM 判定时已通过事件总线
+    (Outbox → RabbitMQ → notification-service) 自动下发处方风险通知**——因此本动作的正确
+    职责是"查询并如实报告已下发的通知"，而不是调用不存在的端点谎称推送成功。
+    """
+    if not args.doctor_id:
+        return {"error": "missing_param", "message": "doctor-id is required"}
+
+    listing = _http_get("/api/notification/list")
+    if isinstance(listing, dict) and listing.get("error"):
+        return {"success": False, "pushed": False, "degraded": True,
+                "message": "通知服务不可用，请医生在医生端主动查看风险提示",
+                "errorDetail": listing}
+
+    items = listing if isinstance(listing, list) else ([listing] if isinstance(listing, dict) and listing else [])
+    risk_items = [
+        item for item in items
+        if isinstance(item, dict)
+        and str(item.get("type", "")).startswith("PRESCRIPTION")
+        and str(item.get("riskLevel", "")).upper() in ("HIGH", "MEDIUM")
+    ]
+    # 列表返回顺序不保证按时间：按通知ID（单调递增）取最新一条
+    risk_items.sort(key=lambda item: _parse_int(item.get("notificationId")) or 0, reverse=True)
+    latest = risk_items[0] if risk_items else None
+    if latest is None:
+        return {"success": False, "pushed": False, "degraded": False,
+                "totalRiskNotifications": 0,
+                "message": "未查询到已下发的处方风险通知：请医生主动查看风险提示"}
+    return {
+        "success": True,
+        "pushed": True,
+        "notificationId": latest.get("notificationId"),
+        "type": latest.get("type"),
+        "riskLevel": latest.get("riskLevel"),
+        "patientId": latest.get("patientId"),
+        "createdAt": latest.get("createdAt"),
+        "totalRiskNotifications": len(risk_items),
+        "message": "已核验：后端在风险判定时已自动下发处方风险通知（通知ID %s，等级 %s）"
+                   % (latest.get("notificationId"), latest.get("riskLevel")),
+        "degraded": False,
     }
-    result = _http_post("/api/notification/create", payload)
-    if isinstance(result, dict) and "error" in result:
-        return {"success": False, "degraded": True, "errorDetail": result}
-    return {"success": True, "notification": result}
 
 
 # ============================================================
@@ -517,6 +577,159 @@ def action_handoff(args):
     return handoff
 
 
+# ============================================================
+# 内置药品知识库（降级模式）：未连接院内系统时的本地循证处方审核
+# 仅依赖药名即可判定（过敏/配伍/禁忌），输出标注 mode=KNOWLEDGE_BASE 且 degraded=true；
+# 上下文缺失时（如过敏史未知）如实说明并要求人工核对——绝不假装通过、也不假装拦截。
+# ============================================================
+_KB_PENICILLINS = ("阿莫西林", "青霉素", "氨苄西林", "哌拉西林", "amoxicillin", "penicillin")
+_KB_CEPHALOSPORINS = ("头孢", "cef")
+_KB_ASPIRIN = ("阿司匹林", "aspirin")
+_KB_NSAIDS = ("布洛芬", "双氯芬酸", "吲哚美辛", "塞来昔布", "ibuprofen", "diclofenac")
+_KB_METFORMIN = ("二甲双胍", "metformin")
+_KB_MACROLIDES = ("阿奇霉素", "克拉霉素", "红霉素", "azithromycin")
+
+_KB_DRUG_NOTES = {
+    "青霉素类": "青霉素过敏者禁用（严重过敏反应风险）",
+    "头孢类": "青霉素过敏者慎用（交叉过敏风险）",
+    "阿司匹林": "出血风险（与抗凝药联用风险升高）",
+    "NSAIDs": "消化道出血/肾损伤风险，胃溃疡或肾功能不全者慎用",
+    "二甲双胍": "造影检查前需停药48小时；服药期间禁止饮酒（乳酸酸中毒风险）",
+    "大环内酯类": "可作为青霉素过敏者的替代抗生素（须医生评估）",
+}
+
+
+def _kb_drug_classes(drugs):
+    """本地药品分型（按药名匹配，用于降级模式的过敏/配伍判定）。"""
+    classes = []
+    for drug in drugs or []:
+        name = str((drug or {}).get("drugName") or "")
+        low = name.lower()
+        if any(k in name or k in low for k in _KB_PENICILLINS):
+            classes.append((name, "青霉素类"))
+        elif any(k in name or k in low for k in _KB_CEPHALOSPORINS):
+            classes.append((name, "头孢类"))
+        elif any(k in name or k in low for k in _KB_ASPIRIN):
+            classes.append((name, "阿司匹林"))
+        elif any(k in name or k in low for k in _KB_NSAIDS):
+            classes.append((name, "NSAIDs"))
+        elif any(k in name or k in low for k in _KB_METFORMIN):
+            classes.append((name, "二甲双胍"))
+        elif any(k in name or k in low for k in _KB_MACROLIDES):
+            classes.append((name, "大环内酯类"))
+        else:
+            classes.append((name, "未收录"))
+    return classes
+
+
+def _local_prescription_check(drugs, allergy_history):
+    """内置药品知识库审核（本地回退）。返回结果 dict；药品完全未收录时返回 None。"""
+    classes = _kb_drug_classes(drugs)
+    if all(cls == "未收录" for _, cls in classes):
+        return None
+
+    allergy_text = (allergy_history or "").strip()
+    allergy_known = bool(allergy_text) and allergy_text != "UNKNOWN"
+    penicillin_allergy = ("青霉素" in allergy_text) or ("penicillin" in allergy_text.lower())
+
+    penicillin_drugs = [name for name, cls in classes if cls == "青霉素类"]
+    cephalosporin_drugs = [name for name, cls in classes if cls == "头孢类"]
+    aspirin_drugs = [name for name, cls in classes if cls == "阿司匹林"]
+    notes = ["%s（%s）：%s" % (name, cls, _KB_DRUG_NOTES[cls]) for name, cls in classes if cls in _KB_DRUG_NOTES]
+
+    base = {
+        "degraded": True,
+        "mode": "KNOWLEDGE_BASE",
+        "degradedReason": "未连接院内系统，改用内置药品知识库审核（结论口径与院内规则同源）",
+        "knowledgeBaseNotes": notes,
+    }
+
+    if penicillin_allergy and penicillin_drugs:
+        base.update({
+            "riskLevel": "HIGH",
+            "riskDescription": "过敏史记录青霉素类过敏，处方中含青霉素类药物（%s），存在严重过敏反应（过敏性休克）风险，禁止开方。" % "、".join(penicillin_drugs),
+            "suggestions": "禁用青霉素类抗生素；建议改用大环内酯类（如阿奇霉素），替代方案须经医生评估确认。",
+            "interactions": ["处方药品属青霉素类，与患者青霉素过敏史直接冲突"],
+            "contraindications": ["青霉素类药物禁用"],
+            "adjustmentSuggestions": ["改用阿奇霉素 0.5g 每日一次（须医生评估后决定）"],
+        })
+        return base
+
+    if penicillin_allergy and cephalosporin_drugs:
+        base.update({
+            "riskLevel": "MEDIUM",
+            "riskDescription": "患者青霉素类过敏，处方中含头孢类药物（%s），存在交叉过敏风险。" % "、".join(cephalosporin_drugs),
+            "suggestions": "建议改用大环内酯类（如阿奇霉素），或经医生评估（必要时皮试）后使用头孢。",
+            "interactions": ["青霉素过敏者使用头孢类存在交叉过敏风险"],
+            "contraindications": [],
+            "adjustmentSuggestions": ["改用阿奇霉素 0.5g 每日一次（须医生评估后决定）"],
+        })
+        return base
+
+    if penicillin_drugs and not allergy_known:
+        # 安全第一：过敏史未知时既不放行也不假称已拦截，明确要求人工核对
+        base.update({
+            "riskLevel": "MEDIUM",
+            "riskDescription": "处方含青霉素类药物（%s）；当前无法核对患者过敏史，若患者青霉素过敏可致严重过敏反应。" % "、".join(penicillin_drugs),
+            "suggestions": "开方前必须人工核对患者过敏史（尤其青霉素类）；确认无过敏后再开具。",
+            "interactions": [],
+            "contraindications": ["青霉素类禁忌提示：青霉素过敏者禁用（该患者过敏史待核对）"],
+            "adjustmentSuggestions": ["如确认青霉素过敏，改用阿奇霉素 0.5g 每日一次（须医生评估后决定）"],
+        })
+        return base
+
+    if aspirin_drugs:
+        base.update({
+            "riskLevel": "MEDIUM",
+            "riskDescription": "处方含阿司匹林（%s），存在出血风险（与抗凝药联用时升高）。" % "、".join(aspirin_drugs),
+            "suggestions": "评估消化道出血风险后再开具；必要时联用胃黏膜保护剂。",
+            "interactions": ["阿司匹林可能升高出血风险"],
+            "contraindications": [],
+            "adjustmentSuggestions": [],
+        })
+        return base
+
+    base.update({
+        "riskLevel": "LOW",
+        "riskDescription": "",
+        "suggestions": "知识库未发现明显用药风险；如患者过敏史未知，开方前请人工核对。",
+        "interactions": [],
+        "contraindications": [],
+        "adjustmentSuggestions": [],
+    })
+    return base
+
+
+def _normalize_drugs(drugs):
+    """把调用方传入的药品列表归一为后端 DTO 形态。
+
+    规则（安全语义：过敏/相互作用审核只依赖药名）：
+    - 纯字符串项 "阿莫西林" → {"drugName": "阿莫西林"}
+    - 缺失的剂量/频次/用法 → "未注明"（显式告知下游"未提供"，而非静默留空）
+    - 兼容 "name" 作为 drugName 的别名（部分调用方习惯写法）
+    """
+    if not isinstance(drugs, list) or not drugs:
+        return {"error": "invalid_param", "message": "drugs must be a non-empty JSON array"}
+
+    normalized = []
+    for item in drugs:
+        if isinstance(item, str):
+            entry = {"drugName": item.strip()}
+        elif isinstance(item, dict):
+            entry = dict(item)
+            if not entry.get("drugName"):
+                entry["drugName"] = (entry.get("name") or "").strip()
+        else:
+            return {"error": "invalid_param", "message": "each drug must be a string or object"}
+        if not entry.get("drugName"):
+            return {"error": "invalid_param", "message": "drugName is required for every drug"}
+        for field in ("dosage", "frequency", "usageMethod"):
+            if not entry.get(field):
+                entry[field] = "未注明"
+        normalized.append(entry)
+    return normalized
+
+
 def _parse_int(value):
     if value is None or value == "":
         return None
@@ -538,6 +751,8 @@ def build_parser():
     parser.add_argument("--medical-record-id", default=None, help="病历ID")
     parser.add_argument("--diagnosis", default=None, help="诊断")
     parser.add_argument("--drugs", default=None, help="药品列表 JSON")
+    parser.add_argument("--allergy-history", default=None,
+                        help="调用方声明的过敏史（如对话中已知\"青霉素过敏\"）；优先于院内查询结果")
     parser.add_argument("--risk-level", default=None, help="风险等级 HIGH/MEDIUM/LOW")
     parser.add_argument("--message", default=None, help="通知消息内容")
     parser.add_argument("--keyword", default=None, help="药品搜索关键词")

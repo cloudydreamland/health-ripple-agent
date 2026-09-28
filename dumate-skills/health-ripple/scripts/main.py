@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import re
 import time
 import urllib.request
@@ -32,14 +33,18 @@ import urllib.error
 import urllib.parse
 import math
 from datetime import datetime
+# 中文输出在任意终端/沙箱按 UTF-8 编码（Windows 控制台默认 GBK 会导致乱码）
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
-GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:18080")
 # 存储 anchored 到 Skill 根目录（scripts/ 的上级），保证任意 CWD 调用落盘位置一致
 _SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EVIDENCE_STORE = os.environ.get("SCB_EVIDENCE_STORE", os.path.join(_SKILL_ROOT, ".scb_evidence"))
 AUDIT_LOG = os.environ.get("SCB_AUDIT_LOG", os.path.join(_SKILL_ROOT, ".scb_audit", "audit.log"))
-API_TOKEN = os.environ.get("SCB_API_TOKEN", "")
+# 涟漪/MDT 面向医生场景，时间学接口要求 DOCTOR，优先取医生令牌
+API_TOKEN = os.environ.get("SCB_API_TOKEN_DOCTOR") or os.environ.get("SCB_API_TOKEN", "")
 TIMEOUT = 15
 
 # 输入长度上限（防注入/防滥用）

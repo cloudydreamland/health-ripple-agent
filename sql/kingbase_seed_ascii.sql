@@ -23,7 +23,7 @@ ON CONFLICT (id) DO UPDATE SET
   status = EXCLUDED.status;
 
 INSERT INTO patient (id, name, phone, password_hash, gender, age, allergy_history, past_history) VALUES
-  (1, 'Test Patient', '13800000001', '{sha256}8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'FEMALE', 21, 'No known drug allergy', 'No special medical history')
+  (1, 'Test Patient', '13800000001', '{sha256}8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'FEMALE', 21, 'Penicillin allergy (severe rash in childhood)', 'No special medical history')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   phone = EXCLUDED.phone,

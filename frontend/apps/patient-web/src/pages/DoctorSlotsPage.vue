@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { api, fieldText, formatApiError, statusClass, toNumber, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
+import Select from "primevue/select";
 import ConfirmAppointmentModal from "../components/ConfirmAppointmentModal.vue";
 import { patientStatusText } from "../format";
 
@@ -17,19 +18,56 @@ const notice = ref("");
 const selectedSlot = ref<DataRow | null>(null);
 const confirmOpen = ref(false);
 const currentPage = ref(1);
+const departmentFilter = ref("");
+const dateFilter = ref("");
 const openDepartmentId = ref<string | null>(null);
 const pinnedDepartmentId = ref<string | null>(null);
 const blockedHoverId = ref<string | null>(null);
 
 const recommendedDepartment = computed(() => fieldText(triageHistory.value[0], "recommendedDepartment", ""));
+function slotDateKey(value: unknown) {
+  const timestamp = Date.parse(String(value ?? ""));
+  if (!Number.isFinite(timestamp)) return "";
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+const availableDepartments = computed(() => [...new Set(slots.value.map((slot) => fieldText(slot, "departmentName", "")).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN")));
+const departmentOptions = computed(() => [{ label: "全部科室", value: "" }, ...availableDepartments.value.map((name) => ({ label: name, value: name }))]);
+const departmentSlots = computed(() => slots.value.filter((slot) =>
+  !departmentFilter.value || fieldText(slot, "departmentName", "") === departmentFilter.value));
+const availableDates = computed(() => {
+  const counts = new Map<string, number>();
+  departmentSlots.value.forEach((slot) => {
+    const date = slotDateKey(slot.startTime);
+    if (date) counts.set(date, (counts.get(date) ?? 0) + 1);
+  });
+  return [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([value, count]) => ({ value, count }));
+});
+function dateParts(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  return {
+    day: `${date.getMonth() + 1}月${date.getDate()}日`,
+    weekday: new Intl.DateTimeFormat("zh-CN", { weekday: "short" }).format(date),
+  };
+}
+const filteredSlots = computed(() => slots.value.filter((slot) =>
+  (!departmentFilter.value || fieldText(slot, "departmentName", "") === departmentFilter.value)
+  && (!dateFilter.value || slotDateKey(slot.startTime) === dateFilter.value)));
 function isRecommended(slot: DataRow) {
   return Boolean(recommendedDepartment.value && fieldText(slot, "departmentName", "").includes(recommendedDepartment.value));
 }
+function byStartTime(a: DataRow, b: DataRow) {
+  const aTime = Date.parse(String(a.startTime ?? ""));
+  const bTime = Date.parse(String(b.startTime ?? ""));
+  if (!Number.isFinite(aTime) && !Number.isFinite(bTime)) return 0;
+  return (Number.isFinite(aTime) ? aTime : Number.POSITIVE_INFINITY)
+    - (Number.isFinite(bTime) ? bTime : Number.POSITIVE_INFINITY);
+}
 const orderedSlots = computed(() => [
-  ...slots.value.filter(isRecommended),
-  ...slots.value.filter((slot) => !isRecommended(slot)),
+  ...filteredSlots.value.filter(isRecommended).sort(byStartTime),
+  ...filteredSlots.value.filter((slot) => !isRecommended(slot)).sort(byStartTime),
 ]);
-const recommendedCount = computed(() => slots.value.filter(isRecommended).length);
+const recommendedCount = computed(() => filteredSlots.value.filter(isRecommended).length);
 const pageCount = computed(() => Math.max(1, Math.ceil(orderedSlots.value.length / PAGE_SIZE)));
 const pageSlots = computed(() => orderedSlots.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE));
 const pageStart = computed(() => (currentPage.value - 1) * PAGE_SIZE + 1);
@@ -40,6 +78,10 @@ const visiblePages = computed(() => {
   return Array.from({ length: count }, (_, index) => start + index);
 });
 watch(pageCount, (count) => { currentPage.value = Math.min(currentPage.value, count); });
+watch([departmentFilter, dateFilter], () => { currentPage.value = 1; });
+watch(availableDates, (dates) => {
+  if (dateFilter.value && !dates.some((date) => date.value === dateFilter.value)) dateFilter.value = "";
+});
 
 function slotDate(value: unknown) {
   const timestamp = Date.parse(String(value ?? ""));
@@ -138,7 +180,27 @@ refresh();
           <div><span>号源</span><strong>{{ slots.length }}</strong></div>
         </div>
         <LoadingState v-if="loading" />
-        <template v-else-if="orderedSlots.length">
+        <template v-else-if="slots.length">
+          <div class="patient-slot-filters" role="group" aria-label="筛选号源">
+            <div class="patient-slot-department-field">
+              <label for="patient-slot-department">科室</label>
+              <Select v-model="departmentFilter" input-id="patient-slot-department" :options="departmentOptions" option-label="label" option-value="value" placeholder="全部科室"
+                      overlay-class="patient-slot-department-overlay" class="patient-slot-department-select" />
+            </div>
+            <div class="patient-slot-date-field">
+              <div class="patient-slot-date-heading"><span id="patient-slot-date-label">日期</span><button v-if="departmentFilter || dateFilter" type="button" class="patient-slot-clear" @click="departmentFilter = ''; dateFilter = ''">清除筛选</button></div>
+              <div class="patient-slot-date-strip" role="group" aria-labelledby="patient-slot-date-label">
+                <button type="button" class="patient-slot-date-option" :class="{ active: !dateFilter }" :aria-pressed="!dateFilter" @click="dateFilter = ''">
+                  <strong>全部日期</strong><small>{{ departmentSlots.length }} 个号源</small>
+                </button>
+                <button v-for="date in availableDates" :key="date.value" type="button" class="patient-slot-date-option" :class="{ active: dateFilter === date.value }"
+                        :aria-pressed="dateFilter === date.value" :aria-label="`${date.value}，${date.count} 个号源`" @click="dateFilter = date.value">
+                  <strong>{{ dateParts(date.value).day }}</strong><small>{{ dateParts(date.value).weekday }} · {{ date.count }} 个</small>
+                </button>
+              </div>
+            </div>
+          </div>
+          <template v-if="orderedSlots.length">
           <div class="patient-slots-list-heading">
             <div><strong>当前可选</strong><span v-if="recommendedCount">推荐匹配 {{ recommendedCount }} 个</span></div>
             <small>第 {{ pageStart }}–{{ pageEnd }} 条 · 共 {{ orderedSlots.length }} 条</small>
@@ -168,6 +230,8 @@ refresh();
               <button type="button" :disabled="currentPage === pageCount" @click="currentPage++">下一页</button>
             </div>
           </nav>
+          </template>
+          <EmptyState v-else title="没有符合条件的号源" message="请调整科室或日期，查看其他可预约时段。" />
         </template>
         <EmptyState v-else title="暂无号源" message="目前没有可预约号源，请刷新或稍后再试。" />
       </div>

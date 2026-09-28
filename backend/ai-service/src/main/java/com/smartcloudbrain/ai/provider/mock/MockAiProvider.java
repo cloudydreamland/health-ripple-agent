@@ -174,19 +174,91 @@ public class MockAiProvider implements AiProvider {
 
   @Override
   public MedicalRecordGenerateResponse generateMedicalRecord(MedicalRecordGenerateRequest request, PromptResolveResponse prompt) {
+    String dialogue = request.dialogueText() == null ? "" : request.dialogueText().trim();
+    String diagnosis = extractFirst(dialogue, DIAGNOSIS_KEYWORDS);
+    String chief = extractChiefComplaint(dialogue);
+    List<String> medications = extractAll(dialogue, MEDICATION_KEYWORDS);
+    String treatmentAdvice = medications.isEmpty()
+        ? "建议完善相关检查后由医生确认治疗方案。"
+        : "处方：" + String.join("、", medications) + "（用法用量由医生核定后开具）。";
     return new MedicalRecordGenerateResponse(
-        "Chest pain with dyspnea for two days",
-        "Symptoms worsen after activity and are relieved by rest.",
-        "No clear past history was provided.",
-        "Physical examination should be completed by the doctor.",
-        "Chest pain under evaluation.",
-        "Complete ECG and cardiac enzyme checks.",
+        chief,
+        "患者自述：" + dialogue + (dialogue.isEmpty() ? "" : "。"),
+        (request.pastHistory() == null || request.pastHistory().isBlank()) ? "既往史待医生补充。" : request.pastHistory(),
+        "体格检查待医生补充。",
+        diagnosis == null ? "待医生明确诊断（规则引擎未从对话中识别出诊断关键词）。" : diagnosis,
+        treatmentAdvice,
         false
     );
   }
 
+  /** 诊断关键词→规范诊断名（规则引擎为确定性提取，不推断未提及的诊断）。 */
+  private static final Map<String, String> DIAGNOSIS_KEYWORDS = Map.ofEntries(
+      Map.entry("2型糖尿病", "2型糖尿病"), Map.entry("糖尿病", "2型糖尿病"),
+      Map.entry("高血压", "高血压病"), Map.entry("冠心病", "冠心病"),
+      Map.entry("哮喘", "支气管哮喘"), Map.entry("慢性肾病", "慢性肾脏病"),
+      Map.entry("上呼吸道感染", "急性上呼吸道感染"), Map.entry("感冒", "急性上呼吸道感染"),
+      Map.entry("胃肠炎", "急性胃肠炎"), Map.entry("头痛", "头痛待查"));
+
+  private static final List<String> MEDICATION_KEYWORDS = List.of(
+      "二甲双胍", "阿莫西林", "布洛芬", "阿司匹林", "缬沙坦", "氨氯地平",
+      "阿奇霉素", "胰岛素", "辛伐他汀", "奥美拉唑");
+
+  private static String extractFirst(String text, Map<String, String> keywords) {
+    for (Map.Entry<String, String> entry : keywords.entrySet()) {
+      if (text.contains(entry.getKey())) {
+        return entry.getValue();
+      }
+    }
+    return null;
+  }
+
+  private static List<String> extractAll(String text, List<String> keywords) {
+    return keywords.stream().filter(text::contains).toList();
+  }
+
+  /** 主诉提取：优先取"诉/主诉"之后到分隔符为止的片段，否则取对话前 40 字。 */
+  private static String extractChiefComplaint(String dialogue) {
+    if (dialogue.isEmpty()) {
+      return "（对话为空，待医生补充主诉）";
+    }
+    int marker = Math.max(dialogue.indexOf("诉"), dialogue.indexOf("主诉"));
+    String segment = marker >= 0 && marker + 1 < dialogue.length() ? dialogue.substring(marker + 1) : dialogue;
+    for (String delimiter : List.of("，", "。", "；", ",", ";", "诊断", "开")) {
+      int idx = segment.indexOf(delimiter);
+      if (idx > 0) {
+        segment = segment.substring(0, idx);
+        break;
+      }
+    }
+    segment = segment.trim();
+    return segment.length() > 40 ? segment.substring(0, 40) : (segment.isEmpty() ? "待医生补充主诉。" : segment);
+  }
+
   @Override
   public PrescriptionCheckResponse checkPrescription(PrescriptionCheckRequest request, PromptResolveResponse prompt) {
+    // 过敏冲突优先：过敏史与处方药品同类即 HIGH（演示环境用真实规则，不硬编码结论）
+    String allergy = request.allergyHistory() == null ? "" : request.allergyHistory();
+    boolean penicillinAllergy =
+        allergy.contains("青霉素") || allergy.toLowerCase().contains("penicillin");
+    if (penicillinAllergy) {
+      boolean penicillinDrug = request.drugs().stream()
+          .map(DrugItem::drugName)
+          .filter(name -> name != null)
+          .map(String::toLowerCase)
+          .anyMatch(name -> name.contains("阿莫西林") || name.contains("青霉素")
+              || name.contains("amoxicillin") || name.contains("penicillin"));
+      if (penicillinDrug) {
+        return new PrescriptionCheckResponse(
+            "HIGH",
+            "患者过敏史记录青霉素类过敏，处方中含青霉素类药物，存在严重过敏反应（过敏性休克）风险，禁止开方。",
+            "禁用青霉素类抗生素；建议改用大环内酯类（如阿奇霉素），替代方案须经医生评估确认。",
+            List.of("处方药品属青霉素类，与患者青霉素过敏史直接冲突"),
+            List.of("青霉素类药物禁用"),
+            List.of("改用阿奇霉素 0.5g 每日一次（须医生评估后决定）"),
+            false);
+      }
+    }
     boolean aspirin = request.drugs().stream()
         .map(DrugItem::drugName)
         .anyMatch(name -> name.contains("阿司匹林") || name.toLowerCase().contains("aspirin"));

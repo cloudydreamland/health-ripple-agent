@@ -90,6 +90,11 @@ const auth = useAuthStore();
 const elderMode = ref(localStorage.getItem("scb-elder-mode") === "1");
 const loading = ref(true);
 const errorMsg = ref("");
+type SectionKey = "weather" | "ledger" | "resolution" | "history" | "forecast";
+const sectionErrors = ref<Record<SectionKey, string>>({ weather: "", ledger: "", resolution: "", history: "", forecast: "" });
+const sectionLoading = ref<Record<SectionKey, boolean>>({ weather: false, ledger: false, resolution: false, history: false, forecast: false });
+const feedbackError = ref("");
+const completedOpen = ref(false);
 const shareText = ref("");
 const shareFallback = ref(false);
 
@@ -99,6 +104,7 @@ const resolution = ref<Resolution | null>(null);
 const history = ref<RippleHistoryItem[]>([]);
 const forecast = ref<Forecast | null>(null);
 const forecastSelection = ref<number | null>(null);
+const forecastDetailsOpen = ref(false);
 const feedbackBusy = ref<number | null>(null);
 const shared = ref(false);
 const nlInputId = ref<number | null>(null);
@@ -114,6 +120,10 @@ function dictateFeedback(item: { triggerId: number }) {
 }
 
 const patientId = computed(() => auth.session?.userId ?? 0);
+const activeLedger = computed(() => ledger.value.filter((item) => item.feedbackStatus !== "RESOLVED" && item.feedbackStatus !== "ESCALATED"));
+const completedLedger = computed(() => ledger.value.filter((item) => item.feedbackStatus === "RESOLVED" || item.feedbackStatus === "ESCALATED"));
+const visibleLedger = computed(() => completedOpen.value ? [...activeLedger.value, ...completedLedger.value] : activeLedger.value);
+const quietDashboard = computed(() => !loading.value && !sectionLoading.value.ledger && visibleLedger.value.length === 0);
 
 const riiPoints = computed(() =>
   history.value
@@ -125,13 +135,6 @@ const riiPoints = computed(() =>
     .slice(0, 12)
     .reverse(),
 );
-
-const WEATHER_ICON: Record<string, string> = {
-  SUNNY: "☀️",
-  CLOUDY: "⛅",
-  RAIN: "🌧️",
-  STORM: "⛈️",
-};
 
 const TYPE_LABEL: Record<string, string> = {
   WINDOW: "窗口期",
@@ -160,6 +163,7 @@ const forecastColumns = computed(() => {
   return cols;
 });
 const selectedForecastColumn = computed(() => forecastSelection.value === null ? null : forecastColumns.value.find((col) => col.offset === forecastSelection.value) ?? null);
+const forecastIsCalm = computed(() => Boolean(forecast.value?.buckets?.length) && forecast.value!.buckets.every((bucket) => bucket.intensity === 0));
 
 const forecastPeakText = computed(() => {
   if (!forecast.value || !forecast.value.peak || forecast.value.peak.intensity <= 0) return "";
@@ -174,20 +178,31 @@ async function loadAll() {
   if (!patientId.value) return;
   loading.value = true;
   errorMsg.value = "";
+  feedbackError.value = "";
+  sectionErrors.value = { weather: "", ledger: "", resolution: "", history: "", forecast: "" };
+  weather.value = null;
+  ledger.value = [];
+  resolution.value = null;
+  history.value = [];
+  forecast.value = null;
   const token = auth.token();
   try {
-    const [w, l, r, h, f] = await Promise.all([
-      request<Weather>(`/api/health-weather/daily?patientId=${patientId.value}`, {}, token).catch(() => null),
-      request<LedgerItem[]>(`/api/health-event/ripple/feedback-ledger?patientId=${patientId.value}`, {}, token).catch(() => []),
-      request<Resolution>(`/api/health-event/ripple/resolution?patientId=${patientId.value}`, {}, token).catch(() => null),
-      request<RippleHistoryItem[]>(`/api/health-event/ripple/patient/${patientId.value}`, {}, token).catch(() => []),
-      request<Forecast>(`/api/health-event/ripple/forecast?patientId=${patientId.value}`, {}, token).catch(() => null),
+    const [w, l, r, h, f] = await Promise.allSettled([
+      request<Weather>(`/api/health-weather/daily?patientId=${patientId.value}`, {}, token),
+      request<LedgerItem[]>(`/api/health-event/ripple/feedback-ledger?patientId=${patientId.value}`, {}, token),
+      request<Resolution>(`/api/health-event/ripple/resolution?patientId=${patientId.value}`, {}, token),
+      request<RippleHistoryItem[]>(`/api/health-event/ripple/patient/${patientId.value}`, {}, token),
+      request<Forecast>(`/api/health-event/ripple/forecast?patientId=${patientId.value}`, {}, token),
     ]);
-    weather.value = w;
-    ledger.value = Array.isArray(l) ? l : [];
-    resolution.value = r;
-    history.value = Array.isArray(h) ? h : [];
-    forecast.value = f && !f.degraded ? f : null;
+    weather.value = w.status === "fulfilled" ? w.value : null;
+    ledger.value = l.status === "fulfilled" && Array.isArray(l.value) ? l.value : [];
+    resolution.value = r.status === "fulfilled" ? r.value : null;
+    history.value = h.status === "fulfilled" && Array.isArray(h.value) ? h.value : [];
+    forecast.value = f.status === "fulfilled" && f.value && !f.value.degraded ? f.value : null;
+    for (const [key, result] of ([ ["weather", w], ["ledger", l], ["resolution", r], ["history", h], ["forecast", f] ] as const)) {
+      if (result.status === "rejected") sectionErrors.value[key] = "暂时无法读取，请重试";
+    }
+    if (f.status === "fulfilled" && f.value?.degraded) sectionErrors.value.forecast = "趋势数据暂不可用，请稍后重试";
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : "加载失败";
   } finally {
@@ -195,13 +210,54 @@ async function loadAll() {
   }
 }
 
-async function sendFeedback(item: LedgerItem, outcome: string, noteOverride?: string) {
+async function retrySection(key: SectionKey) {
+  if (!patientId.value || sectionLoading.value[key]) return;
+  sectionLoading.value[key] = true;
+  sectionErrors.value[key] = "";
+  const token = auth.token();
+  try {
+    switch (key) {
+      case "weather":
+        weather.value = await request<Weather>(`/api/health-weather/daily?patientId=${patientId.value}`, {}, token);
+        break;
+      case "ledger": {
+        const result = await request<LedgerItem[]>(`/api/health-event/ripple/feedback-ledger?patientId=${patientId.value}`, {}, token);
+        if (!Array.isArray(result)) throw new Error("守护事项数据格式异常");
+        ledger.value = result;
+        break;
+      }
+      case "resolution":
+        resolution.value = await request<Resolution>(`/api/health-event/ripple/resolution?patientId=${patientId.value}`, {}, token);
+        break;
+      case "history": {
+        const result = await request<RippleHistoryItem[]>(`/api/health-event/ripple/patient/${patientId.value}`, {}, token);
+        if (!Array.isArray(result)) throw new Error("历史轨迹数据格式异常");
+        history.value = result;
+        break;
+      }
+      case "forecast": {
+        const result = await request<Forecast>(`/api/health-event/ripple/forecast?patientId=${patientId.value}`, {}, token);
+        if (result?.degraded) throw new Error("趋势数据暂不可用，请稍后重试");
+        forecast.value = result;
+        break;
+      }
+    }
+  } catch {
+    sectionErrors.value[key] = "暂时无法读取，请重试";
+  } finally {
+    sectionLoading.value[key] = false;
+  }
+}
+
+async function sendFeedback(item: LedgerItem, outcome: string, noteOverride?: string): Promise<boolean> {
+  if (feedbackBusy.value !== null) return false;
   // 已就医不可撤销（会计入气象警报与家属提示），必须二次确认防误触
   if (outcome === "ESCALATED"
     && !window.confirm("确认已完成就医、需要医生跟进吗？\n确认后该事项将终结并通知家属重点关注，不可撤销。")) {
-    return;
+    return false;
   }
   feedbackBusy.value = item.triggerId;
+  feedbackError.value = "";
   try {
     const note = noteOverride ?? (outcome === "RESOLVED" ? "已缓解" : outcome === "UNRESOLVED" ? "未缓解，需要加强关注" : "症状加重，已升级就医");
     await request(
@@ -210,6 +266,10 @@ async function sendFeedback(item: LedgerItem, outcome: string, noteOverride?: st
       auth.token(),
     );
     await loadAll();
+    return true;
+  } catch (e) {
+    feedbackError.value = e instanceof Error ? e.message : "回执提交失败，请重试";
+    return false;
   } finally {
     feedbackBusy.value = null;
   }
@@ -224,10 +284,17 @@ function parseOutcome(text: string): "RESOLVED" | "UNRESOLVED" | "ESCALATED" | n
   if (!t) {
     return null;
   }
-  if (/(去医院|到医院|在医[院院]|住院|急诊|挂了?急|就[医疹]|看医生|120)/.test(t)) {
+  // 否定就医或缓解的表述不能因包含“去医院”“缓解”而被判为已完成。
+  if (/(?:没|没有|未|不|无|尚未).{0,3}(?:去|到)(?:过)?医院|(?:没|没有|未|不|无|尚未).{0,3}(?:就医|看医生)/.test(t)) {
+    return null;
+  }
+  if (/(不确定|说不清|不知道)(?:.{0,6})(缓解|好转|就医)/.test(t)) {
+    return null;
+  }
+  if (/(去医院|到医院|在医院|住院|急诊|挂了?急|就医|看医生|拨打?120)/.test(t)) {
     return "ESCALATED";
   }
-  if (/(没[有好]转|不见[好坏]|加重|严重|还是|依旧|仍然|反复|更[疼肿重]|老样子)/.test(t)) {
+  if (/(?:没|没有|未|不|无|尚未|未见).{0,4}(?:缓解|好转|改善)|(?:缓解|好转|改善)不明显|加重|严重|还是(?:疼|痛|没好)|依旧(?:疼|痛|没好)|仍然(?:疼|痛|没好)|反复|更[疼肿重]|老样子/.test(t)) {
     return "UNRESOLVED";
   }
   if (/(好转|好[多了很]|缓解|消失|不[疼肿咳]|恢复|没事|正常)/.test(t)) {
@@ -243,6 +310,7 @@ const OUTCOME_LABEL: Record<string, string> = {
 };
 
 async function submitNlFeedback(item: LedgerItem) {
+  if (feedbackBusy.value !== null) return;
   const text = nlText.value.trim();
   if (!text) {
     nlHint.value = "请先说说情况，或直接点下面的按钮。";
@@ -254,9 +322,10 @@ async function submitNlFeedback(item: LedgerItem) {
     return;
   }
   nlHint.value = "";
-  await sendFeedback(item, outcome, `患者自述："${text.slice(0, 120)}"（解析为${OUTCOME_LABEL[outcome]}）`);
-  nlText.value = "";
-  nlInputId.value = null;
+  if (await sendFeedback(item, outcome, `患者自述："${text.slice(0, 120)}"（解析为${OUTCOME_LABEL[outcome]}）`)) {
+    nlText.value = "";
+    nlInputId.value = null;
+  }
 }
 
 function toggleNl(item: LedgerItem) {
@@ -349,16 +418,15 @@ onMounted(loadAll);
 <template>
   <div class="ripple-page" :class="{ 'elder-mode': elderMode }">
     <header class="rp-head">
-      <div class="rp-head-left">
-        <div>
-          <h2>我的健康涟漪</h2>
-        </div>
-      </div>
+      <div class="rp-head-left"><h2>我的健康涟漪</h2></div>
       <div class="rp-actions">
+        <button class="ghost-btn rp-refresh" type="button" @click="loadAll" :disabled="loading" aria-label="刷新守护数据">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 12-2L20 12M4 12l2.5 5a7 7 0 0 0 12-2"/></svg><span>刷新</span>
+        </button>
         <button class="ghost-btn" type="button" @click="createFamilyLink" :disabled="familyBusy">
           {{ familyBusy ? "生成中…" : "家属守护圈" }}
         </button>
-        <button class="ghost-btn" type="button" @click="shareToFamily">
+        <button class="ghost-btn" type="button" @click="shareToFamily" :disabled="!weather && !resolution">
           {{ shared ? "✓ 已复制给家属" : "分享文字摘要" }}
         </button>
         <button class="ghost-btn" type="button" @click="toggleElder">{{ elderMode ? "标准字号" : "适老化大字" }}</button>
@@ -366,7 +434,7 @@ onMounted(loadAll);
     </header>
 
     <!-- 家属守护圈链接（生成后展示 + 复制） -->
-    <section v-if="familyLink" class="rp-panel" role="region" aria-label="家属守护圈链接">
+    <section v-if="familyLink" class="rp-panel rp-share-panel" role="region" aria-label="家属守护圈链接">
       <header class="sec-head">
         <span class="dot" style="background: #41795f" />
         <h3>家属守护圈链接已生成</h3>
@@ -385,11 +453,11 @@ onMounted(loadAll);
       </div>
     </section>
 
-    <p v-if="errorMsg" class="rp-error" role="status" aria-live="polite">守护数据暂时加载不出来，请稍后下拉重试；如持续失败请联系您的医生或社区工作人员。</p>
+    <p v-if="errorMsg" class="rp-error" role="status" aria-live="polite">{{ errorMsg }}</p>
     <p v-if="loading" class="rp-loading" role="status">正在加载守护数据…</p>
 
     <!-- 剪贴板不可用时的手动复制兜底（http 局域网环境常见） -->
-    <section v-if="shareFallback" class="rp-panel" role="region" aria-label="复制分享内容">
+    <section v-if="shareFallback" class="rp-panel rp-share-panel" role="region" aria-label="复制分享内容">
       <header class="sec-head">
         <span class="dot" style="background: #41795f" />
         <h3>请手动复制给家属</h3>
@@ -402,20 +470,102 @@ onMounted(loadAll);
       </div>
     </section>
 
-    <!-- FIG.P1 今日健康气象（呼吸节律） -->
-    <section v-if="weather" class="rp-panel weather-panel">
+    <div class="rp-dashboard" :class="{ 'is-quiet': quietDashboard }">
+    <!-- 待处理事项优先，已完成事项按需展开 -->
+    <section class="rp-panel rp-ledger-panel">
       <header class="sec-head">
-        <span class="dot" :style="{ background: weather.color }" />
-        <h3>今日健康气象</h3>
-        <span class="spacer" />
-        <span class="fig mono">{{ weather.date }}</span>
+        <span class="dot" style="background: #b98643" />
+        <h3>当前守护事项</h3>
+        <span v-if="!loading && !sectionErrors.ledger" class="rp-count">{{ activeLedger.length }} 项待处理</span>
       </header>
       <div class="panel-body">
+        <p v-if="loading || sectionLoading.ledger" class="rp-panel-state" role="status">正在读取守护事项…</p>
+        <div v-else-if="sectionErrors.ledger" class="rp-panel-state rp-panel-error" role="alert">{{ sectionErrors.ledger }} <button type="button" @click="retrySection('ledger')">重试</button></div>
+        <template v-else>
+        <p v-if="feedbackError" class="rp-panel-state rp-panel-error" role="alert">{{ feedbackError }}</p>
+        <div v-if="!ledger.length" class="rp-panel-state">暂无守护事项。完成一次就诊推演后，可在这里查看守护计划。</div>
+        <div v-else-if="!activeLedger.length" class="rp-panel-state rp-panel-success">目前没有待处理的守护事项。</div>
+        <ul v-if="visibleLedger.length" class="rp-ledger">
+          <li v-for="item in visibleLedger" :key="item.triggerId" :class="{ done: item.feedbackStatus === 'RESOLVED', escalated: item.feedbackStatus === 'ESCALATED' }">
+            <div class="rp-ledger-main">
+              <span class="rp-type mono" :data-type="item.chronoType">{{ TYPE_LABEL[item.chronoType] ?? "其他事项" }}</span>
+              <span class="rp-time mono">{{ item.triggerTime }}</span>
+              <span class="rp-fb" :data-fb="item.feedbackStatus || 'PENDING'">
+                {{ item.feedbackStatus === "RESOLVED" ? "已缓解" : item.feedbackStatus === "ESCALATED" ? "已升级就医" : item.feedbackStatus === "UNRESOLVED" ? "未缓解 · 加强守护中" : "待回执" }}
+              </span>
+            </div>
+            <div class="rp-ledger-content">
+              <b>{{ item.event }}</b>
+              <span>{{ item.action }}</span>
+            </div>
+            <details class="rp-ledger-evidence" v-if="item.timingCard?.evidenceBasis">
+              <summary>查看依据</summary><p>{{ item.timingCard.evidenceBasis }}（{{ item.timingCard.evidenceLevel }}）</p>
+            </details>
+            <div class="rp-ledger-foot" :aria-busy="feedbackBusy === item.triggerId">
+              <div v-if="item.feedbackStatus !== 'RESOLVED' && item.feedbackStatus !== 'ESCALATED'" class="rp-btns">
+                <button type="button" :disabled="feedbackBusy !== null" @click="sendFeedback(item, 'RESOLVED')">已缓解</button>
+                <button class="warn" type="button" :disabled="feedbackBusy !== null" @click="sendFeedback(item, 'UNRESOLVED')">未缓解</button>
+                <button class="danger" type="button" :disabled="feedbackBusy !== null" @click="sendFeedback(item, 'ESCALATED')">已就医</button>
+              </div>
+              <span v-else-if="item.feedbackStatus === 'ESCALATED'" class="rp-hint">等待医生跟进</span>
+              <span v-if="feedbackBusy === item.triggerId" class="rp-hint" role="status">正在提交回执…</span>
+            </div>
+            <!-- 对话式回执：用自己的话说情况，本地确定性解析（不联网、不臆造） -->
+            <div v-if="item.feedbackStatus !== 'RESOLVED' && item.feedbackStatus !== 'ESCALATED'" class="rp-nl">
+              <button v-if="nlInputId !== item.triggerId" type="button" class="nl-toggle" @click="toggleNl(item)">✎ 说说情况（文字回执）</button>
+              <div v-else class="nl-box">
+                <input
+                  v-model="nlText"
+                  class="nl-input"
+                  type="text"
+                  aria-label="描述当前守护事项的情况"
+                  :disabled="feedbackBusy !== null"
+                  :placeholder="'例如：好多了 / 还是没好转 / 已经去医院'"
+                  @keyup.enter="submitNlFeedback(item)"
+                />
+                <button v-if="speechSupported" type="button" class="nl-mic" :class="{ on: speechListening }"
+                        :aria-label="speechListening ? '停止语音输入' : '语音说情况'" :aria-pressed="speechListening"
+                        :title="speechListening ? '停止语音输入' : '语音说情况'"
+                        @click="dictateFeedback(item)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4m-4 0h8"/></svg></button>
+                <div class="nl-chips">
+                  <button type="button" :disabled="feedbackBusy !== null" @click='nlText = "好多了"; submitNlFeedback(item)'>好转了</button>
+                  <button type="button" :disabled="feedbackBusy !== null" @click='nlText = "还是没好转"; submitNlFeedback(item)'>没好转</button>
+                  <button type="button" class="danger" :disabled="feedbackBusy !== null" @click='nlText = "已经去医院"; submitNlFeedback(item)'>去了医院</button>
+                </div>
+                <button type="button" class="nl-send" :disabled="feedbackBusy !== null" @click="submitNlFeedback(item)">提交</button>
+              </div>
+              <p v-if="nlInputId === item.triggerId && nlHint" class="nl-hint" role="status">{{ nlHint }}</p>
+            </div>
+          </li>
+        </ul>
+        <button v-if="completedLedger.length" type="button" class="rp-completed-toggle" :aria-expanded="completedOpen" @click="completedOpen = !completedOpen">
+          {{ completedOpen ? "收起已完成事项" : "查看已完成事项" }} <span>{{ completedLedger.length }}</span><span aria-hidden="true">{{ completedOpen ? "⌃" : "⌄" }}</span>
+        </button>
+        </template>
+      </div>
+    </section>
+
+    <div class="rp-side-column">
+    <!-- 今日态势使用真实气象与守护指数 -->
+    <section class="rp-panel weather-panel">
+      <header class="sec-head">
+        <span class="dot" :style="{ background: weather?.color || '#3d816a' }" />
+        <h3>今日健康气象</h3>
+        <span class="spacer" />
+        <span v-if="weather" class="fig mono">{{ weather.date }}</span>
+      </header>
+      <div class="panel-body">
+        <p v-if="loading || sectionLoading.weather" class="rp-panel-state" role="status">正在读取今日态势…</p>
+        <div v-else-if="sectionErrors.weather" class="rp-panel-state rp-panel-error" role="alert">{{ sectionErrors.weather }} <button type="button" @click="retrySection('weather')">重试</button></div>
+        <template v-else-if="weather">
         <div class="rp-weather-main">
           <div class="breath-halo" :style="{ color: weather.color }" aria-hidden="true">
-            <span class="halo-ring" />
-            <span class="halo-ring r2" />
-            <span class="halo-core">{{ WEATHER_ICON[weather.weather] ?? "☁️" }}</span>
+            <span class="halo-core">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <template v-if="weather.weather === 'SUNNY'"><circle cx="24" cy="24" r="8"/><path d="M24 5v7m0 24v7M5 24h7m24 0h7M11 11l5 5m16 16 5 5M37 11l-5 5M16 32l-5 5"/></template>
+                <template v-else><path d="M11 30a8 8 0 0 1 3-15 11 11 0 0 1 21 3 7 7 0 0 1 1 14H13a8 8 0 0 1-2-2Z"/><path v-if="weather.weather === 'RAIN' || weather.weather === 'STORM'" d="m17 36-2 5m10-5-2 5m10-5-2 5"/><path v-if="weather.weather === 'STORM'" d="m26 32-4 7h4l-2 5"/></template>
+              </svg>
+            </span>
           </div>
           <div class="rp-weather-text">
             <h3 class="weather-label">{{ weather.weatherLabel }}</h3>
@@ -426,26 +576,41 @@ onMounted(loadAll);
             <span>今日守护指数</span>
           </div>
         </div>
+        <div class="rp-weather-meta">
+          <span>今日待关注 <strong>{{ weather.dueTodayCount }}</strong></span>
+          <span>已升级就医 <strong>{{ weather.escalatedCount }}</strong></span>
+        </div>
         <ul v-if="weather.items.length" class="rp-items">
           <li v-for="item in weather.items" :key="item.event + item.triggerTime">
-            <span class="rp-type mono" :data-type="item.chronoType">{{ TYPE_LABEL[item.chronoType] ?? item.chronoType }}</span>
+            <span class="rp-type mono" :data-type="item.chronoType">{{ TYPE_LABEL[item.chronoType] ?? "其他事项" }}</span>
             <span class="rp-event">{{ item.event }}</span>
             <span class="rp-time mono">{{ item.triggerTime }}</span>
           </li>
         </ul>
-        <p v-if="weather.familyTip" class="rp-family">👨‍👩‍👧 家属须知：{{ weather.familyTip }}</p>
+        <p v-if="weather.familyTip" class="rp-family"><strong>家属须知</strong> {{ weather.familyTip }}</p>
         <details class="rp-model-details"><summary>指数计算说明</summary><p>{{ weather.model }}</p></details>
+        </template>
+        <p v-else class="rp-panel-state">暂无今日健康气象数据。</p>
       </div>
     </section>
 
-    <!-- FIG.P2 未来三天守护天气趋势 -->
-    <section v-if="forecast && forecastColumns.length" class="rp-panel">
+    <!-- 72 小时趋势 -->
+    <section class="rp-panel rp-forecast-panel">
       <header class="sec-head">
         <span class="dot" style="background: #37808a" />
-        <h3>未来三天守护天气趋势</h3>
+        <h3>未来 72 小时</h3>
       </header>
       <div class="panel-body">
-        <p class="rp-hint">每一格是 3 小时——颜色越暖表示那个时段越需要当心。这是由你的守护计划计算出来的趋势，每缓解一项，格子就会降下去。</p>
+        <p v-if="loading || sectionLoading.forecast" class="rp-panel-state" role="status">正在读取守护趋势…</p>
+        <div v-else-if="sectionErrors.forecast" class="rp-panel-state rp-panel-error" role="alert">{{ sectionErrors.forecast }} <button type="button" @click="retrySection('forecast')">重试</button></div>
+        <template v-else-if="forecast && forecastColumns.length">
+        <div v-if="forecastIsCalm" class="rp-forecast-calm">
+          <span class="rp-forecast-calm-mark" aria-hidden="true">○</span>
+          <span>未来 72 小时各时段守护强度均为 0</span>
+          <button type="button" :aria-expanded="forecastDetailsOpen" @click="forecastDetailsOpen = !forecastDetailsOpen">{{ forecastDetailsOpen ? "收起分时数据" : "查看分时数据" }}</button>
+        </div>
+        <div v-if="!forecastIsCalm || forecastDetailsOpen" class="rp-forecast-detail">
+        <div class="rp-fc-legend"><span>每格 3 小时</span><span><i />颜色越暖越需关注</span></div>
         <div class="rp-fc" role="group" aria-label="未来72小时守护强度趋势图">
           <div v-for="col in forecastColumns" :key="col.offset" class="rp-fc-col"
                role="button" tabindex="0" :aria-label="`${col.offset}小时后，守护强度${col.intensity}${col.drivers.length ? '，' + col.drivers.join('、') : ''}`"
@@ -463,11 +628,16 @@ onMounted(loadAll);
           </select>
         </label>
         <p v-if="selectedForecastColumn" class="rp-fc-selected" role="status">{{ selectedForecastColumn.offset }} 小时后 · 守护强度 {{ selectedForecastColumn.intensity }}<span v-if="selectedForecastColumn.drivers.length"> · {{ selectedForecastColumn.drivers.join('、') }}</span></p>
-        <p v-if="forecastPeakText" class="rp-fc-peak">⏰ {{ forecastPeakText }}</p>
+        <p v-if="forecastPeakText" class="rp-fc-peak">{{ forecastPeakText }}</p>
+        <details class="rp-model-details"><summary>趋势如何变化</summary><p>趋势由现有守护计划计算；守护事项缓解后，相关时段的强度可能降低。</p></details>
+        </div>
+        </template>
+        <p v-else class="rp-panel-state">暂无未来 72 小时趋势数据。</p>
       </div>
     </section>
 
-    <!-- FIG.P3 涟漪曲线 + FIG.P4 消解环 -->
+    <!-- 历史趋势与回执进度 -->
+    </div>
     <section class="rp-grid">
       <div class="rp-panel">
         <header class="sec-head">
@@ -475,7 +645,9 @@ onMounted(loadAll);
           <h3>涟漪曲线（RII 轨迹）</h3>
         </header>
         <div class="panel-body">
-          <svg v-if="riiPoints.length >= 2" viewBox="0 0 320 120" class="rp-chart">
+          <p v-if="loading || sectionLoading.history" class="rp-panel-state" role="status">正在读取历史轨迹…</p>
+          <div v-else-if="sectionErrors.history" class="rp-panel-state rp-panel-error" role="alert">{{ sectionErrors.history }} <button type="button" @click="retrySection('history')">重试</button></div>
+          <svg v-else-if="riiPoints.length >= 2" viewBox="0 0 320 120" class="rp-chart" role="img" :aria-label="'最近 ' + riiPoints.length + ' 次健康事件的涟漪强度轨迹'">
             <polyline
               :points="riiPoints.map((p, i) => `${20 + (i * 280) / (riiPoints.length - 1)},${105 - Math.min(100, p.index)}`).join(' ')"
               fill="none" stroke="#37808a" stroke-width="2.5" stroke-linejoin="round"
@@ -488,17 +660,19 @@ onMounted(loadAll);
               <title>{{ p.diagnosis }}：RII={{ p.index }}</title>
             </circle>
           </svg>
-          <p v-else class="rp-hint">完成至少两次健康事件推演后，这里会出现你的涟漪强度轨迹。</p>
+          <p v-else class="rp-panel-state">完成至少两次健康事件推演后，可查看涟漪强度轨迹。</p>
         </div>
       </div>
 
-      <div class="rp-panel" v-if="resolution">
+      <div class="rp-panel">
         <header class="sec-head">
           <span class="dot" style="background: #41795f" />
           <h3>守护回执 · 涟漪消解</h3>
         </header>
         <div class="panel-body">
-          <div class="rp-rate">
+          <p v-if="loading || sectionLoading.resolution" class="rp-panel-state" role="status">正在读取回执进度…</p>
+          <div v-else-if="sectionErrors.resolution" class="rp-panel-state rp-panel-error" role="alert">{{ sectionErrors.resolution }} <button type="button" @click="retrySection('resolution')">重试</button></div>
+          <div v-else-if="resolution && resolution.totalTriggers > 0" class="rp-rate">
             <svg viewBox="0 0 90 90" class="rp-ring">
               <circle cx="45" cy="45" r="38" fill="none" stroke="#e5dfcb" stroke-width="9" />
               <circle
@@ -515,67 +689,12 @@ onMounted(loadAll);
               <p v-if="resolution.escalatedCount" class="rp-warn">⚠ {{ resolution.escalatedCount }} 项已升级就医</p>
             </div>
           </div>
+          <p v-else-if="resolution" class="rp-panel-state">目前没有守护回执记录。</p>
+          <p v-else class="rp-panel-state">暂无回执进度数据。</p>
         </div>
       </div>
     </section>
-
-    <!-- FIG.P5 守护事项回执 -->
-    <section class="rp-panel">
-      <header class="sec-head">
-        <span class="dot" style="background: #bd4033" />
-        <h3>守护事项回执</h3>
-      </header>
-      <div class="panel-body">
-        <p class="rp-hint">这是智能体为你主动设置的守护计划——完成后点击回执，涟漪就会消解。</p>
-        <div v-if="!ledger.length" class="rp-hint">暂无守护事项，完成一次就诊推演后这里会出现主动守护计划。</div>
-        <ul class="rp-ledger">
-          <li v-for="item in ledger" :key="item.triggerId" :class="{ done: item.feedbackStatus === 'RESOLVED' }">
-            <div class="rp-ledger-main">
-              <span class="rp-type mono" :data-type="item.chronoType">{{ TYPE_LABEL[item.chronoType] ?? item.chronoType }}</span>
-              <b>{{ item.event }}</b>
-              <span class="rp-hint">{{ item.action }}</span>
-            </div>
-            <div class="rp-ledger-card" v-if="item.timingCard?.evidenceBasis">
-              📎 {{ item.timingCard.evidenceBasis }}（{{ item.timingCard.evidenceLevel }}）
-            </div>
-            <div class="rp-ledger-foot">
-              <span class="rp-fb" :data-fb="item.feedbackStatus || 'PENDING'">
-                {{ item.feedbackStatus === "RESOLVED" ? "✓ 已缓解" : item.feedbackStatus === "ESCALATED" ? "已升级就医" : item.feedbackStatus === "UNRESOLVED" ? "未缓解·加强守护中" : "待回执" }}
-              </span>
-              <div v-if="item.feedbackStatus !== 'RESOLVED' && item.feedbackStatus !== 'ESCALATED'" class="rp-btns">
-                <button type="button" :disabled="feedbackBusy === item.triggerId" @click="sendFeedback(item, 'RESOLVED')">已缓解</button>
-                <button class="warn" type="button" :disabled="feedbackBusy === item.triggerId" @click="sendFeedback(item, 'UNRESOLVED')">未缓解</button>
-                <button class="danger" type="button" :disabled="feedbackBusy === item.triggerId" @click="sendFeedback(item, 'ESCALATED')">已就医</button>
-              </div>
-              <span v-else-if="item.feedbackStatus === 'ESCALATED'" class="rp-hint">已升级就医，等待医生跟进</span>
-            </div>
-            <!-- 对话式回执：用自己的话说情况，本地确定性解析（不联网、不臆造） -->
-            <div v-if="item.feedbackStatus !== 'RESOLVED' && item.feedbackStatus !== 'ESCALATED'" class="rp-nl">
-              <button v-if="nlInputId !== item.triggerId" type="button" class="nl-toggle" @click="toggleNl(item)">✎ 说说情况（文字回执）</button>
-              <div v-else class="nl-box">
-                <input
-                  v-model="nlText"
-                  class="nl-input"
-                  type="text"
-                  :placeholder="'例如：好多了 / 还是没好转 / 已经去医院'"
-                  @keyup.enter="submitNlFeedback(item)"
-                />
-                <button v-if="speechSupported" type="button" class="nl-mic" :class="{ on: speechListening }"
-                        :title="speechListening ? '正在听…' : '语音说情况'"
-                        @click="dictateFeedback(item)">{{ speechListening ? "● 听中" : "🎤" }}</button>
-                <div class="nl-chips">
-                  <button type="button" @click='nlText = "好多了"; submitNlFeedback(item)'>好转了</button>
-                  <button type="button" @click='nlText = "还是没好转"; submitNlFeedback(item)'>没好转</button>
-                  <button type="button" class="danger" @click='nlText = "已经去医院"; submitNlFeedback(item)'>去了医院</button>
-                </div>
-                <button type="button" class="nl-send" :disabled="feedbackBusy === item.triggerId" @click="submitNlFeedback(item)">提交</button>
-              </div>
-              <p v-if="nlInputId === item.triggerId && nlHint" class="nl-hint" role="status">{{ nlHint }}</p>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -854,8 +973,9 @@ onMounted(loadAll);
   color: var(--ink);
 }
 .nl-input:focus { border-color: var(--primary); outline: var(--focus); }
-.nl-chips { display: flex; gap: 6px; }
+.nl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .nl-chips button {
+  min-height: 40px;
   border: 1.5px solid var(--success);
   background: transparent;
   color: var(--success);
@@ -866,7 +986,8 @@ onMounted(loadAll);
   cursor: pointer;
 }
 .nl-chips button.danger { border-color: var(--danger); color: var(--danger); }
-.nl-chips button:hover { background: var(--surface); }
+.nl-chips button:hover:not(:disabled) { background: var(--surface); }
+.nl-chips button:disabled, .nl-input:disabled { opacity: 0.6; cursor: wait; }
 .nl-send {
   border: none;
   background: var(--primary);
@@ -917,7 +1038,7 @@ onMounted(loadAll);
 .elder-mode .rp-head p, .elder-mode .rp-index span, .elder-mode .rp-fb { color: #3a362a; }
 .elder-mode .sec-head h3 { font-size: 19px; }
 
-.ghost-btn:focus-visible, .rp-btns button:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.ghost-btn:focus-visible, .rp-btns button:focus-visible, .nl-toggle:focus-visible, .nl-chips button:focus-visible, .nl-send:focus-visible, .nl-mic:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .rp-fc-bar, .halo-core { transition: none; }

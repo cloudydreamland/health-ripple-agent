@@ -19,9 +19,14 @@ import sys
 import urllib.request
 import urllib.error
 import urllib.parse
+# 中文输出在任意终端/沙箱按 UTF-8 编码（Windows 控制台默认 GBK 会导致乱码）
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
-GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:18080")
+# 病历生成/保存接口按 DOCTOR 角色鉴权，优先取医生令牌
+API_TOKEN = os.environ.get("SCB_API_TOKEN_DOCTOR") or os.environ.get("SCB_API_TOKEN", "")
 TIMEOUT = 20  # 病历生成耗时较长
 
 
@@ -29,6 +34,8 @@ def _http_get(path):
     url = GATEWAY_URL.rstrip("/") + path
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -47,6 +54,8 @@ def _http_post(path, payload):
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -72,7 +81,7 @@ def _parse_result(body):
     except json.JSONDecodeError:
         return {"error": "json_parse_failed", "raw": body[:500]}
     if isinstance(result, dict) and "code" in result:
-        if result.get("code") == 200:
+        if result.get("code") in (0, 200):
             return result.get("data")
         return {"error": "business_error", "code": result.get("code"), "message": result.get("message")}
     return result
@@ -93,33 +102,86 @@ def action_generate(args):
     }
     result = _http_post("/api/medical-record/generate", payload)
     if isinstance(result, dict) and "error" in result:
-        return {
-            "chiefComplaint": "",
-            "presentIllness": "",
-            "pastHistory": "",
-            "physicalExam": "",
-            "diagnosis": "",
-            "treatmentAdvice": "",
-            "degraded": True,
-            "errorDetail": result,
-            "message": "病历生成服务暂时不可用，建议人工编写",
-        }
+        # 分级降级：改用内置知识库从问诊对话中确定性提取（不推断未提及的诊断）
+        local = _local_record_draft(args.dialogue_text, args.past_history)
+        local["mode"] = "KNOWLEDGE_BASE"
+        local["degradedReason"] = "未连接院内病历服务，改用内置知识库从对话中确定性提取（不推断未提及内容）"
+        local["errorDetail"] = result
+        return local
     return result
+
+
+# ============================================================
+# 内置知识库（降级模式）：从问诊对话确定性提取病历要素
+# 仅提取对话中明确出现的内容；未提及诊断时如实标注"待医生明确诊断"，绝不臆造。
+# ============================================================
+_KB_DIAGNOSIS_HINTS = {
+    "2型糖尿病": "2型糖尿病", "糖尿病": "2型糖尿病", "高血压": "高血压病",
+    "冠心病": "冠心病", "哮喘": "支气管哮喘", "慢性肾病": "慢性肾脏病",
+    "上呼吸道感染": "急性上呼吸道感染", "感冒": "急性上呼吸道感染",
+    "胃肠炎": "急性胃肠炎", "头痛": "头痛待查",
+}
+_KB_MED_HINTS = ("二甲双胍", "阿莫西林", "布洛芬", "阿司匹林", "缬沙坦", "氨氯地平",
+                 "阿奇霉素", "胰岛素", "辛伐他汀", "奥美拉唑")
+
+
+def _local_record_draft(dialogue_text, past_history):
+    """内置知识库病历草稿（本地回退，确定性提取）。"""
+    dialogue = (dialogue_text or "").strip()
+    diagnosis = ""
+    for hint, standard in _KB_DIAGNOSIS_HINTS.items():
+        if hint in dialogue:
+            diagnosis = standard
+            break
+    medications = [name for name in _KB_MED_HINTS if name in dialogue]
+
+    # 主诉：优先取"诉/主诉"之后到分隔符为止的片段，否则取前 40 字
+    marker = max(dialogue.find("诉"), dialogue.find("主诉"))
+    segment = dialogue[marker + 1:] if marker >= 0 and marker + 1 < len(dialogue) else dialogue
+    for delimiter in ("，", "。", "；", ",", ";", "诊断", "开"):
+        index = segment.find(delimiter)
+        if index > 0:
+            segment = segment[:index]
+            break
+    segment = segment.strip()
+    chief = segment[:40] if len(segment) > 40 else (segment or "（对话为空，待医生补充主诉）")
+
+    advice = ("处方：" + "、".join(medications) + "（用法用量由医生核定后开具）。"
+              if medications else "建议完善相关检查后由医生确认治疗方案。")
+    return {
+        "chiefComplaint": chief,
+        "presentIllness": "患者自述：" + dialogue + ("。" if dialogue else ""),
+        "pastHistory": past_history or "既往史待医生补充。",
+        "physicalExam": "体格检查待医生补充。",
+        "diagnosis": diagnosis or "待医生明确诊断（知识库未从对话中识别出诊断关键词）。",
+        "treatmentAdvice": advice,
+        "degraded": True,
+    }
 
 
 # ============================================================
 # action: history（查询历史病历）
 # ============================================================
 def action_history(args):
-    """查询患者历史病历。"""
+    """查询患者历史病历（走公开端点 /api/medical-record/list，按角色授权后客户端按 patientId 过滤）。
+
+    说明：/internal/** 是服务间端点（需 X-Internal-Token），网关不对外路由；
+    技能作为外部调用方必须走公开端点，避免"看起来能查、实际永远降级"的假动作。
+    """
     if not args.patient_id:
         return {"error": "missing_param", "message": "patient-id is required"}
 
-    path = f"/internal/medical-records/patient/{args.patient_id}"
-    result = _http_get(path)
+    result = _http_get("/api/medical-record/list")
     if isinstance(result, dict) and "error" in result:
         return {"records": [], "degraded": True, "errorDetail": result}
-    return {"records": result if isinstance(result, list) else [result] if result else []}
+    records = result if isinstance(result, list) else ([result] if result else [])
+    patient_id = _parse_int(args.patient_id)
+    filtered = [
+        r for r in records
+        if isinstance(r, dict) and _parse_int(r.get("patientId")) == patient_id
+    ]
+    return {"records": filtered, "count": len(filtered), "degraded": False,
+            "scopeNote": "按当前账号授权范围查询（医生=本人接诊病历）后按 patientId 过滤"}
 
 
 # ============================================================

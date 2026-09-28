@@ -4,7 +4,6 @@ import { storeToRefs } from "pinia";
 import { api, fieldText, formatApiError, statusClass, toNumber, useAuthStore, usePatientWorkflowStore, type DataRow } from "@smart-cloud-brain/shared-api";
 import { EmptyState, ErrorState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
 import CancelAppointmentModal from "../components/CancelAppointmentModal.vue";
-import PatientIcon from "../components/PatientIcon.vue";
 import { patientStatusText } from "../format";
 
 type AppointmentFilter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -36,9 +35,17 @@ const filters = computed(() => ([
   { key: "COMPLETED" as const, label: "已完成", count: registrations.value.filter((item) => category(item) === "COMPLETED").length },
   { key: "CANCELLED" as const, label: "已取消", count: registrations.value.filter((item) => category(item) === "CANCELLED").length },
 ]));
-const filteredRegistrations = computed(() => activeFilter.value === "ALL"
+const filteredRegistrations = computed(() => (activeFilter.value === "ALL"
   ? registrations.value
-  : registrations.value.filter((item) => category(item) === activeFilter.value));
+  : registrations.value.filter((item) => category(item) === activeFilter.value)).slice().sort((a, b) => {
+    const aTime = Date.parse(String(a.appointmentTime ?? ""));
+    const bTime = Date.parse(String(b.appointmentTime ?? ""));
+    const aUpcoming = category(a) === "ACTIVE" && Number.isFinite(aTime) && aTime >= Date.now();
+    const bUpcoming = category(b) === "ACTIVE" && Number.isFinite(bTime) && bTime >= Date.now();
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+    if (aUpcoming && bUpcoming) return aTime - bTime;
+    return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+  }));
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredRegistrations.value.length / PAGE_SIZE)));
 const pageRegistrations = computed(() => filteredRegistrations.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE));
 const visiblePages = computed(() => {
@@ -99,8 +106,8 @@ refresh();
 <template>
   <section class="panel patient-service-page patient-appointments-page">
     <header class="panel-header patient-rich-header">
-      <div class="panel-title"><span class="patient-header-kicker">就诊服务 / 挂号</span><h2>我的挂号</h2><p v-if="filters[1].count">{{ filters[1].count }} 条进行中 · {{ filters[2].count }} 条已完成</p></div>
-      <div class="patient-header-aside"><span class="patient-header-count"><PatientIcon name="appointments" /><strong>{{ registrations.length }}</strong><small>条记录</small></span><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
+      <div class="panel-title"><span class="patient-header-kicker">就诊服务 / 挂号</span><h2>我的挂号</h2></div>
+      <div class="patient-header-aside"><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
     </header>
     <div class="panel-body patient-appointments-body">
       <ErrorState v-if="error" :message="error" />
@@ -115,7 +122,7 @@ refresh();
           </button>
         </div>
         <div ref="listAnchor" class="patient-appointment-list-anchor">
-          <div class="patient-appointment-list-heading"><strong>{{ filters.find((filter) => filter.key === activeFilter)?.label }}记录</strong><span>共 {{ filteredRegistrations.length }} 条</span></div>
+          <div class="patient-appointment-list-heading"><strong>{{ filters.find((filter) => filter.key === activeFilter)?.label }}记录</strong></div>
           <div v-if="pageRegistrations.length" class="patient-appointment-grid">
             <article v-for="item in pageRegistrations" :key="String(item.registrationId)" class="patient-appointment-card" :data-status="String(item.status ?? '').toUpperCase()">
               <div class="patient-appointment-card-top">

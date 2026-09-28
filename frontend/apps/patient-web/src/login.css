@@ -18,6 +18,22 @@
   background:#f7faf8;
   box-shadow:0 34px 80px rgba(12,55,42,.11),0 2px 8px rgba(12,55,42,.05);
 }
+@media (min-width:901px) {
+  .patient-page.theme-patient.patient-login-shell { display:flex; flex-direction:column; height:100dvh; min-height:0; overflow:hidden; }
+  .patient-page.theme-patient.patient-login-shell .patient-modern-header { flex:none; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-page { flex:1; height:calc(100dvh - 76px); min-height:0; padding-block:16px; overflow:hidden; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-stage { height:100%; min-height:0; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-visual { min-height:0; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-entry { min-height:0; padding-block:24px; overflow:hidden; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-form-head { margin-bottom:24px; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-fields { gap:16px; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-submit { margin-top:22px; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-form-foot { margin-top:16px; }
+  .patient-page.theme-patient.patient-login-shell .patient-login-privacy { margin-top:22px; padding-top:14px; }
+}
+@media (min-width:901px) and (max-height:700px) {
+  .patient-page.theme-patient.patient-login-shell .patient-login-entry { overflow-y:auto; }
+}
 .patient-page.theme-patient .patient-login-visual {
   position:relative;
   display:flex;

@@ -77,19 +77,13 @@ refresh();
 <template>
   <section class="panel patient-service-page patient-archive-page">
     <header class="panel-header patient-rich-header">
-      <div class="panel-title"><span class="patient-header-kicker">诊后服务 / 就诊档案</span><h2>病历与处方</h2><p v-if="records.length">按每次就诊查看医生保存的病历和相关处方</p></div>
+      <div class="panel-title"><span class="patient-header-kicker">诊后服务 / 就诊档案</span><h2>病历与处方</h2></div>
       <div class="patient-header-aside"><span class="patient-header-count"><PatientIcon name="records" /><strong>{{ records.length }}</strong><small>份病历</small></span><button type="button" :disabled="loading" @click="refresh">刷新</button></div>
     </header>
     <div class="panel-body patient-archive-body">
       <ErrorState v-if="error" :message="error" />
       <LoadingState v-if="loading" />
       <template v-else>
-        <div class="patient-archive-overview" aria-label="档案概况">
-          <span><PatientIcon name="records" /> {{ records.length }} 份病历</span>
-          <span><PatientIcon name="prescriptions" /> {{ prescriptions.length }} 张处方</span>
-          <span v-if="archive.unlinked.length">{{ archive.unlinked.length }} 张处方待关联</span>
-        </div>
-
         <template v-if="archive.visits.length">
           <div class="patient-archive-section-head"><h3>选择一次就诊</h3><span>按最近保存排序</span></div>
           <div class="patient-visit-rail" role="group" aria-label="选择病历">

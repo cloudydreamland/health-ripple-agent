@@ -29,9 +29,14 @@ import urllib.request
 import urllib.error
 import urllib.parse
 from datetime import datetime
+# 中文输出在任意终端/沙箱按 UTF-8 编码（Windows 控制台默认 GBK 会导致乱码）
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
-GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:18080")
+# 分诊/挂号接口按 PATIENT 角色鉴权，优先取患者令牌
+API_TOKEN = os.environ.get("SCB_API_TOKEN_PATIENT") or os.environ.get("SCB_API_TOKEN", "")
 # 决策证据链本地存储（DuMate沙箱内可持久化）
 EVIDENCE_STORE = os.environ.get("SCB_EVIDENCE_STORE", ".scb_evidence")
 TIMEOUT = 15
@@ -41,6 +46,8 @@ def _http_get(path):
     url = GATEWAY_URL.rstrip("/") + path
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -59,6 +66,8 @@ def _http_post(path, payload):
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -84,7 +93,7 @@ def _parse_result(body):
     except json.JSONDecodeError:
         return {"error": "json_parse_failed", "raw": body[:500]}
     if isinstance(result, dict) and "code" in result:
-        if result.get("code") == 200:
+        if result.get("code") in (0, 200):
             return result.get("data")
         return {"error": "business_error", "code": result.get("code"), "message": result.get("message")}
     return result
@@ -307,6 +316,107 @@ def _build_handoff(triage_result, registration_result, patient_context):
 
 
 # ============================================================
+# 内置知识库（降级模式）：未连接院内系统时的本地循证分诊
+# 与后端规则引擎同源（危险症状优先于器官系统、急症优先于慢症、否定感知），
+# 输出标注 mode=KNOWLEDGE_BASE 且 degraded=true——不冒充院内系统结果，置信度取 0.70（低于院内 0.80）。
+# ============================================================
+_KB_NEURO_RED_FLAGS = ("意识不清", "言语不清", "偏瘫", "面瘫", "肢体麻木", "抽搐", "昏迷")
+_KB_GI_RED_FLAGS = ("呕血", "便血", "黑便")
+_KB_ASTHMA_MARKERS = ("哮喘", "喘息")
+_KB_BREATHLESS = ("呼吸困难", "讲话困难", "气促")
+_KB_CARDIO = ("胸痛", "胸闷", "心悸", "气短", "晕厥")
+_KB_CARDIO_SOLO_EMERGENCY = ("胸痛", "晕厥")
+_KB_CARDIO_EMERGENCY_ACCOMPANIED = ("大汗", "晕厥", "呼吸困难", "意识不清")
+_KB_PEDIATRIC = ("患儿", "儿童", "小儿", "小孩", "孩子")
+_KB_PEDIATRIC_EMERGENCY = ("高热", "抽搐", "呼吸困难", "意识不清", "喘息", "脱水")
+_KB_PREGNANCY = ("怀孕", "妊娠", "孕妇")
+_KB_METABOLIC = ("多饮", "多尿", "口渴", "血糖", "体重下降")
+_KB_RESPIRATORY = ("咳嗽", "咳痰", "发热", "咽痛", "哮喘")
+_KB_DIGESTIVE = ("腹痛", "腹泻", "呕吐", "反酸", "恶心", "腹胀")
+_KB_HEADACHE = ("头痛",)
+_KB_HEADACHE_ACCOMPANIED = ("呕吐", "视物模糊", "突发剧痛")
+
+_NEGATIONS = ("无", "不", "未", "否认", "没有", "排除")
+
+
+def _mentions(text, keywords):
+    """关键词命中判定，含否定感知：被"无/不/未/否认/没有"修饰的关键词不计为阳性证据。
+
+    （与后端 SymptomMatcher 同思路："无胸痛"不是心血管阳性证据）
+    """
+    for keyword in keywords:
+        start = 0
+        while True:
+            index = text.find(keyword, start)
+            if index < 0:
+                break
+            prefix = text[max(0, index - 4):index]
+            if not any(negation in prefix for negation in _NEGATIONS):
+                return True
+            start = index + len(keyword)
+    return False
+
+
+def _local_triage(chief_complaint, symptoms):
+    """内置知识库分诊（本地回退）。返回结果 dict；无法判定时返回 None（交由上层诚实降级）。"""
+    text = (chief_complaint or "") + " " + (symptoms or "")
+
+    def result(department, code, urgency, reason):
+        return {
+            "recommendedDepartment": department,
+            "departmentCode": code,
+            "urgencyLevel": urgency,
+            "confidence": 0.70,
+            "recommendedDoctorIds": [],
+            "reason": reason,
+            "degraded": True,
+            "mode": "KNOWLEDGE_BASE",
+            "degradedReason": "未连接院内分诊服务，改用内置循证知识库判定（规则口径与院内引擎同源，置信度取 0.70）",
+        }
+
+    # 优先级0：儿科红色指征（按年龄层先路由，成人规则不得误套）
+    if _mentions(text, _KB_PEDIATRIC):
+        emergency = _mentions(text, _KB_PEDIATRIC_EMERGENCY)
+        return result("儿科", "PEDIATRICS", "EMERGENCY" if emergency else "ROUTINE",
+                      "知识库规则：患儿主诉" + ("伴危重表现，立即儿科/急诊处置" if emergency else "，推荐儿科就诊（建议全科首诊转诊）"))
+    # 优先级1-2：神经/消化道急症红色指征
+    if _mentions(text, _KB_NEURO_RED_FLAGS):
+        return result("全科门诊", "GENERAL", "EMERGENCY",
+                      "知识库规则：识别卒中/意识急症红色指征，建议立即急诊医学科就诊（卒中黄金3小时），勿等待普通门诊")
+    if _mentions(text, _KB_GI_RED_FLAGS):
+        return result("全科门诊", "GENERAL", "EMERGENCY",
+                      "知识库规则：呕血/黑便提示上消化道出血，立即急诊并建立静脉通路")
+    # 优先级3：哮喘持续状态
+    if _mentions(text, _KB_ASTHMA_MARKERS) and _mentions(text, _KB_BREATHLESS):
+        return result("呼吸内科", "RESPIRATORY", "EMERGENCY",
+                      "知识库规则：哮喘伴呼吸困难提示哮喘持续状态风险，立即呼吸内科/急诊处置")
+    # 优先级4：颅压危象组合
+    if _mentions(text, _KB_HEADACHE) and _mentions(text, _KB_HEADACHE_ACCOMPANIED):
+        return result("全科门诊", "GENERAL", "EMERGENCY",
+                      "知识库规则：头痛伴呕吐/视物模糊提示颅内压升高，立即急诊排除脑血管意外")
+    # 优先级5：妊娠相关
+    if _mentions(text, _KB_PREGNANCY):
+        return result("产科", "OBSTETRICS", "ROUTINE", "知识库规则：妊娠相关主诉，推荐产科就诊（建议全科首诊转诊）")
+    # 优先级6：心血管（胸痛/晕厥单独即急症；胸闷/心悸需危重伴随症才升急）
+    if _mentions(text, _KB_CARDIO):
+        emergency = _mentions(text, _KB_CARDIO_SOLO_EMERGENCY) or (
+            _mentions(text, ("胸闷", "心悸")) and _mentions(text, _KB_CARDIO_EMERGENCY_ACCOMPANIED))
+        return result("心内科", "CARDIOLOGY", "EMERGENCY" if emergency else "ROUTINE",
+                      "知识库规则：主诉含危险心血管症状，需立即排除急性冠脉综合征"
+                      if emergency else "知识库规则：主诉含胸闷/心悸等心血管症状，推荐心内科评估")
+    # 优先级7-9：代谢 / 呼吸 / 消化
+    if _mentions(text, _KB_METABOLIC):
+        return result("全科门诊", "GENERAL", "ROUTINE",
+                      "知识库规则：主诉含多饮/多尿/血糖升高等代谢症状，推荐全科门诊完善血糖评估（内分泌方向）")
+    if _mentions(text, _KB_RESPIRATORY):
+        return result("呼吸内科", "RESPIRATORY", "ROUTINE", "知识库规则：主诉含咳嗽/发热等呼吸道症状，推荐呼吸内科")
+    if _mentions(text, _KB_DIGESTIVE):
+        return result("消化内科", "GASTROENTEROLOGY", "ROUTINE",
+                      "知识库规则：主诉含腹痛/腹泻等消化症状，推荐消化内科（建议全科首诊转诊）")
+    return None
+
+
+# ============================================================
 # action: triage（AI 分诊，含证据链+主动式触达）
 # ============================================================
 def action_triage(args):
@@ -327,15 +437,54 @@ def action_triage(args):
 
     result = _http_post("/api/triage/consult", payload)
     if isinstance(result, dict) and "error" in result:
-        # 降级：返回降级标记 + 证据链
+        # 分级降级：先走内置知识库（本地循证规则），能判定则给出完整卡片；
+        # 知识库也判不了才退回"建议人工分诊"（诚实降级，不硬猜科室）。
+        local = _local_triage(args.chief_complaint, args.symptoms)
+        if local is not None:
+            local["proactiveAssessment"] = _assess_proactive_action(local, args.chief_complaint)
+            local_alternatives = [
+                {"option": "全科门诊", "rejectedReason": "症状更匹配" + local["recommendedDepartment"]},
+            ]
+            if local["urgencyLevel"] != "EMERGENCY":
+                local_alternatives.append({"option": "急诊", "rejectedReason": "紧急度判定为%s，未达急诊指征" % local["urgencyLevel"]})
+            local["evidenceChain"] = _build_evidence_chain(
+                decision_type="TRIAGE",
+                inputs={
+                    "chiefComplaint": args.chief_complaint,
+                    "symptoms": args.symptoms or "",
+                    "age": args.age,
+                    "gender": args.gender,
+                    "trigger": "user_request",
+                    "serviceAvailable": False,
+                    "mode": "KNOWLEDGE_BASE",
+                },
+                ai_output={
+                    "recommendedDepartment": local["recommendedDepartment"],
+                    "urgencyLevel": local["urgencyLevel"],
+                    "confidence": local["confidence"],
+                    "mode": "KNOWLEDGE_BASE",
+                },
+                reasoning=[
+                    "未连接院内分诊服务，改用内置循证知识库（与院内引擎同源规则）",
+                    "命中规则：" + local["reason"],
+                    "置信度取 0.70（低于院内 0.80，因缺少患者院内档案上下文）",
+                ],
+                alternatives=local_alternatives,
+                confidence=local["confidence"],
+                action_taken=(local["proactiveAssessment"].get("proactiveAction") or "RECOMMEND_DEPARTMENT"),
+            )
+            return local
+
+        # 知识库无法识别 → 真实降级语义（需人工分诊）
         degraded_result = {
             "recommendedDepartment": "",
             "departmentCode": "",
             "urgencyLevel": "ROUTINE",
             "confidence": 0.0,
             "recommendedDoctorIds": [],
-            "reason": "AI 分诊服务暂时不可用，请人工导诊",
+            "reason": "内置知识库未识别出明确科室特征，建议人工分诊",
             "degraded": True,
+            "mode": "MANUAL_REQUIRED",
             "errorDetail": result,
         }
         evidence = _build_evidence_chain(
@@ -461,11 +610,12 @@ def action_register(args):
     triage_summary = {"recommendedDepartment": "", "urgencyLevel": "ROUTINE", "confidence": 0.0, "reason": ""}
     handoff = _build_handoff(triage_summary, result, patient_context)
 
-    # 交班证据链
+    # 交班证据链（ai_output 存快照而非 live 引用：后文 handoff["evidenceChain"]=... 会指回本对象，
+    #                                             直接传引用将构成自引用环，json.dumps 抛 Circular reference）
     handoff_evidence = _build_evidence_chain(
         decision_type="AGENT_HANDOFF",
         inputs={"fromAgent": "triage", "toAgent": "record", "registrationId": result.get("registrationId") if isinstance(result, dict) else None},
-        ai_output=handoff,
+        ai_output=json.loads(json.dumps(handoff, ensure_ascii=False)),
         reasoning=["分诊完成，挂号成功，交接给接诊Agent生成病历"],
         alternatives=[],
         confidence=1.0,

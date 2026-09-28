@@ -21,9 +21,14 @@ import urllib.request
 import urllib.error
 import urllib.parse
 from datetime import datetime, timedelta
+# 中文输出在任意终端/沙箱按 UTF-8 编码（Windows 控制台默认 GBK 会导致乱码）
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
-GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:8080")
+GATEWAY_URL = os.environ.get("SCB_GATEWAY_URL", "http://localhost:18080")
+# 随访由医生发起，优先取医生令牌
+API_TOKEN = os.environ.get("SCB_API_TOKEN_DOCTOR") or os.environ.get("SCB_API_TOKEN", "")
 TIMEOUT = 15
 
 
@@ -31,6 +36,8 @@ def _http_get(path):
     url = GATEWAY_URL.rstrip("/") + path
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -49,6 +56,8 @@ def _http_post(path, payload):
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
+    if API_TOKEN:
+        req.add_header("Authorization", "Bearer " + API_TOKEN)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             body = resp.read().decode("utf-8")
@@ -74,7 +83,7 @@ def _parse_result(body):
     except json.JSONDecodeError:
         return {"error": "json_parse_failed", "raw": body[:500]}
     if isinstance(result, dict) and "code" in result:
-        if result.get("code") == 200:
+        if result.get("code") in (0, 200):
             return result.get("data")
         return {"error": "business_error", "code": result.get("code"), "message": result.get("message")}
     return result
@@ -93,6 +102,14 @@ def action_create(args):
 
     # 生成用药提醒时间表
     reminder_schedule = _parse_medication_reminders(args.medications or "")
+    # 后端 DTO 约定 reminderSchedule 为字符串：发送人可读摘要，结构化时间表保留在技能输出中
+    reminder_text = "；".join(
+        "{raw} → 每日 {times}".format(
+            raw=item.get("rawText", ""),
+            times="/".join(item.get("times", [])),
+        )
+        for item in reminder_schedule
+    ) or "按医嘱用药，未见明确频次"
 
     payload = {
         "patientId": _parse_int(args.patient_id),
@@ -100,7 +117,7 @@ def action_create(args):
         "medications": args.medications or "",
         "followupDays": followup_days,
         "followupDate": followup_date,
-        "reminderSchedule": reminder_schedule,
+        "reminderSchedule": reminder_text,
     }
 
     result = _http_post("/api/followup/create", payload)
@@ -116,6 +133,14 @@ def action_create(args):
             "message": "随访服务暂时不可用，已生成计划供参考，建议人工安排",
             "errorDetail": result,
         }
+    # 成功路径：补回结构化时间表与计划日期，供 SKILL.md 的输出格式直接渲染
+    if isinstance(result, dict):
+        result.setdefault("patientId", _parse_int(args.patient_id))
+        result.setdefault("diagnosis", args.diagnosis or "")
+        result.setdefault("followupDays", followup_days)
+        result.setdefault("followupDate", followup_date)
+        result["reminderSchedule"] = reminder_schedule
+        result["degraded"] = False
     return result
 
 

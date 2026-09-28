@@ -3,7 +3,6 @@ import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { fieldText, statusClass, useAuthStore, usePatientWorkflowStore } from "@smart-cloud-brain/shared-api";
 import { EmptyState, LoadingState, StatusTag } from "@smart-cloud-brain/shared-ui";
-import PatientHero from "../components/PatientHero.vue";
 import PatientIcon from "../components/PatientIcon.vue";
 import { patientStatusText } from "../format";
 
@@ -33,19 +32,22 @@ const latestPrescription = computed(() => [...prescriptions.value].sort((a, b) =
 </script>
 
 <template>
-  <PatientHero />
   <LoadingState v-if="bootLoading" title="正在同步患者资料" />
   <template v-else>
     <section class="patient-current-task" aria-labelledby="patient-next-title">
       <div>
         <span class="patient-task-label">当前任务 · {{ fieldText(patient, "name", auth.session?.name || "患者") }}</span>
-        <h2 id="patient-next-title">{{ upcomingRegistration ? "查看就诊安排" : !latestTriage ? "先描述症状" : "查看可预约号源" }}</h2>
+        <h1 id="patient-next-title">{{ upcomingRegistration ? "查看就诊安排" : !latestTriage ? "先描述症状" : "查看可预约号源" }}</h1>
         <p v-if="!upcomingRegistration && latestTriage">最近分诊建议：{{ fieldText(latestTriage, "recommendedDepartment", "待确认") }}。科室建议需由接诊医生再次确认。</p>
         <p v-if="upcomingRegistration">{{ fieldText(upcomingRegistration, "departmentName") }} · {{ fieldText(upcomingRegistration, "doctorName") }} · {{ appointmentTime(upcomingRegistration.appointmentTime) }}</p>
       </div>
-      <RouterLink class="button primary patient-task-action" :to="upcomingRegistration ? '/appointments' : !latestTriage ? '/triage' : '/doctors'">
-        {{ upcomingRegistration ? "我的挂号" : !latestTriage ? "开始分诊" : "查看号源" }} <span aria-hidden="true">↗</span>
-      </RouterLink>
+      <div class="patient-task-controls">
+        <RouterLink v-if="upcomingRegistration || latestTriage" class="button primary patient-task-action" :to="upcomingRegistration ? '/appointments' : '/doctors'">
+          {{ upcomingRegistration ? "我的挂号" : "查看号源" }} <span aria-hidden="true">↗</span>
+        </RouterLink>
+        <RouterLink class="button patient-task-triage" :class="{ 'patient-task-action': !upcomingRegistration && !latestTriage }" to="/triage">描述症状 <span aria-hidden="true">↗</span></RouterLink>
+        <button class="patient-task-refresh" type="button" :disabled="bootLoading" @click="$emit('refresh')">刷新资料</button>
+      </div>
     </section>
     <section class="patient-card-grid" aria-label="就诊概况">
       <RouterLink class="patient-summary-card" to="/doctors"><div class="patient-summary-head"><span>可约号源</span><PatientIcon name="slots" /></div><strong>{{ slots.length }}</strong><small>选择医生 <span aria-hidden="true">↗</span></small></RouterLink>
@@ -64,13 +66,6 @@ const latestPrescription = computed(() => [...prescriptions.value].sort((a, b) =
             <p class="patient-triage-caution">科室建议用于就诊引导，最终诊断由接诊医生作出。</p>
           </div>
           <EmptyState v-else title="暂无分诊记录" message="请先提交症状信息，系统会给出科室建议。" />
-        </div>
-      </section>
-      <section class="panel patient-home-actions">
-        <header class="panel-header"><div class="panel-title"><h2>快捷操作</h2></div></header>
-        <div class="panel-body patient-home-actions-body">
-          <RouterLink class="patient-quick-link patient-quick-primary" :to="latestTriage ? '/doctors' : '/triage'"><PatientIcon :name="latestTriage ? 'slots' : 'triage'" /><span>{{ latestTriage ? "查看号源" : "提交分诊" }}</span><b aria-hidden="true">↗</b></RouterLink>
-          <button class="patient-quick-link" type="button" @click="$emit('refresh')"><PatientIcon name="refresh" /><span>刷新资料</span><b aria-hidden="true">↗</b></button>
         </div>
       </section>
       <section class="panel patient-home-registration">

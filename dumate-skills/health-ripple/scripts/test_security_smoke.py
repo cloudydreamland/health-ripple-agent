@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""临时验证脚本：Skill 安全增强功能冒烟测试（subprocess 列表参数避开 shell 转义）。"""
+"""Skill 安全增强功能冒烟测试（subprocess 列表参数避开 shell 转义）。
+
+确定性要求：用例1/4/5 验证的是**降级路径**（后端不可达时的脱敏/审计/安全边界），
+因此显式把 SCB_GATEWAY_URL 指向保底不可达端口——测试结果不得依赖"本机此刻是否
+恰好运行着后端"（本机 Docker 全栈在 18080 时曾导致用例1误判失败）。
+"""
 import json
 import subprocess
 import sys
@@ -8,10 +13,19 @@ import os
 BASE = os.path.dirname(os.path.abspath(__file__))
 MAIN = os.path.join(BASE, "main.py")
 
+# 保底不可达端口：用于稳定复现"后端离线"分支
+UNREACHABLE_GATEWAY = "http://localhost:59999"
 
-def run(args):
+
+def run(args, offline=True):
+    env = dict(os.environ)
+    if offline:
+        env["SCB_GATEWAY_URL"] = UNREACHABLE_GATEWAY
+        env.pop("SCB_API_TOKEN", None)
+        env.pop("SCB_API_TOKEN_DOCTOR", None)
+        env.pop("SCB_API_TOKEN_PATIENT", None)
     proc = subprocess.run([sys.executable, MAIN] + args, capture_output=True, text=True,
-                          encoding="utf-8", cwd=BASE, timeout=60)
+                          encoding="utf-8", cwd=BASE, timeout=60, env=env)
     return json.loads(proc.stdout)
 
 
